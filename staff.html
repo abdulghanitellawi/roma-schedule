@@ -107,7 +107,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
           <div>
             <h2 style="margin:0">جدولي</h2>
-            <div class="mini">مصدر العرض: employees/{uid}/schedules</div>
+            <div class="mini">مصدر العرض: collection <b>shifts</b> (employeeId = preset:email)</div>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
             <button class="btn" id="btnThisWeek">هذا الأسبوع</button>
@@ -117,7 +117,7 @@
 
         <div style="overflow:auto; margin-top:10px">
           <table>
-            <thead><tr><th>التاريخ</th><th>الفرع</th><th>الشفت</th><th>الوقت</th><th>ملاحظة</th></tr></thead>
+            <thead><tr><th>التاريخ</th><th>الفرع</th><th>الشفت</th><th class="timeCell">الوقت</th><th>ملاحظة</th></tr></thead>
             <tbody id="mySchedTbody"></tbody>
           </table>
         </div>
@@ -131,8 +131,7 @@
           <h2 style="margin:0">الحضور اليوم (GPS)</h2>
           <div class="mini">
             • لا يمكن عمل Check-in / Check-out إلا داخل نطاق الفرع (Geofence).<br>
-            • الحساب ينربط بأول جهاز يعمل Check-in (مكافحة مشاركة الحساب).<br>
-            • يتم حساب التأخير/الخروج المبكر حسب وقت السيرفر.
+            • (اختياري) ربط الحساب بجهاز واحد — يظهر بالأدمن إذا تم الحظر.
           </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
@@ -188,7 +187,18 @@
       const el = $(id);
       el.className = "msg " + (type==="bad"?"bad":"ok");
       el.textContent = text;
+      el.style.display = "block";
     };
+    const hideMsg = (id)=>{ const el=$(id); el.style.display="none"; };
+
+    const safeEmailDocId = (email)=> String(email||"").trim().toLowerCase().replace(/\./g,"(dot)");
+    const presetIdFromEmail = (email)=>{
+      const e = String(email||"").trim().toLowerCase();
+      if(!e) return null;
+      return "preset:" + safeEmailDocId(e);
+    };
+
+    function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
     function ymd(d){
       const dt = new Date(d);
@@ -199,23 +209,32 @@
     }
     function startOfWeek(d){
       const x = new Date(d);
+      const day = (x.getDay()+6)%7; // Mon=0
+      x.setDate(x.getDate()-day);
       x.setHours(0,0,0,0);
-      const day = x.getDay(); // 0 Sun .. 6 Sat
-      const diff = (day===0 ? -6 : 1-day); // Monday
-      x.setDate(x.getDate()+diff);
       return x;
     }
+    function endOfWeek(d){
+      const s = startOfWeek(d);
+      const e = new Date(s);
+      e.setDate(e.getDate()+6);
+      e.setHours(0,0,0,0);
+      return e;
+    }
+    function dateRange(from, to){
+      const a = new Date(from), b = new Date(to);
+      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+      const out=[];
+      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(ymd(d));
+      return out;
+    }
 
-    // ===== Email → presetId (employees_email) =====
-    const safeEmailDocId = (email)=> email.trim().toLowerCase().replace(/\\./g,"(dot)");
-    const presetIdFromEmail = (email)=> email ? ("preset:" + safeEmailDocId(email)) : null;
-
+    // ========= ensure employee doc (optional) =========
     async function readPresetByEmail(email){
       const ref = doc(db, "employees_email", safeEmailDocId(email));
       const snap = await getDoc(ref);
       return snap.exists() ? snap.data() : null;
     }
-
     async function ensureEmployeeDoc(user){
       const ref = doc(db, "employees", user.uid);
       const snap = await getDoc(ref);
@@ -239,15 +258,16 @@
       const data = preset ? { ...base, ...preset } : base;
       await setDoc(ref, data, { merge:true });
     }
-
     async function getMyRole(uid){
       const snap = await getDoc(doc(db,"employees",uid));
       return snap.exists() ? (snap.data()?.role || "staff") : "staff";
     }
 
-    // ===== Geofence helpers =====
-    function toRad(x){ return x * Math.PI / 180; }
+    // =========================
+    // GPS Geofence helpers
+    // =========================
     function haversineMeters(lat1,lng1,lat2,lng2){
+      const toRad = (x)=> (x*Math.PI)/180;
       const R = 6371000;
       const dLat = toRad(lat2-lat1);
       const dLng = toRad(lng2-lng1);
@@ -273,149 +293,168 @@
       return { lat:Number(lat), lng:Number(lng), radiusM: isFinite(radiusM)?radiusM:150 };
     }
 
-    // ===== Anti-tamper helpers (server time + device binding) =====
-    function uuid(){
-      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c=>{
-        const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15);
-        const v = c==="x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-    }
+    // =========================
+    // Device binding (خفيف)
+    // =========================
     function getOrCreateDeviceId(){
-      const key = "roma_device_id";
-      let v = localStorage.getItem(key);
-      if(!v){
-        v = uuid();
-        localStorage.setItem(key, v);
+      let id = localStorage.getItem("roma_device_id");
+      if(!id){
+        id = "dev_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+        localStorage.setItem("roma_device_id", id);
       }
-      return v;
+      return id;
     }
-    function timeToMin(t){
-      const m = String(t||"").trim().match(/^(\\d{1,2}):(\\d{2})$/);
-      if(!m) return null;
-      const hh = Math.max(0, Math.min(23, parseInt(m[1],10)));
-      const mm = Math.max(0, Math.min(59, parseInt(m[2],10)));
-      return hh*60 + mm;
-    }
-    function combineDateAndMin(ymdStr, mins){
-      const [y,m,d] = String(ymdStr).split("-").map(n=>parseInt(n,10));
-      const dt = new Date(y, (m||1)-1, d||1, 0,0,0,0);
-      dt.setMinutes(mins);
-      return dt;
+    const deviceId = getOrCreateDeviceId();
+    $("devPill").textContent = deviceId;
+
+    async function enforceDeviceBinding(presetId){
+      // يمكن تعطيله لو ما بدك: فقط خليه يرجع true دائماً
+      const ref = doc(db, "attendance_devices", presetId);
+      const snap = await getDoc(ref);
+      if(!snap.exists()){
+        await setDoc(ref, { deviceId, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge:true });
+        return { ok:true, bound:true };
+      }
+      const saved = snap.data()?.deviceId || null;
+      if(!saved || saved===deviceId){
+        await setDoc(ref, { deviceId, updatedAt: serverTimestamp() }, { merge:true });
+        return { ok:true, bound:false };
+      }
+      return { ok:false, savedDeviceId:saved };
     }
 
-    let _serverOffsetMs = null;
-    async function getServerOffsetMs(){
-      if(_serverOffsetMs != null) return _serverOffsetMs;
-      try{
-        const ref = doc(db,"meta","clock");
-        await setDoc(ref, { ts: serverTimestamp() }, { merge:true });
-        const snap = await getDoc(ref);
-        const ts = snap.exists() ? snap.data()?.ts : null;
-        if(ts && typeof ts.toDate === "function"){
-          const serverNow = ts.toDate().getTime();
-          _serverOffsetMs = serverNow - Date.now();
-          return _serverOffsetMs;
-        }
-      }catch(_){}
-      _serverOffsetMs = 0;
-      return 0;
+    // =========================
+    // Schedule: read from shifts
+    // =========================
+    async function loadMySchedule(from, to){
+      hideMsg("msgSched");
+      const presetId = presetIdFromEmail(me?.email || "");
+      if(!presetId){
+        $("mySchedTbody").innerHTML = `<tr><td colspan="5" class="badge">لا يوجد Email بالحساب</td></tr>`;
+        return;
+      }
+
+      const days = new Set(dateRange(from,to));
+
+      // لتجنب index مركّب: نجيب شفتات الموظف فقط ثم نفلتر محلياً على الفترة
+      const snap = await getDocs(query(collection(db,"shifts"), where("employeeId","==", presetId)));
+      const rows=[];
+      snap.forEach(d=>{
+        const x=d.data()||{};
+        if(!x.date || !days.has(x.date)) return;
+        rows.push({ id:d.id, ...x });
+      });
+
+      rows.sort((a,b)=> (a.date||"").localeCompare(b.date||"") || (a.start||"").localeCompare(b.start||""));
+
+      const tb = $("mySchedTbody");
+      tb.innerHTML="";
+      if(!rows.length){
+        tb.innerHTML = `<tr><td colspan="5" class="badge">لا يوجد شفتات ضمن الفترة المختارة</td></tr>`;
+        return;
+      }
+      for(const r of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${esc(r.date||"-")}</td>
+          <td>${esc(r.branchName||r.branchId||"-")}</td>
+          <td>${esc(r.shiftName||"-")}${r.shiftSlot>1?` <span class="badge">#${esc(r.shiftSlot)}</span>`:""}</td>
+          <td class="timeCell">${esc(r.start||"")} → ${esc(r.end||"")}</td>
+          <td>${r.note ? `<span class="badge">${esc(r.note)}</span>` : ""}</td>
+        `;
+        tb.appendChild(tr);
+      }
     }
 
-    // ===== Attendance (GPS + device + late/early) =====
-    function statusLabel(r){
-      const blocked = r.blocked === true || r.status === "blocked";
-      if(blocked) return "blocked";
-      if(r.status) return r.status;
-      const hasIn = !!r.checkInAt;
-      const hasOut = !!r.checkOutAt;
-      if(hasIn && hasOut) return "out";
-      if(hasIn) return "in";
-      return "-";
+    async function loadMyScheduleThisWeek(){
+      const s = startOfWeek(new Date());
+      const e = endOfWeek(new Date());
+      await loadMySchedule(ymd(s), ymd(e));
+    }
+    async function loadMyScheduleNextWeek(){
+      const s = startOfWeek(new Date());
+      s.setDate(s.getDate()+7);
+      const e = new Date(s); e.setDate(e.getDate()+6);
+      await loadMySchedule(ymd(s), ymd(e));
     }
 
+    $("btnThisWeek").addEventListener("click", loadMyScheduleThisWeek);
+    $("btnNextWeek").addEventListener("click", loadMyScheduleNextWeek);
+
+    // =========================
+    // Attendance (today) from shifts + attendance records
+    // =========================
     async function loadTodayAttendance(){
-      try{
-        const today = ymd(new Date());
-        const presetId = presetIdFromEmail(me?.email || "");
-        if(!presetId){
-          $("attTodayTbody").innerHTML = `<tr><td colspan="5" class="badge">لا يوجد Email بالحساب</td></tr>`;
-          return;
-        }
-
-        setMsg("msgAtt","جاري التحميل...","ok");
-
-        // ✅ بدون composite index: نجيب شفتات اليوم فقط ثم نفلتر محلياً حسب employeeId
-        const shSnap = await getDocs(query(collection(db,"shifts"), where("date","==", today)));
-        const shifts=[];
-        shSnap.forEach(d=>{
-          const x=d.data()||{};
-          if(String(x.employeeId||"") === String(presetId)) shifts.push({ id:d.id, ...x });
-        });
-        shifts.sort((a,b)=> (a.start||"").localeCompare(b.start||""));
-
-        // attendance docs for today (filter locally)
-        const atSnap = await getDocs(query(collection(db,"attendance"), where("date","==", today)));
-        const attByShift = new Map();
-        atSnap.forEach(d=>{
-          const x=d.data()||{};
-          if(String(x.employeeId||"") !== String(presetId)) return;
-          if(x.shiftId) attByShift.set(String(x.shiftId), { id:d.id, ...x });
-        });
-
-        const tb = $("attTodayTbody");
-        tb.innerHTML = "";
-        if(!shifts.length){
-          tb.innerHTML = `<tr><td colspan="5" class="badge">لا يوجد شفتات لك اليوم</td></tr>`;
-          setMsg("msgAtt","—","ok");
-          return;
-        }
-
-        for(const sh of shifts){
-          const rec = attByShift.get(String(sh.id)) || null;
-          const st = statusLabel(rec||{});
-          const hasIn = !!rec?.checkInAt;
-          const hasOut = !!rec?.checkOutAt;
-          const blocked = st==="blocked";
-
-          let actionHtml = "";
-          if(blocked){
-            actionHtml = `<button class="btn" data-act="in" data-shift="${esc(sh.id)}">إعادة محاولة</button>`;
-          }else if(!hasIn){
-            actionHtml = `<button class="btn primary" data-act="in" data-shift="${esc(sh.id)}">Check-in</button>`;
-          }else if(hasIn && !hasOut){
-            actionHtml = `<button class="btn danger" data-act="out" data-shift="${esc(sh.id)}">Check-out</button>`;
-          }else{
-            actionHtml = `<span class="badge">تم ✅</span>`;
-          }
-
-          const extra = rec?.lateMinutes ? ` • Late ${rec.lateMinutes}m` : rec?.earlyMinutes ? ` • Early ${rec.earlyMinutes}m` : "";
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${esc(sh.branchName||sh.branchId||"-")}</td>
-            <td>${esc(sh.shiftName||"-")}${sh.shiftSlot>1?` <span class="badge">#${esc(sh.shiftSlot)}</span>`:""}</td>
-            <td class="timeCell">${esc(sh.start||"")} → ${esc(sh.end||"")}</td>
-            <td><span class="badge">${esc(st)}${esc(extra)}</span></td>
-            <td>${actionHtml}</td>
-          `;
-          tb.appendChild(tr);
-        }
-
-        tb.querySelectorAll("button[data-act]").forEach(btn=>{
-          btn.addEventListener("click", async ()=>{
-            const act = btn.getAttribute("data-act");
-            const shiftId = btn.getAttribute("data-shift");
-            const sh = shifts.find(x=> String(x.id)===String(shiftId));
-            if(!sh) return;
-            await doAttendanceAction(act, sh);
-            await loadTodayAttendance();
-          });
-        });
-
-        setMsg("msgAtt","تم ✅","ok");
-      }catch(e){
-        setMsg("msgAtt", e?.message || "خطأ بالحضور", "bad");
+      hideMsg("msgAtt");
+      const today = ymd(new Date());
+      const presetId = presetIdFromEmail(me?.email || "");
+      if(!presetId){
+        $("attTodayTbody").innerHTML = `<tr><td colspan="5" class="badge">لا يوجد Email بالحساب</td></tr>`;
+        return;
       }
+
+      const shSnap = await getDocs(query(collection(db,"shifts"), where("date","==", today)));
+      const shifts=[];
+      shSnap.forEach(d=>{
+        const x=d.data()||{};
+        if(String(x.employeeId||"") === String(presetId)) shifts.push({ id:d.id, ...x });
+      });
+      shifts.sort((a,b)=> (a.start||"").localeCompare(b.start||""));
+
+      const atSnap = await getDocs(query(collection(db,"attendance"), where("date","==", today)));
+      const attByShift = new Map();
+      atSnap.forEach(d=>{
+        const x=d.data()||{};
+        if(String(x.employeeId||"") !== String(presetId)) return;
+        if(x.shiftId) attByShift.set(String(x.shiftId), { id:d.id, ...x });
+      });
+
+      const tb = $("attTodayTbody");
+      tb.innerHTML = "";
+      if(!shifts.length){
+        tb.innerHTML = `<tr><td colspan="5" class="badge">لا يوجد شفتات لك اليوم</td></tr>`;
+        return;
+      }
+
+      for(const sh of shifts){
+        const rec = attByShift.get(String(sh.id)) || null;
+        const hasIn = !!rec?.checkInAt;
+        const hasOut = !!rec?.checkOutAt;
+        const blocked = rec?.blocked===true || rec?.status==="blocked";
+        const state = blocked ? "blocked" : (hasIn && hasOut ? "out" : hasIn ? "in" : "-");
+
+        let actionHtml = "";
+        if(blocked){
+          actionHtml = `<button class="btn" data-act="in" data-shift="${esc(sh.id)}">إعادة محاولة</button>`;
+        }else if(!hasIn){
+          actionHtml = `<button class="btn primary" data-act="in" data-shift="${esc(sh.id)}">Check-in</button>`;
+        }else if(hasIn && !hasOut){
+          actionHtml = `<button class="btn danger" data-act="out" data-shift="${esc(sh.id)}">Check-out</button>`;
+        }else{
+          actionHtml = `<span class="badge">تم ✅</span>`;
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${esc(sh.branchName||sh.branchId||"-")}</td>
+          <td>${esc(sh.shiftName||"-")}${sh.shiftSlot>1?` <span class="badge">#${esc(sh.shiftSlot)}</span>`:""}</td>
+          <td class="timeCell">${esc(sh.start||"")} → ${esc(sh.end||"")}</td>
+          <td><span class="badge">${esc(state)}</span></td>
+          <td>${actionHtml}</td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      tb.querySelectorAll("button[data-act]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const act = btn.getAttribute("data-act");
+          const shiftId = btn.getAttribute("data-shift");
+          const sh = shifts.find(x=> String(x.id)===String(shiftId));
+          if(!sh) return;
+          await doAttendanceAction(act, sh);
+          await loadTodayAttendance();
+        });
+      });
     }
 
     async function doAttendanceAction(action, sh){
@@ -423,33 +462,45 @@
       const presetId = presetIdFromEmail(me?.email || "");
       if(!presetId) return setMsg("msgAtt","لا يوجد Email بالحساب","bad");
 
-      // GPS needs HTTPS
+      // GPS على المتصفح يحتاج HTTPS/localhost
       if(location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1"){
         return setMsg("msgAtt","الـ GPS يحتاج HTTPS. ارفع الموقع على Hosting أو افتحه عبر HTTPS.","bad");
       }
 
-      // server time
-      const serverOffsetMs = await getServerOffsetMs();
-      const serverNow = new Date(Date.now() + serverOffsetMs);
-
-      // device
-      const deviceId = getOrCreateDeviceId();
-      $("devPill").textContent = deviceId.slice(0,8);
-      const deviceInfo = {
-        id: deviceId,
-        ua: navigator.userAgent || "",
-        tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
-        platform: navigator.platform || ""
-      };
+      // device binding
+      const bind = await enforceDeviceBinding(presetId);
+      if(!bind.ok){
+        // سجّل blocked للادمن
+        const docId = `${today}__${presetId}__${sh.id}`;
+        await setDoc(doc(db,"attendance", docId), {
+          date: today,
+          shiftId: sh.id,
+          branchId: sh.branchId || "",
+          branchName: sh.branchName || "",
+          shiftName: sh.shiftName || "",
+          employeeId: presetId,
+          employeeUid: me.uid,
+          employeeEmail: me.email || "",
+          status: "blocked",
+          blocked: true,
+          blockedReason: "device_mismatch",
+          deviceId,
+          expectedDeviceId: bind.savedDeviceId || null,
+          blockedAction: action,
+          blockedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge:true });
+        return setMsg("msgAtt","❌ هذا الحساب مربوط بجهاز آخر. اطلب من الأدمن يعمل Reset Device.","bad");
+      }
 
       setMsg("msgAtt","جاري تحديد موقعك...","ok");
 
-      // branch geofence
+      // اقرأ GPS الفرع
       const brSnap = await getDoc(doc(db,"branches", sh.branchId));
       const brData = brSnap.exists() ? brSnap.data() : null;
       const geo = pickBranchGeo(brData);
       if(!geo){
-        return setMsg("msgAtt","هذا الفرع ليس لديه GPS بعد. اطلب من الأدمن يحدد lat/lng + radius ضمن الفروع.","bad");
+        return setMsg("msgAtt","هذا الفرع ليس لديه GPS (lat/lng) بعد. اطلب من الأدمن يحددها ضمن الفروع.","bad");
       }
 
       const pos = await getGeo();
@@ -463,22 +514,6 @@
       const docId = `${today}__${presetId}__${sh.id}`;
       const ref = doc(db,"attendance", docId);
 
-      // shift time calc
-      const startMin = timeToMin(sh.start||"");
-      const endMin = timeToMin(sh.end||"");
-      const shiftStart = (startMin==null) ? null : combineDateAndMin(today, startMin);
-      const shiftEnd   = (endMin==null) ? null : combineDateAndMin(today, endMin);
-
-      const graceLateMin = 10;
-      const graceEarlyMin = 10;
-
-      // device binding
-      const devRef = doc(db,"attendance_devices", presetId);
-      const devSnap = await getDoc(devRef);
-      const bound = devSnap.exists() ? (devSnap.data()||{}) : null;
-      const boundId = bound?.deviceId || null;
-
-      // build base payload
       const base = {
         date: today,
         shiftId: sh.id,
@@ -489,178 +524,74 @@
         employeeUid: me.uid,
         employeeEmail: me.email || "",
         employeeName: (me.email||"").split("@")[0],
-        deviceInfo,
-        gps: { lat: curLat, lng: curLng, accuracyM, distanceM: distM, radiusM: geo.radiusM, within: allow },
-        serverNow: serverNow.toISOString(),
+        deviceId,
+        gps: {
+          lat: curLat,
+          lng: curLng,
+          accuracyM: accuracyM,
+          distanceM: distM,
+          radiusM: geo.radiusM,
+          within: allow
+        },
         updatedAt: serverTimestamp()
       };
-
-      if(boundId && boundId !== deviceId){
-        await setDoc(ref, {
-          ...base,
-          blocked: true,
-          status: "blocked",
-          blockedReason: "device_mismatch",
-          blockedAction: action,
-          attemptedDeviceId: deviceId,
-          blockedAt: serverTimestamp()
-        }, { merge:true });
-        return setMsg("msgAtt","❌ هذا الحساب مربوط بجهاز آخر. تواصل مع الأدمن ليعمل Reset للجهاز.","bad");
-      }
 
       if(!allow){
         await setDoc(ref, {
           ...base,
           blocked: true,
           status: "blocked",
-          blockedReason: "gps_outside",
+          blockedReason: "outside_geofence",
           blockedAction: action,
           blockedAt: serverTimestamp()
         }, { merge:true });
         return setMsg("msgAtt",`❌ خارج نطاق الفرع: تبعد تقريباً ${Math.round(distM)}m (المسموح ${Math.round(geo.radiusM)}m)`,"bad");
       }
 
-      // bind device if first time (only when action allowed)
-      if(!boundId){
-        await setDoc(devRef, {
-          employeeId: presetId,
-          employeeEmail: me.email || "",
-          employeeUid: me.uid,
-          deviceId,
-          deviceInfo,
-          firstSeenAt: serverTimestamp(),
-          lastSeenAt: serverTimestamp()
-        }, { merge:true });
-      }else{
-        await setDoc(devRef, { lastSeenAt: serverTimestamp(), deviceInfo }, { merge:true });
-      }
-
-      const existingSnap = await getDoc(ref);
-      const existing = existingSnap.exists() ? (existingSnap.data()||{}) : null;
-
       if(action === "in"){
-        if(existing?.checkInAt) return setMsg("msgAtt","⚠️ أنت عامل Check-in مسبقاً لهذا الشفت.","bad");
-
-        let lateMinutes = 0;
-        if(shiftStart){
-          lateMinutes = Math.max(0, Math.floor((serverNow.getTime() - shiftStart.getTime())/60000));
-        }
-        const isLate = lateMinutes > graceLateMin;
-
-        await setDoc(ref, {
-          ...base,
-          blocked: false,
-          status: isLate ? "late" : "in",
-          lateMinutes: isLate ? lateMinutes : 0,
-          graceLateMin,
-          checkInAt: serverTimestamp(),
-          checkInServerNow: serverNow.toISOString()
-        }, { merge:true });
-
-        return setMsg("msgAtt", isLate ? `✅ تم Check-in (متأخر ${lateMinutes} دقيقة)` : "✅ تم Check-in بنجاح","ok");
+        await setDoc(ref, { ...base, blocked:false, status:"in", checkInAt: serverTimestamp() }, { merge:true });
+        return setMsg("msgAtt","✅ تم Check-in بنجاح","ok");
       }
 
       if(action === "out"){
-        if(!existing?.checkInAt) return setMsg("msgAtt","⚠️ لازم تعمل Check-in أولاً.","bad");
-        if(existing?.checkOutAt) return setMsg("msgAtt","⚠️ أنت عامل Check-out مسبقاً لهذا الشفت.","bad");
-
-        let earlyMinutes = 0;
-        if(shiftEnd){
-          earlyMinutes = Math.max(0, Math.floor((shiftEnd.getTime() - serverNow.getTime())/60000));
-        }
-        const isEarly = earlyMinutes > graceEarlyMin;
-
-        await setDoc(ref, {
-          ...base,
-          blocked: false,
-          status: isEarly ? "early_out" : "out",
-          earlyMinutes: isEarly ? earlyMinutes : 0,
-          graceEarlyMin,
-          checkOutAt: serverTimestamp(),
-          checkOutServerNow: serverNow.toISOString()
-        }, { merge:true });
-
-        return setMsg("msgAtt", isEarly ? `✅ تم Check-out (خروج مبكر ${earlyMinutes} دقيقة)` : "✅ تم Check-out بنجاح","ok");
+        await setDoc(ref, { ...base, blocked:false, status:"out", checkOutAt: serverTimestamp() }, { merge:true });
+        return setMsg("msgAtt","✅ تم Check-out بنجاح","ok");
       }
     }
 
-    function esc(s){
-      return String(s ?? "").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;"," >":"&gt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m] || m));
-    }
+    $("btnAttReload").addEventListener("click", loadTodayAttendance);
 
-    // ===== Leaves + schedule (existing) =====
+    // =========================
+    // Leaves (request)
+    // =========================
     async function loadMyLeaves(){
       const snap = await getDocs(collection(db,"leaves"));
       const rows = [];
       snap.forEach(d=>{
-        const x=d.data();
+        const x=d.data()||{};
         if(x.employeeId===me.uid) rows.push(x);
       });
       rows.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
       const tb = $("myLeavesTbody");
       tb.innerHTML = "";
+      if(!rows.length){
+        tb.innerHTML = `<tr><td colspan="3" class="badge">لا يوجد طلبات</td></tr>`;
+        return;
+      }
       for(const r of rows){
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${r.from||"-"}</td>
-          <td>${r.to||"-"}</td>
-          <td><span class="badge">${r.status||"pending"}</span></td>
+          <td>${esc(r.from||"-")}</td>
+          <td>${esc(r.to||"-")}</td>
+          <td><span class="badge">${esc(r.status||"pending")}</span></td>
         `;
         tb.appendChild(tr);
       }
     }
 
-    async function loadMySchedule(from, to){
-      try{
-        const daysSet = new Set();
-        const a = new Date(from), b = new Date(to);
-        a.setHours(0,0,0,0); b.setHours(0,0,0,0);
-        for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) daysSet.add(ymd(d));
-
-        const snap = await getDocs(collection(db, "employees", me.uid, "schedules"));
-        const rows = [];
-        snap.forEach(d=>{
-          const x=d.data();
-          if(daysSet.has(x.date)) rows.push(x);
-        });
-        rows.sort((a,b)=> (a.date||"").localeCompare(b.date||"") || (a.shiftName||"").localeCompare(b.shiftName||""));
-
-        const tb = $("mySchedTbody");
-        tb.innerHTML = "";
-        for(const r of rows){
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${r.date||"-"}</td>
-            <td>${r.branchName||r.branchId||"-"}</td>
-            <td>${r.shiftName||"-"}</td>
-            <td class="timeCell">${(r.start||"") && (r.end||"") ? `${r.start} - ${r.end}` : "-"}</td>
-            <td>${r.note ? `<span class="badge">${r.note}</span>` : ""}</td>
-          `;
-          tb.appendChild(tr);
-        }
-        setMsg("msgSched",`تم تحميل الجدول من ${from} إلى ${to} ✅`,"ok");
-      }catch(e){
-        setMsg("msgSched", e?.message || "خطأ بتحميل الجدول", "bad");
-      }
-    }
-
-    async function loadMyScheduleThisWeek(){
-      const start = startOfWeek(new Date());
-      const end = new Date(start); end.setDate(end.getDate()+6);
-      await loadMySchedule(ymd(start), ymd(end));
-    }
-    async function loadMyScheduleNextWeek(){
-      const start = startOfWeek(new Date());
-      start.setDate(start.getDate()+7);
-      const end = new Date(start); end.setDate(end.getDate()+6);
-      await loadMySchedule(ymd(start), ymd(end));
-    }
-
-    $("btnThisWeek").addEventListener("click", loadMyScheduleThisWeek);
-    $("btnNextWeek").addEventListener("click", loadMyScheduleNextWeek);
-
-    $("btnAttReload").addEventListener("click", loadTodayAttendance);
-
+    // =========================
+    // Init
+    // =========================
     let me = null;
 
     onAuthStateChanged(auth, async (user)=>{
@@ -677,8 +608,6 @@
       $("lFrom").value = ymd(tomorrow);
       $("lTo").value = ymd(after);
 
-      $("devPill").textContent = getOrCreateDeviceId().slice(0,8);
-
       await loadMyLeaves();
       await loadMyScheduleThisWeek();
       await loadTodayAttendance();
@@ -687,6 +616,7 @@
     $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
 
     $("btnLeave").addEventListener("click", async ()=>{
+      hideMsg("msgLeave");
       const from = $("lFrom").value;
       const to = $("lTo").value;
       if(!from || !to) return setMsg("msgLeave","اختر من/إلى","bad");
@@ -694,6 +624,7 @@
 
       await addDoc(collection(db,"leaves"), {
         employeeId: me.uid,
+        employeeName: (me.email||"").split("@")[0],
         from, to,
         status: "pending",
         createdAt: serverTimestamp()
