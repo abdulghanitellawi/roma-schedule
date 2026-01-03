@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Admin Dashboard</title>
+  <link rel="icon" href="./assets/logo.webp">
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow)}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
+    .box{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:16px;padding:12px}
+    .box b{font-size:22px}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+            <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <button class="btn primary" id="btnMakeAdmin" title="مرة واحدة فقط">اجعل Admin</button>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <h2>نظرة عامة</h2>
+      <div class="kpi">
+        <div class="box"><div class="mini">الفروع</div><b id="kBranches">0</b></div>
+        <div class="box"><div class="mini">الموظفين (employees)</div><b id="kEmployees">0</b></div>
+        <div class="box"><div class="mini">الموظفين (employees_email)</div><b id="kPresets">0</b></div>
+        <div class="box"><div class="mini">طلبات Pending</div><b id="kLeaves">0</b></div>
+      </div>
+      <div id="msgDash" class="msg"></div>
+      <div class="mini" style="margin-top:10px">
+        • كل فرع له شفتات 8 ساعات (end يُحسب تلقائيًا)<br>
+        • Regular له branchId ثابت<br>
+        • Cover يغطي الكل أو فروع محددة<br>
+        • الجداول تنحفظ داخل: employees/{uid}/schedules لتجنب مشاكل الـ Index
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const setMsg = (id, text, type="ok")=>{
+      const el = $(id);
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+    };
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+        setMsg("msgDash","لا يوجد Admin بعد. اضغط (اجعل Admin) لتصبح أول أدمن.", "bad");
+      }
+
+      const [bSnap, eSnap, pSnap, lSnap] = await Promise.all([
+        getDocs(collection(db,"branches")),
+        getDocs(collection(db,"employees")),
+        getDocs(collection(db,"employees_email")),
+        getDocs(query(collection(db,"leaves"), where("status","==","pending")))
+      ]);
+
+      $("kBranches").textContent = bSnap.size;
+      $("kEmployees").textContent = eSnap.size;
+      $("kPresets").textContent  = pSnap.size;
+      $("kLeaves").textContent   = lSnap.size;
+    });
+
+    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    $("btnMakeAdmin").addEventListener("click", async ()=>{
+      const user = auth.currentUser;
+      if(!user) return;
+      await setDoc(doc(db,"employees",user.uid), {
+        name: (user.email||"Admin").split("@")[0],
+        email: user.email || "",
+        role: "admin",
+        type: "regular",
+        department: "Admin",
+        canCover: true,
+        active: true,
+        createdAt: serverTimestamp()
+      }, { merge:true });
+
+      setMsg("msgDash","تم تعيين دورك Admin ✅ أعد تحميل الصفحة.", "ok");
+    });
+  </script>
+</body>
+</html>

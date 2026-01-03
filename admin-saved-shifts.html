@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - الشيفتات المحفوظة</title>
+  <link rel="icon" href="./assets/logo.webp">
+
+  <!-- ✅ Excel with styles -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+    input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.16);color:var(--txt);outline:none}
+    textarea{min-height:84px;resize:vertical}
+    input:focus,select:focus,textarea:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04);position:sticky;top:0}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .timeCell{direction:ltr; unicode-bidi:embed; text-align:left;}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    .kpi{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .kpi .pill{font-size:12px}
+    dialog{border:none;border-radius:18px;padding:0;background:rgba(10,16,28,.96);color:var(--txt);box-shadow:var(--shadow);width:min(680px, calc(100vw - 20px))}
+    dialog::backdrop{background:rgba(0,0,0,.55)}
+    .dlgHead{padding:12px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .dlgBody{padding:12px 12px}
+    .dlgFoot{padding:12px 12px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap}
+    .small{font-size:12px;color:var(--muted)}
+
+    /* ✅ Fix dropdown options visibility */
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+        <a class="btn primary" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <h2>الشيفتات المحفوظة (collection: shifts)</h2>
+      <div class="mini">
+        • فلترة حسب الفرع والفترة • تعديل/حذف • تعديل سريع لموظف الشفت<br>
+        • مصدر الموظفين: <b>employees_email</b> (للـ staff) + <b>employees</b> (للـ admin فقط)
+      </div>
+
+      <div class="row">
+        <div><label>الفرع</label><select id="fBranch"></select></div>
+        <div><label>من تاريخ</label><input id="fFrom" type="date"></div>
+        <div><label>إلى تاريخ</label><input id="fTo" type="date"></div>
+      </div>
+
+      <div class="row">
+        <div><label>بحث (اسم موظف/اسم شفت)</label><input id="fQ" placeholder="مثال: maya أو Shift 1"></div>
+        <div>
+          <label>إظهار</label>
+          <select id="fStatus">
+            <option value="">الكل</option>
+            <option value="assigned">assigned</option>
+            <option value="unassigned">unassigned</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" id="btnLoad">جلب الشيفتات</button>
+        <button class="btn" id="btnExport">تصدير Excel</button>
+        <button class="btn" id="btnQuickAssign">تعديل سريع (على المحدد)</button>
+        <button class="btn danger" id="btnDeleteSelected">حذف المحدد</button>
+      </div>
+
+      <div class="kpi" style="margin-top:10px">
+        <span class="pill" id="kCount">0 سجل</span>
+        <span class="pill" id="kSelected">0 محدد</span>
+        <span class="pill" id="kRange">—</span>
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>النتائج</h2>
+      <div style="overflow:auto; max-height: 70vh;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:38px"><input type="checkbox" id="chkAll"></th>
+              <th>التاريخ</th>
+              <th>الفرع</th>
+              <th>الشفت</th>
+              <th>الوقت</th>
+              <th>الموظف</th>
+              <th>نوعه</th>
+              <th>ملاحظة</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Dialog -->
+  <dialog id="dlgEdit">
+    <div class="dlgHead">
+      <div>
+        <b>تعديل شفت</b>
+        <div class="small" id="dlgMeta">—</div>
+      </div>
+      <button class="btn" id="dlgClose">إغلاق</button>
+    </div>
+    <div class="dlgBody">
+      <div class="row">
+        <div><label>التاريخ</label><input id="eDate" type="date"></div>
+        <div><label>اسم الشفت</label><input id="eShiftName" placeholder="Shift 1"></div>
+        <div><label>slot</label><input id="eSlot" type="number" min="1" step="1"></div>
+      </div>
+
+      <div class="row">
+        <div><label>بداية</label><input id="eStart" placeholder="10:00"></div>
+        <div><label>نهاية</label><input id="eEnd" placeholder="18:00"></div>
+      </div>
+
+      <div class="row">
+        <div><label>الموظف</label><select id="eEmp"></select></div>
+        <div><label>نوع الموظف</label>
+          <select id="eEmpType">
+            <option value="regular">regular</option>
+            <option value="cover">cover</option>
+          </select>
+        </div>
+        <div><label>status</label>
+          <select id="eStatus">
+            <option value="assigned">assigned</option>
+            <option value="unassigned">unassigned</option>
+          </select>
+        </div>
+      </div>
+
+      <label>ملاحظة</label>
+      <textarea id="eNote" placeholder="مثال: تغطية ✅"></textarea>
+
+      <div class="small" style="margin-top:8px">
+        نصيحة: إذا اخترت "— بدون موظف —" سيتم حفظ الشفت كـ unassigned (مفيد للتجهيز ثم التعيين لاحقاً).
+      </div>
+    </div>
+    <div class="dlgFoot">
+      <button class="btn primary" id="dlgSave">حفظ التعديل</button>
+      <button class="btn danger" id="dlgDelete">حذف هذا السجل</button>
+    </div>
+  </dialog>
+
+  <!-- Quick Assign Dialog -->
+  <dialog id="dlgQuick">
+    <div class="dlgHead">
+      <div>
+        <b>تعديل سريع على المحدد</b>
+        <div class="small" id="qMeta">—</div>
+      </div>
+      <button class="btn" id="qClose">إغلاق</button>
+    </div>
+    <div class="dlgBody">
+      <div class="row">
+        <div><label>الموظف الجديد</label><select id="qEmp"></select></div>
+        <div><label>نوعه</label>
+          <select id="qType">
+            <option value="regular">regular</option>
+            <option value="cover">cover</option>
+          </select>
+        </div>
+        <div><label>status</label>
+          <select id="qStatus">
+            <option value="assigned">assigned</option>
+            <option value="unassigned">unassigned</option>
+          </select>
+        </div>
+      </div>
+      <label>ملاحظة (تضاف/تستبدل)</label>
+      <textarea id="qNote" placeholder="مثال: تعديل يدوي"></textarea>
+      <div class="small" style="margin-top:8px">
+        سيتم تطبيق التعديل على كل السجلات المحددة.
+      </div>
+    </div>
+    <div class="dlgFoot">
+      <button class="btn primary" id="qApply">تطبيق</button>
+      <button class="btn" id="qCancel">إلغاء</button>
+    </div>
+  </dialog>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, collection, getDocs, query, where,
+      writeBatch, updateDoc, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    const setMsg = (text, type="ok")=>{
+      const el = $("msg");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    };
+
+    // ✅ read query params (branch/from/to) and auto-load
+    const URLP = new URLSearchParams(location.search);
+    const qpBranch = URLP.get("branch") || URLP.get("branchId") || URLP.get("b") || "";
+    const qpFrom = URLP.get("from") || URLP.get("f") || "";
+    const qpTo = URLP.get("to") || URLP.get("t") || "";
+    const qpAuto = (URLP.get("auto") || "").toLowerCase();
+    const WANT_AUTO = (qpBranch || qpFrom || qpTo) ? true : (qpAuto === "1" || qpAuto === "true");
+
+    let me = null;
+    let branches = [];
+    let empOptions = [];
+    let empById = new Map();
+    let rowsCache = [];
+    let selectedIds = new Set();
+    let currentEdit = null;
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    function ymd(d){
+      const dt = new Date(d);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,"0");
+      const da = String(dt.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function inRange(d, from, to){
+      if(from && d < from) return false;
+      if(to && d > to) return false;
+      return true;
+    }
+
+    function labelEmp(x){
+      const nm = x?.name || "";
+      const em = x?.email || "";
+      return nm ? nm : (em || x?.id || "—");
+    }
+
+    async function loadBranches(){
+      const snap = await getDocs(collection(db,"branches"));
+      const out=[]; snap.forEach(d=>out.push({id:d.id, ...d.data()}));
+      out.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+      branches = out;
+
+      $("fBranch").innerHTML =
+        `<option value="">— كل الفروع —</option>` +
+        out.map(r=>`<option value="${r.id}">${escapeHtml(r.name||r.id)} (${escapeHtml(r.id)})</option>`).join("");
+    }
+
+    function normalizeEmailToPresetId(email){
+      const e = String(email||"").trim().toLowerCase();
+      if(!e) return null;
+      return "preset:" + e.replace(/\./g,"(dot)");
+    }
+
+    async function loadEmployeesOptions(){
+      const out = [];
+
+      const snapStaff = await getDocs(query(collection(db,"employees_email"), where("active","==",true)));
+      snapStaff.forEach(d=>{
+        const x = d.data() || {};
+        const role = (x.role || "staff");
+        if(role !== "staff") return;
+        const email = (x.email || "").trim().toLowerCase();
+        const id = normalizeEmailToPresetId(email) || ("preset:" + d.id);
+        out.push({
+          id,
+          name: x.name || x.employeeName || x.fullName || x.displayName || "",
+          email,
+          src: "employees_email",
+          type: x.type || "regular"
+        });
+      });
+
+      const snapAdmins = await getDocs(collection(db,"employees"));
+      snapAdmins.forEach(d=>{
+        const x = d.data() || {};
+        const email = (x.email || "").trim().toLowerCase();
+        const id = x.id || d.id;
+        out.push({
+          id,
+          name: x.name || x.displayName || "",
+          email,
+          src: "employees",
+          type: x.type || "regular"
+        });
+      });
+
+      const map = new Map();
+      for(const e of out){
+        if(!e?.id) continue;
+        if(!map.has(e.id)) map.set(e.id, e);
+      }
+      empOptions = Array.from(map.values()).sort((a,b)=> labelEmp(a).localeCompare(labelEmp(b)));
+      empById = new Map(empOptions.map(e=>[e.id, e]));
+
+      const optHtml =
+        `<option value="">— بدون موظف —</option>` +
+        empOptions.map(e=>`<option value="${escapeHtml(e.id)}">${escapeHtml(labelEmp(e))}</option>`).join("");
+
+      $("eEmp").innerHTML = optHtml;
+      $("qEmp").innerHTML = optHtml;
+    }
+
+    function renderKpis(){
+      $("kCount").textContent = `${rowsCache.length} سجل`;
+      $("kSelected").textContent = `${selectedIds.size} محدد`;
+      const b = $("fBranch").value || "كل الفروع";
+      const f = $("fFrom").value || "—";
+      const t = $("fTo").value || "—";
+      $("kRange").textContent = `${b} | ${f} → ${t}`;
+    }
+
+    function rebuildSelectedFromUI(){
+      selectedIds = new Set();
+      document.querySelectorAll('input[data-sel="1"]').forEach(ch=>{
+        if(ch.checked) selectedIds.add(ch.value);
+      });
+      renderKpis();
+    }
+
+    function isAssignedRow(r){
+      return !!(r && r.employeeId);
+    }
+
+    function applyClientFilters(list){
+      const q = ($("fQ").value || "").trim().toLowerCase();
+      const status = $("fStatus").value || "";
+      if(!q && !status) return list;
+
+      return list.filter(r=>{
+        const name = String(r.employeeName||"").toLowerCase();
+        const shift = String(r.shiftName||"").toLowerCase();
+        const note = String(r.note||"").toLowerCase();
+        const st = String(r.status||"").toLowerCase();
+
+        if(status){
+          if(status === "unassigned"){
+            if(isAssignedRow(r)) return false;
+          }else if(status === "assigned"){
+            if(!isAssignedRow(r) && st !== "assigned") return false;
+          }else{
+            if(st !== status) return false;
+          }
+        }
+        if(q){
+          return (name.includes(q) || shift.includes(q) || note.includes(q));
+        }
+        return true;
+      });
+    }
+
+    function renderTable(list){
+      const tb = $("tb");
+      tb.innerHTML = "";
+
+      for(const r of list){
+        const id = r.__id;
+        const empLabel = r.employeeId ? escapeHtml(r.employeeName || r.employeeId) : "—";
+        const checked = selectedIds.has(id) ? "checked" : "";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-sel="1" type="checkbox" value="${escapeHtml(id)}" ${checked}></td>
+          <td>${escapeHtml(r.date||"")}</td>
+          <td>${escapeHtml(r.branchName||r.branchId||"")}</td>
+          <td>${escapeHtml(r.shiftName||"")}${r.shiftSlot?` <span class="badge">#${escapeHtml(r.shiftSlot)}</span>`:""}</td>
+          <td class="timeCell">${escapeHtml(r.start||"")} → ${escapeHtml(r.end||"")}</td>
+          <td>${empLabel}</td>
+          <td><span class="badge">${escapeHtml(r.employeeType||"-")}</span></td>
+          <td>${escapeHtml(r.note||"")}</td>
+          <td class="actions">
+            <button class="btn" data-edit="${escapeHtml(id)}">تعديل</button>
+            <button class="btn danger" data-del="${escapeHtml(id)}">حذف</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      tb.querySelectorAll('input[data-sel="1"]').forEach(ch=>{
+        ch.addEventListener("change", rebuildSelectedFromUI);
+      });
+
+      tb.querySelectorAll("button[data-edit]").forEach(b=>{
+        b.addEventListener("click", ()=> openEdit(b.getAttribute("data-edit")));
+      });
+      tb.querySelectorAll("button[data-del]").forEach(b=>{
+        b.addEventListener("click", ()=> deleteOne(b.getAttribute("data-del")));
+      });
+
+      renderKpis();
+    }
+
+    async function loadShifts(){
+      const branchId = $("fBranch").value || "";
+      const from = $("fFrom").value || "";
+      const to = $("fTo").value || "";
+
+      if(from && to && from > to){
+        setMsg("من لازم قبل إلى", "bad"); return;
+      }
+
+      setMsg("... جارِ الجلب", "ok");
+
+      const snap = await getDocs(collection(db,"shifts"));
+      const list = [];
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        const date = x.date || "";
+        if(branchId && (x.branchId||"") !== branchId) return;
+        if(date){
+          if(!inRange(date, from, to)) return;
+        }else{
+          return;
+        }
+        list.push({ __id: d.id, ...x });
+      });
+
+      list.sort((a,b)=>{
+        if(a.date !== b.date) return String(a.date).localeCompare(String(b.date));
+        if(String(a.shiftName||"") !== String(b.shiftName||"")) return String(a.shiftName||"").localeCompare(String(b.shiftName||""));
+        return Number(a.shiftSlot||1) - Number(b.shiftSlot||1);
+      });
+
+      rowsCache = list;
+      selectedIds = new Set();
+      $("chkAll").checked = false;
+
+      const filtered = applyClientFilters(rowsCache);
+      renderTable(filtered);
+
+      setMsg(`تم الجلب ✅ (${filtered.length} سجل بعد الفلترة)`, "ok");
+    }
+
+    // ✅ Excel export (NO slot/status/type columns)
+    function exportExcel(){
+      const XLSX = window.XLSX;
+      if(!XLSX) return setMsg("مكتبة Excel غير محمّلة.", "bad");
+
+      const filtered = applyClientFilters(rowsCache);
+      if(!filtered.length){
+        return setMsg("لا يوجد بيانات للتصدير حسب الفلترة الحالية.", "bad");
+      }
+
+      const headers = ["التاريخ","الفرع","الشفت","البداية","النهاية","الموظف","ملاحظة"];
+
+      const rows = filtered.map(r => ([
+        r.date || "",
+        r.branchName || r.branchId || "",
+        r.shiftName || "",
+        r.start || "",
+        r.end || "",
+        r.employeeId ? (r.employeeName || r.employeeId) : "—",
+        r.note || ""
+      ]));
+
+      const aoa = [headers, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      ws["!cols"] = [
+        { wch: 12 }, // date
+        { wch: 22 }, // branch
+        { wch: 18 }, // shift
+        { wch: 10 }, // start
+        { wch: 10 }, // end
+        { wch: 22 }, // employee
+        { wch: 34 }, // note
+      ];
+
+      // header style
+      for(let c=0; c<headers.length; c++){
+        const addr = XLSX.utils.encode_cell({ r:0, c });
+        if(ws[addr]){
+          ws[addr].s = {
+            font: { bold:true, color:{ rgb:"FFFFFFFF" } },
+            fill: { patternType:"solid", fgColor:{ rgb:"FF111827" } },
+            alignment: { horizontal:"center", vertical:"center" },
+            border: {
+              top:{style:"thin",color:{rgb:"FF374151"}},
+              bottom:{style:"thin",color:{rgb:"FF374151"}},
+              left:{style:"thin",color:{rgb:"FF374151"}},
+              right:{style:"thin",color:{rgb:"FF374151"}},
+            }
+          };
+        }
+      }
+
+      // color employee column based on type (cover/red, regular/green, unassigned/gray)
+      for(let i=0; i<filtered.length; i++){
+        const r = filtered[i];
+        const addr = XLSX.utils.encode_cell({ r:i+1, c:5 }); // employee col index (after removing cols)
+        if(!ws[addr]) continue;
+
+        const isUn = !r.employeeId;
+        const isCover = String(r.employeeType||"").toLowerCase() === "cover";
+
+        ws[addr].s = {
+          font: {
+            bold:true,
+            color:{ rgb: isUn ? "FF9CA3AF" : (isCover ? "FFEF4444" : "FF16A34A") }
+          },
+          alignment: { horizontal:"right", vertical:"center" }
+        };
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Saved Shifts");
+
+      const b = $("fBranch").value || "all";
+      const f = $("fFrom").value || "from";
+      const t = $("fTo").value || "to";
+      const filename = `saved_shifts_${b}_${f}_${t}.xlsx`;
+
+      XLSX.writeFile(wb, filename);
+      setMsg("تم تصدير Excel ✅ (بدون slot/status/type)", "ok");
+    }
+
+    function openEdit(id){
+      const r = rowsCache.find(x=>x.__id === id);
+      if(!r) return;
+
+      currentEdit = { id, data: r };
+
+      $("dlgMeta").textContent = `${r.branchName||r.branchId||""} | ${r.date||""} | ${r.shiftName||""} #${r.shiftSlot||1}`;
+
+      $("eDate").value = r.date || "";
+      $("eShiftName").value = r.shiftName || "";
+      $("eSlot").value = r.shiftSlot || 1;
+      $("eStart").value = r.start || "";
+      $("eEnd").value = r.end || "";
+      $("eNote").value = r.note || "";
+      $("eEmpType").value = r.employeeType || "regular";
+      $("eStatus").value = r.status || (r.employeeId ? "assigned" : "unassigned");
+      $("eEmp").value = r.employeeId || "";
+
+      $("dlgEdit").showModal();
+    }
+
+    async function saveEdit(){
+      if(!currentEdit) return;
+
+      const id = currentEdit.id;
+      const ref = doc(db, "shifts", id);
+
+      const date = $("eDate").value || "";
+      const shiftName = ($("eShiftName").value || "").trim();
+      const shiftSlot = Number($("eSlot").value || 1);
+      const start = ($("eStart").value || "").trim();
+      const end = ($("eEnd").value || "").trim();
+      const note = ($("eNote").value || "").trim();
+      const employeeId = $("eEmp").value || "";
+      const employeeType = $("eEmpType").value || "regular";
+      let status = $("eStatus").value || "assigned";
+
+      let employeeName = "";
+      let employeeSource = "";
+      if(employeeId){
+        const emp = empById.get(employeeId);
+        employeeName = emp ? (emp.name || emp.email || emp.id) : (currentEdit.data.employeeName || employeeId);
+        employeeSource = emp ? (emp.src || "") : (currentEdit.data.employeeSource || "");
+        status = status === "unassigned" ? "assigned" : status;
+      }else{
+        status = "unassigned";
+      }
+
+      await updateDoc(ref, {
+        date,
+        shiftName,
+        shiftSlot,
+        start,
+        end,
+        note,
+        employeeId: employeeId || null,
+        employeeName: employeeId ? employeeName : "—",
+        employeeType: employeeId ? employeeType : "-",
+        employeeSource: employeeId ? (employeeSource || "-") : "-",
+        status
+      });
+
+      setMsg("تم حفظ التعديل ✅", "ok");
+      $("dlgEdit").close();
+      await loadShifts();
+    }
+
+    async function deleteOne(id){
+      if(!id) return;
+      if(!confirm("حذف هذا السجل من shifts؟")) return;
+      await deleteDoc(doc(db,"shifts",id));
+      setMsg("تم حذف السجل ✅", "ok");
+      rowsCache = rowsCache.filter(x=>x.__id !== id);
+      selectedIds.delete(id);
+      renderTable(applyClientFilters(rowsCache));
+    }
+
+    async function deleteSelected(){
+      if(!selectedIds.size) return setMsg("ما في شي محدد للحذف", "bad");
+      if(!confirm(`حذف ${selectedIds.size} سجل؟`)) return;
+
+      const ids = Array.from(selectedIds);
+      for(let i=0;i<ids.length;i+=450){
+        const chunk = ids.slice(i, i+450);
+        const batch = writeBatch(db);
+        chunk.forEach(id=> batch.delete(doc(db,"shifts",id)));
+        await batch.commit();
+      }
+
+      setMsg(`تم حذف ${ids.length} سجل ✅`, "ok");
+      await loadShifts();
+    }
+
+    function openQuickAssign(){
+      if(!selectedIds.size){
+        return setMsg("حدد سطور أولاً ✅", "bad");
+      }
+      $("qMeta").textContent = `سيتم التعديل على ${selectedIds.size} سجل`;
+      $("dlgQuick").showModal();
+    }
+
+    async function applyQuickAssign(){
+      if(!selectedIds.size) return;
+
+      const employeeId = $("qEmp").value || "";
+      const employeeType = $("qType").value || "regular";
+      const statusSel = $("qStatus").value || "assigned";
+      const note = ($("qNote").value || "").trim();
+
+      let employeeName = "";
+      let employeeSource = "";
+
+      if(employeeId){
+        const emp = empById.get(employeeId);
+        employeeName = emp ? (emp.name || emp.email || emp.id) : employeeId;
+        employeeSource = emp ? (emp.src || "") : "";
+      }
+
+      const ids = Array.from(selectedIds);
+
+      for(let i=0;i<ids.length;i+=400){
+        const chunk = ids.slice(i, i+400);
+        const batch = writeBatch(db);
+
+        for(const id of chunk){
+          const ref = doc(db,"shifts",id);
+
+          const payload = {
+            note: note || "",
+            status: employeeId ? (statusSel === "unassigned" ? "assigned" : statusSel) : "unassigned",
+            employeeId: employeeId || null,
+            employeeName: employeeId ? employeeName : "—",
+            employeeType: employeeId ? employeeType : "-",
+            employeeSource: employeeId ? (employeeSource || "-") : "-"
+          };
+
+          batch.update(ref, payload);
+        }
+        await batch.commit();
+      }
+
+      $("dlgQuick").close();
+      setMsg("تم تطبيق التعديل السريع ✅", "ok");
+      await loadShifts();
+    }
+
+    // UI binds
+    $("btnLoad").addEventListener("click", loadShifts);
+    $("btnExport").addEventListener("click", exportExcel);
+
+    $("fQ").addEventListener("input", ()=> renderTable(applyClientFilters(rowsCache)));
+    $("fStatus").addEventListener("change", ()=> renderTable(applyClientFilters(rowsCache)));
+
+    $("chkAll").addEventListener("change", ()=>{
+      const on = $("chkAll").checked;
+      document.querySelectorAll('input[data-sel="1"]').forEach(ch=> ch.checked = on);
+      rebuildSelectedFromUI();
+    });
+
+    $("btnDeleteSelected").addEventListener("click", deleteSelected);
+    $("btnQuickAssign").addEventListener("click", openQuickAssign);
+
+    // dialogs
+    $("dlgClose").addEventListener("click", ()=> $("dlgEdit").close());
+    $("dlgSave").addEventListener("click", saveEdit);
+    $("dlgDelete").addEventListener("click", async ()=>{
+      if(!currentEdit) return;
+      await deleteOne(currentEdit.id);
+      $("dlgEdit").close();
+    });
+
+    $("qClose").addEventListener("click", ()=> $("dlgQuick").close());
+    $("qCancel").addEventListener("click", ()=> $("dlgQuick").close());
+    $("qApply").addEventListener("click", applyQuickAssign);
+
+    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      me = user;
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+      }
+
+      await loadBranches();
+      await loadEmployeesOptions();
+
+      const today = new Date();
+      const defFrom = new Date(today); defFrom.setDate(defFrom.getDate()-2);
+      const defTo = new Date(today); defTo.setDate(defTo.getDate()+14);
+      $("fFrom").value = ymd(defFrom);
+      $("fTo").value = ymd(defTo);
+
+      if(qpBranch) $("fBranch").value = qpBranch;
+      if(qpFrom) $("fFrom").value = qpFrom;
+      if(qpTo) $("fTo").value = qpTo;
+
+      if(WANT_AUTO){
+        setMsg("تم تطبيق فلترة الرابط... جارِ جلب الشيفتات ✅", "ok");
+        await loadShifts();
+      }else{
+        setMsg("جاهز ✅ اختر فلترة واضغط (جلب الشيفتات)", "ok");
+        renderKpis();
+      }
+    });
+  </script>
+</body>
+</html>

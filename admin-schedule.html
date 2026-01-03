@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Schedule Generator</title>
+  <link rel="icon" href="./assets/logo.webp">
+
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+    input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.16);color:var(--txt);outline:none}
+    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .msg .actions{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+    .timeCell{direction:ltr; unicode-bidi:embed; text-align:left;}
+
+    /* ✅ Fix dropdown options visibility */
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
+  </style>
+
+  <!-- ✅ Excel with styles -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+
+<body>
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <h2>توليد جدول تلقائي حسب الفرع (من branches + إجازات leaves)</h2>
+      <div class="mini">
+        • ✅ يقرأ الشفتات من <b>branches</b> عبر <b>shiftsByDay</b> حسب اليوم (Fallback إلى shifts القديم إن وُجد)<br>
+        • يقرأ الإجازات من <b>leaves</b> (approved) ويدعم range/scattered<br>
+        • إذا الموظف بإجازة → يغطيه Cover (الأولوية لتغطية محددة داخل leave إن وجدت)<br>
+        • مصدر الموظفين: <b>employees_email</b><br>
+        • ✅ يمنع أي موظف (خصوصاً cover) يكون على شفت بنفس الوقت بفرع آخر (يفحص shifts)<br>
+        • إذا ما في تغطية كافية → يظهر إشعار نقص تغطية
+      </div>
+
+      <div class="row">
+        <div><label>الفرع</label><select id="gBranch"></select></div>
+        <div><label>من تاريخ</label><input id="gFrom" type="date"></div>
+        <div><label>إلى تاريخ</label><input id="gTo" type="date"></div>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="btnPreview">معاينة فقط</button>
+        <button class="btn primary" id="btnGenerate">توليد + حفظ</button>
+        <button class="btn" id="btnExport">تصدير Excel</button>
+        <button class="btn danger" id="btnClear">حذف جداول الفترة (للإعادة)</button>
+      </div>
+
+      <div id="msgGen" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>معاينة</h2>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الشفت</th>
+              <th>الوقت</th>
+              <th>الموظف</th>
+              <th>نوعه</th>
+              <th>المصدر</th>
+              <th>ملاحظة</th>
+            </tr>
+          </thead>
+          <tbody id="previewTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, collection, getDocs, query, where,
+      serverTimestamp, writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ✅ إذا true: يمنع المعاينة/التوليد إذا الجدول موجود مسبقاً
+    const STOP_IF_EXISTS = true;
+
+    const $ = (id)=>document.getElementById(id);
+    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+
+    function setMsg(text, type="ok"){
+      const el = $("msgGen");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    }
+
+    function setMsgWithAction(text, type, actionLabel, actionHref){
+      const el = $("msgGen");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.style.display = "block";
+      el.innerHTML = `
+        <div>${escapeHtml(text)}</div>
+        <div class="actions" style="margin-top:10px">
+          <a class="btn primary" href="${escapeHtml(actionHref)}" target="_blank" rel="noopener">
+            ${escapeHtml(actionLabel)}
+          </a>
+        </div>
+      `;
+    }
+
+    function ymd(d){
+      const dt = new Date(d);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,"0");
+      const da = String(dt.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function dateRange(from, to){
+      const a = new Date(from), b = new Date(to);
+      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+      const out=[];
+      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(ymd(d));
+      return out;
+    }
+
+    function timeToMin(t){
+      if(!t) return null;
+      const m = String(t).trim().match(/^(\d{1,2}):(\d{2})$/);
+      if(!m) return null;
+      const hh = Math.max(0, Math.min(23, parseInt(m[1],10)));
+      const mm = Math.max(0, Math.min(59, parseInt(m[2],10)));
+      return hh*60 + mm;
+    }
+
+    function safeId(s){
+      return String(s||"").replaceAll("/", "_").replaceAll(" ", "_");
+    }
+
+    let me = null;
+    let lastPreview = [];
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    // ✅ check existing schedule WITHOUT needing composite index
+    // - نقرأ كل shifts (سريع بالعادة) ونفلتر محلياً.
+    // - لتخفيف: نوقف القراءة بعد ما نلاقي أول تطابق.
+    async function checkExistingSchedule(branchId, from, to){
+      if(!branchId || !from || !to) return false;
+
+      // جلب shifts بدون where/range = بدون index
+      const snap = await getDocs(collection(db,"shifts"));
+      for(const d of snap.docs){
+        const x = d.data() || {};
+        if((x.branchId||"") !== branchId) continue;
+        const dt = x.date || "";
+        if(dt && dt >= from && dt <= to) return true;
+      }
+      return false;
+    }
+
+    function makeSavedHref(branchId, from, to){
+      return `./admin-saved-shifts.html?branch=${encodeURIComponent(branchId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    }
+
+    // =========================
+    // ✅ Busy map (منع التعارض بين الفروع)
+    // =========================
+    function splitIntervals(startMin, endMin){
+      if(startMin===null || endMin===null) return [];
+      const s = ((startMin%1440)+1440)%1440;
+      const e = ((endMin%1440)+1440)%1440;
+      if(s === e) return [[0,1440]];
+      if(e > s) return [[s,e]];
+      return [[s,1440],[0,e]];
+    }
+    function overlap(a,b){ return Math.max(a[0],b[0]) < Math.min(a[1],b[1]); }
+    function busyAdd(busyMap, empId, date, startStr, endStr){
+      if(!empId || !date) return;
+      const s = timeToMin(startStr);
+      const e = timeToMin(endStr);
+      const parts = splitIntervals(s,e);
+      if(!parts.length) return;
+
+      if(!busyMap.has(empId)) busyMap.set(empId, new Map());
+      const byDate = busyMap.get(empId);
+      if(!byDate.has(date)) byDate.set(date, []);
+      const arr = byDate.get(date);
+      parts.forEach(p=>arr.push(p));
+    }
+    function busyHas(busyMap, empId, date, startStr, endStr){
+      if(!empId || !date) return false;
+      const byDate = busyMap.get(empId);
+      if(!byDate) return false;
+      const arr = byDate.get(date);
+      if(!arr || !arr.length) return false;
+
+      const s = timeToMin(startStr);
+      const e = timeToMin(endStr);
+      const parts = splitIntervals(s,e);
+      if(!parts.length) return false;
+
+      for(const p of parts){
+        for(const ex of arr){
+          if(overlap(p,ex)) return true;
+        }
+      }
+      return false;
+    }
+    async function getBusyMapFromSavedShifts(from,to){
+      const daysSet = new Set(dateRange(from,to));
+      const snap = await getDocs(collection(db,"shifts"));
+      const busy = new Map();
+
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        const empId = x.employeeId || null;
+        const date = x.date || null;
+        if(!empId || !date) return;
+        if(!daysSet.has(date)) return;
+
+        const st = x.start || "";
+        const en = x.end || "";
+        if(timeToMin(st)===null || timeToMin(en)===null) return;
+
+        busyAdd(busy, empId, date, st, en);
+      });
+
+      return busy;
+    }
+
+    // =========================
+    // ✅ dayKey from YYYY-MM-DD (بدون مشاكل تايمزون)
+    // =========================
+    const DAY_KEYS = ["sun","mon","tue","wed","thu","fri","sat"];
+    function dayKeyFromYMD(ymdStr){
+      const dt = new Date(ymdStr + "T12:00:00");
+      return DAY_KEYS[dt.getDay()];
+    }
+
+    // ===== Branches =====
+    async function loadBranchSelect(){
+      const snap = await getDocs(collection(db,"branches"));
+      const rows=[]; snap.forEach(d=>rows.push({id:d.id, ...d.data()}));
+      rows.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+      $("gBranch").innerHTML =
+        `<option value="">— اختر —</option>` +
+        rows.map(r=>`<option value="${r.id}">${escapeHtml(r.name)} (${escapeHtml(r.id)})</option>`).join("");
+    }
+
+    async function getBranchInfo(branchId){
+      const snap = await getDoc(doc(db,"branches",branchId));
+      if(!snap.exists()) return null;
+      const d = snap.data() || {};
+
+      const hoursByDay = d.hoursByDay || null;
+      const shiftsByDay = d.shiftsByDay || null;
+
+      const shifts = Array.isArray(d.shifts) ? d.shifts : [];
+      shifts.sort((a,b)=>{
+        const am = timeToMin(a.start||"") ?? 99999;
+        const bm = timeToMin(b.start||"") ?? 99999;
+        return am - bm;
+      });
+
+      return {
+        id: branchId,
+        name: d.name || branchId,
+        hoursByDay,
+        shiftsByDay,
+        shiftsFallback: shifts
+      };
+    }
+
+    // ===== Leaves =====
+    function expandLeaveDates(leave){
+      const mode = leave.leaveMode || "range";
+      const set = new Set();
+
+      if(mode === "scattered" && Array.isArray(leave.dates) && leave.dates.length){
+        for(const d of leave.dates){
+          if(typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) set.add(d);
+        }
+        return set;
+      }
+
+      if(leave.from && leave.to){
+        for(const d of dateRange(leave.from, leave.to)) set.add(d);
+      }
+      return set;
+    }
+
+    async function getApprovedLeavesMaps(){
+      const snap = await getDocs(query(collection(db,"leaves"), where("status","==","approved")));
+
+      const leaveMap = new Map();
+      const forcedCoverMap = new Map();
+
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        const empId = x.employeeId || x.empId || x.employee || x.employeeID;
+        if(!empId) return;
+
+        const coverId = x.coverEmployeeId || x.coverId || x.coverEmployee || null;
+
+        const days = expandLeaveDates(x);
+        for(const day of days){
+          if(!leaveMap.has(day)) leaveMap.set(day, new Set());
+          leaveMap.get(day).add(empId);
+
+          if(coverId){
+            forcedCoverMap.set(`${day}|${empId}`, { coverId });
+          }
+        }
+      });
+
+      return { leaveMap, forcedCoverMap };
+    }
+
+    // ===== Employees (employees_email) =====
+    function normalizeEmailToPresetId(email){
+      const e = String(email||"").trim().toLowerCase();
+      if(!e) return null;
+      return "preset:" + e.replace(/\./g,"(dot)");
+    }
+
+    async function getStaffForBranch_FromEmployeesEmail(branchId){
+      const snap = await getDocs(query(collection(db,"employees_email"), where("active","==",true)));
+      const regular=[], cover=[], allById=new Map();
+
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        const role = (x.role || "staff");
+        if(role !== "staff") return;
+
+        const type = (x.type || "regular");
+        const email = (x.email || "").trim().toLowerCase();
+        const presetId = normalizeEmailToPresetId(email) || ("preset:" + d.id);
+
+        const obj = {
+          id: presetId,
+          src: "employees_email",
+          email,
+          name: x.name || x.employeeName || x.fullName || x.displayName || "",
+          type,
+          branchId: x.branchId || "",
+          canCover: x.canCover !== false,
+          coverAllBranches: !!x.coverAllBranches,
+          coverBranchIds: Array.isArray(x.coverBranchIds) ? x.coverBranchIds : []
+        };
+
+        allById.set(obj.id, obj);
+
+        if(type === "regular"){
+          if(branchId && (obj.branchId||"") !== branchId) return;
+          regular.push(obj);
+          return;
+        }
+
+        if(!obj.canCover) return;
+        if(obj.coverAllBranches) cover.push(obj);
+        else if(branchId && obj.coverBranchIds.includes(branchId)) cover.push(obj);
+      });
+
+      const sortByName = (a,b)=> (String(a.name||a.email||a.id)).localeCompare(String(b.name||b.email||b.id));
+      regular.sort(sortByName);
+      cover.sort(sortByName);
+
+      return { regular, cover, allById };
+    }
+
+    // ===== pickers =====
+    function pickNext(list, excludedSet, usedTodaySet, rrRef, day, startStr, endStr, busyMap){
+      if(!list.length) return null;
+      for(let i=0;i<list.length;i++){
+        const idx = (rrRef.val + i) % list.length;
+        const emp = list[idx];
+        if(excludedSet?.has(emp.id)) continue;
+        if(usedTodaySet?.has(emp.id)) continue;
+        if(busyHas(busyMap, emp.id, day, startStr, endStr)) continue;
+
+        rrRef.val = (idx + 1) % list.length;
+        usedTodaySet.add(emp.id);
+        busyAdd(busyMap, emp.id, day, startStr, endStr);
+        return emp;
+      }
+      return null;
+    }
+
+    function pickSpecific(empId, allById, excludedSet, usedTodaySet, day, startStr, endStr, busyMap){
+      if(!empId) return null;
+      const emp = allById.get(empId) || null;
+      if(!emp) return null;
+      if(excludedSet?.has(emp.id)) return null;
+      if(usedTodaySet?.has(emp.id)) return null;
+      if(busyHas(busyMap, emp.id, day, startStr, endStr)) return null;
+
+      usedTodaySet.add(emp.id);
+      busyAdd(busyMap, emp.id, day, startStr, endStr);
+      return emp;
+    }
+
+    function pickForcedCover(forced, excludedSet, usedTodaySet, allById, day, startStr, endStr, busyMap){
+      if(!forced?.coverId) return null;
+      return pickSpecific(forced.coverId, allById, excludedSet, usedTodaySet, day, startStr, endStr, busyMap);
+    }
+
+    function getShiftsForDay(branch, dayKey){
+      if(branch.shiftsByDay && Array.isArray(branch.shiftsByDay[dayKey])){
+        const arr = branch.shiftsByDay[dayKey];
+        return [...arr].sort((a,b)=>{
+          const am = timeToMin(a.start||"") ?? 99999;
+          const bm = timeToMin(b.start||"") ?? 99999;
+          return am - bm;
+        });
+      }
+      return Array.isArray(branch.shiftsFallback) ? branch.shiftsFallback : [];
+    }
+
+    async function buildPreview(from,to, branchId){
+      if(!branchId) throw new Error("اختر الفرع أولاً.");
+
+      const [branch, staff, leaves, savedBusy] = await Promise.all([
+        getBranchInfo(branchId),
+        getStaffForBranch_FromEmployeesEmail(branchId),
+        getApprovedLeavesMaps(),
+        getBusyMapFromSavedShifts(from,to)
+      ]);
+
+      if(!branch) throw new Error("الفرع غير موجود.");
+
+      const { regular, cover, allById } = staff;
+      if(!regular.length && !cover.length) throw new Error("لا يوجد موظفين نشطين لهذا الفرع ولا تغطية (employees_email).");
+
+      const { leaveMap, forcedCoverMap } = leaves;
+
+      const rrRegular={val:0}, rrCover={val:0};
+      const days = dateRange(from,to);
+      const preview=[];
+      let missingCount = 0;
+
+      const busyMap = savedBusy;
+
+      for(const day of days){
+        const dk = dayKeyFromYMD(day);
+        const hv = branch.hoursByDay?.[dk];
+        if(hv && hv.closed === true) continue;
+
+        const dayShiftsAll = getShiftsForDay(branch, dk);
+        const dayShifts = (Array.isArray(dayShiftsAll)? dayShiftsAll : []).filter(s=>Number(s.minStaff||0)>0);
+        if(!dayShifts.length) continue;
+
+        const excluded = leaveMap.get(day) || new Set();
+        const usedToday = new Set();
+
+        for(const sh of dayShifts){
+          const need = Math.max(1, Number(sh.minStaff||1));
+          const shStart = sh.start || "";
+          const shEnd = sh.end || "";
+
+          for(let slot=1; slot<=need; slot++){
+            let emp = null;
+            let note = "";
+            let empType = "-";
+            let empSrc = "-";
+
+            const assignedId = (slot===1) ? (sh.assignedEmployeeId || null) : null;
+
+            if(assignedId){
+              const assignedBusy = busyHas(busyMap, assignedId, day, shStart, shEnd);
+              if(assignedBusy) note = "⚠️ الموظف المحدد مشغول بفرع آخر";
+
+              if(!excluded.has(assignedId) && !assignedBusy){
+                emp = pickSpecific(assignedId, allById, excluded, usedToday, day, shStart, shEnd, busyMap);
+                if(emp){ empType="regular"; empSrc=emp.src; }
+              }else{
+                const forced = forcedCoverMap.get(`${day}|${assignedId}`) || null;
+
+                if(excluded.has(assignedId)){
+                  emp = pickForcedCover(forced, excluded, usedToday, allById, day, shStart, shEnd, busyMap);
+                  if(emp){
+                    empType="cover"; empSrc=emp.src;
+                    note = "تغطية محددة ✅";
+                  }
+                }
+
+                if(!emp){
+                  emp = pickNext(cover, excluded, usedToday, rrCover, day, shStart, shEnd, busyMap);
+                  if(emp){
+                    empType="cover"; empSrc=emp.src;
+                    note = note ? (note + " + تغطية ✅") : "تغطية ✅";
+                  }else{
+                    note = note ? (note + " + ⚠️ نقص تغطية") : "⚠️ نقص تغطية";
+                  }
+                }
+              }
+            }
+
+            if(!emp){
+              emp = pickNext(regular, excluded, usedToday, rrRegular, day, shStart, shEnd, busyMap);
+              if(emp){
+                empType="regular"; empSrc=emp.src;
+              }else{
+                emp = pickNext(cover, excluded, usedToday, rrCover, day, shStart, shEnd, busyMap);
+                if(emp){
+                  empType="cover"; empSrc=emp.src;
+                  note = note ? (note + " + تغطية ✅") : "تغطية ✅";
+                }else{
+                  note = note ? (note + " + ⚠️ نقص تغطية") : "⚠️ نقص تغطية";
+                }
+              }
+            }
+
+            if(!emp) missingCount++;
+
+            preview.push({
+              date: day,
+              branchId: branch.id,
+              branchName: branch.name,
+              shiftName: sh.name || sh.key || "Shift",
+              shiftSlot: slot,
+              start: shStart,
+              end: shEnd,
+              employeeId: emp ? emp.id : null,
+              employeeName: emp ? (emp.name || emp.email || emp.id) : "—",
+              employeeType: emp ? empType : "-",
+              employeeSource: emp ? empSrc : "-",
+              note
+            });
+          }
+        }
+      }
+
+      if(!preview.length){
+        throw new Error("لا يوجد شفتات ضمن الفترة المختارة (قد يكون اليوم مغلق أو لا توجد شفتات مفعلة ضمن shiftsByDay).");
+      }
+
+      return { preview, missingCount };
+    }
+
+    function renderPreview(preview){
+      const tb = $("previewTbody");
+      tb.innerHTML="";
+      for(const r of preview){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(r.date)}</td>
+          <td>${escapeHtml(r.shiftName)}${r.shiftSlot>1 ? ` <span class="badge">#${r.shiftSlot}</span>` : ""}</td>
+          <td class="timeCell">${escapeHtml(r.start)} → ${escapeHtml(r.end)}</td>
+          <td>${escapeHtml(r.employeeName)}</td>
+          <td><span class="badge">${escapeHtml(r.employeeType)}</span></td>
+          <td><span class="badge">${escapeHtml(r.employeeSource)}</span></td>
+          <td>${escapeHtml(r.note||"")}</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    async function saveSchedules(preview){
+      let batch = writeBatch(db);
+      let ops = 0;
+
+      for(const r of preview){
+        if(!r.employeeId) continue;
+
+        const docId = safeId(`${r.branchId}__${r.date}__${r.shiftName}__${r.shiftSlot}`);
+        const ref = doc(db, "shifts", docId);
+
+        batch.set(ref, {
+          date: r.date,
+          branchId: r.branchId,
+          branchName: r.branchName,
+          shiftName: r.shiftName,
+          shiftSlot: r.shiftSlot,
+          start: r.start,
+          end: r.end,
+          employeeId: r.employeeId,
+          employeeName: r.employeeName,
+          employeeType: r.employeeType,
+          employeeSource: r.employeeSource,
+          status: "assigned",
+          note: r.note || "",
+          generatedAt: serverTimestamp(),
+          generatedBy: me.uid
+        }, { merge:true });
+
+        ops++;
+        if(ops >= 450){
+          await batch.commit();
+          batch = writeBatch(db);
+          ops = 0;
+        }
+      }
+
+      if(ops>0) await batch.commit();
+    }
+
+    async function clearSchedulesInRange(from,to, branchId){
+      const days = new Set(dateRange(from,to));
+      const snap = await getDocs(collection(db,"shifts"));
+      const toDelete = [];
+
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        if(branchId && (x.branchId||"") !== branchId) return;
+        if(!x.date || !days.has(x.date)) return;
+        toDelete.push(d.ref);
+      });
+
+      if(!toDelete.length) return 0;
+
+      let deleted = 0;
+      for(let i=0; i<toDelete.length; i+=450){
+        const chunk = toDelete.slice(i, i+450);
+        const batch = writeBatch(db);
+        chunk.forEach(ref=> batch.delete(ref));
+        await batch.commit();
+        deleted += chunk.length;
+      }
+      return deleted;
+    }
+
+    async function exportExcel(){
+      if(!lastPreview.length){
+        return setMsg("لا يوجد بيانات للتصدير. اعمل معاينة أولاً ✅", "bad");
+      }
+      const XLSX = window.XLSX;
+      if(!XLSX) return setMsg("مكتبة Excel غير محمّلة.", "bad");
+
+      const headers = ["التاريخ","الفرع","الشفت","البداية","النهاية","الموظف","ملاحظة"];
+
+      const rows = lastPreview.map(r => ([
+        r.date,
+        r.branchName,
+        r.shiftName,
+        r.start,
+        r.end,
+        r.employeeName,
+        r.note || ""
+      ]));
+
+      const aoa = [headers, ...rows];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      ws["!cols"] = [
+        { wch: 12 },
+        { wch: 22 },
+        { wch: 18 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 22 },
+        { wch: 30 },
+      ];
+
+      // header style
+      for(let c=0; c<headers.length; c++){
+        const addr = XLSX.utils.encode_cell({ r:0, c });
+        if(ws[addr]){
+          ws[addr].s = {
+            font: { bold:true, color:{ rgb:"FFFFFFFF" } },
+            fill: { patternType:"solid", fgColor:{ rgb:"FF111827" } },
+            alignment: { horizontal:"center", vertical:"center" },
+            border: {
+              top:{style:"thin",color:{rgb:"FF374151"}},
+              bottom:{style:"thin",color:{rgb:"FF374151"}},
+              left:{style:"thin",color:{rgb:"FF374151"}},
+              right:{style:"thin",color:{rgb:"FF374151"}},
+            }
+          };
+        }
+      }
+
+      // color employee name: regular=green, cover=red
+      for(let i=0; i<lastPreview.length; i++){
+        const r = lastPreview[i];
+        const cellAddr = XLSX.utils.encode_cell({ r:i+1, c:5 }); // employee col
+        if(!ws[cellAddr]) continue;
+
+        const isCover = String(r.employeeType||"").toLowerCase() === "cover";
+        ws[cellAddr].s = {
+          font: { bold:true, color:{ rgb: isCover ? "FFEF4444" : "FF16A34A" } },
+          alignment: { horizontal:"right", vertical:"center" }
+        };
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Schedule");
+
+      const from = $("gFrom").value || "from";
+      const to = $("gTo").value || "to";
+      const branchId = $("gBranch").value || "branch";
+      const filename = `schedule_${branchId}_${from}_${to}.xlsx`;
+
+      XLSX.writeFile(wb, filename);
+      setMsg("تم تصدير ملف Excel ✅ (مع تلوين الموظف)", "ok");
+    }
+
+    // ===== Events =====
+    $("btnPreview").addEventListener("click", async ()=>{
+      try{
+        const from = $("gFrom").value, to = $("gTo").value;
+        const branchId = $("gBranch").value || "";
+        if(!from || !to) return setMsg("اختر من/إلى","bad");
+        if(from > to) return setMsg("من لازم قبل إلى","bad");
+        if(!branchId) return setMsg("اختر الفرع أولاً","bad");
+
+        const exists = await checkExistingSchedule(branchId, from, to);
+        if(exists && STOP_IF_EXISTS){
+          $("previewTbody").innerHTML="";
+          lastPreview = [];
+          return setMsgWithAction(
+            "⚠️ يوجد جدول محفوظ مسبقاً لهذا الفرع ضمن نفس الفترة.\nتم إيقاف المعاينة لمنع التكرار.",
+            "bad",
+            "فتح الجداول الجاهزة",
+            makeSavedHref(branchId, from, to)
+          );
+        }
+
+        const { preview, missingCount } = await buildPreview(from,to,branchId);
+        lastPreview = preview;
+        renderPreview(preview);
+
+        if(missingCount>0){
+          setMsg(`⚠️ تمت المعاينة لكن يوجد نقص/تعذر تعيين: ${missingCount}\nراجع السطور المكتوب فيها "نقص تغطية" أو "مشغول بفرع آخر"`, "bad");
+        }else{
+          setMsg("تمت المعاينة ✅ (التغطية كاملة)","ok");
+        }
+      }catch(e){
+        setMsg(e?.message || "خطأ","bad");
+      }
+    });
+
+    $("btnGenerate").addEventListener("click", async ()=>{
+      try{
+        const from = $("gFrom").value, to = $("gTo").value;
+        const branchId = $("gBranch").value || "";
+        if(!from || !to) return setMsg("اختر من/إلى","bad");
+        if(from > to) return setMsg("من لازم قبل إلى","bad");
+        if(!branchId) return setMsg("اختر الفرع أولاً","bad");
+
+        const exists = await checkExistingSchedule(branchId, from, to);
+        if(exists && STOP_IF_EXISTS){
+          const ok = confirm("⚠️ يوجد جدول محفوظ لنفس الفرع ضمن نفس الفترة.\nهل تريد المتابعة بالتوليد والحفظ فوقه؟");
+          if(!ok){
+            $("previewTbody").innerHTML="";
+            lastPreview = [];
+            return setMsgWithAction(
+              "تم الإلغاء ✅ لمنع التكرار. افتح الجداول الجاهزة لمراجعة الجدول الحالي.",
+              "ok",
+              "فتح الجداول الجاهزة",
+              makeSavedHref(branchId, from, to)
+            );
+          }
+        }
+
+        const { preview, missingCount } = await buildPreview(from,to,branchId);
+        lastPreview = preview;
+        renderPreview(preview);
+        await saveSchedules(preview);
+
+        if(missingCount>0){
+          setMsg(`✅ تم حفظ الشفتات المتاحة.\n⚠️ لكن يوجد نقص/تعذر تعيين: ${missingCount}\n(راجع المعاينة)`, "bad");
+        }else{
+          setMsg("تم توليد الجدول وحفظه في shifts ✅ (التغطية كاملة)","ok");
+        }
+      }catch(e){
+        setMsg(e?.message || "خطأ","bad");
+      }
+    });
+
+    $("btnExport").addEventListener("click", exportExcel);
+
+    $("btnClear").addEventListener("click", async ()=>{
+      try{
+        const from = $("gFrom").value, to = $("gTo").value;
+        const branchId = $("gBranch").value || "";
+        if(!from || !to) return setMsg("اختر من/إلى","bad");
+        if(!branchId) return setMsg("اختر الفرع أولاً","bad");
+        if(from > to) return setMsg("من لازم قبل إلى","bad");
+        if(!confirm("حذف جداول الفترة لهذا الفرع من shifts؟")) return;
+
+        const n = await clearSchedulesInRange(from,to,branchId);
+        $("previewTbody").innerHTML="";
+        lastPreview = [];
+        setMsg(n ? `تم حذف ${n} سجل ✅` : "لا يوجد سجلات ضمن الفترة","ok");
+      }catch(e){
+        setMsg(e?.message || "خطأ","bad");
+      }
+    });
+
+    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      me = user;
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+      }
+
+      await loadBranchSelect();
+
+      const today = new Date();
+      const from = new Date(today); from.setDate(from.getDate()+1);
+      const to = new Date(from); to.setDate(to.getDate()+6);
+      $("gFrom").value = ymd(from);
+      $("gTo").value = ymd(to);
+    });
+  </script>
+</body>
+</html>

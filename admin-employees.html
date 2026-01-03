@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Employees</title>
+  <link rel="icon" href="./assets/logo.webp">
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+    input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.16);color:var(--txt);outline:none}
+    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+
+    /* ===== Tabs ===== */
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tabBtn{
+      cursor:pointer;border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);color:var(--txt);
+      padding:10px 12px;border-radius:999px;font-weight:900;font-size:13px;
+      display:inline-flex;gap:8px;align-items:center
+    }
+    .tabBtn:hover{background:rgba(255,255,255,.09)}
+    .tabBtn.active{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .tabPanel{display:none;margin-top:10px}
+    .tabPanel.show{display:block}
+    .countPill{padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);color:var(--muted);font-size:12px}
+
+    /* ===== Search row ===== */
+    .searchRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    .searchRow .mini{margin:0}
+    .searchBox{flex:2;min-width:240px}
+    .searchBox input{width:100%}
+
+    /* ===== Modal ===== */
+    .modalOverlay{
+      position:fixed; inset:0; z-index:999;
+      background:rgba(0,0,0,.55);
+      display:none; align-items:center; justify-content:center;
+      padding:14px;
+    }
+    .modalOverlay.show{display:flex}
+    .modal{
+      width:min(980px, 100%);
+      max-height:92vh;
+      overflow:auto;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(12,18,32,.92);
+      backdrop-filter: blur(10px);
+      border-radius:18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+    }
+    .modalHead{
+      position:sticky; top:0;
+      background:rgba(12,18,32,.95);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      padding:12px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      z-index:2;
+    }
+    .modalBody{padding:12px}
+    .xbtn{border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--txt);
+      border-radius:12px; padding:10px 12px; font-weight:900; cursor:pointer}
+    .xbtn:hover{background:rgba(255,255,255,.10)}
+    .modalTitle{display:flex; flex-direction:column; gap:2px}
+    .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:900px){.twoCol{grid-template-columns:1fr}}
+    .hint{color:var(--muted);font-size:12px;margin-top:6px}
+    .warn{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);padding:10px 12px;border-radius:12px;color:#ffd3d3;margin-top:10px;font-size:12px;line-height:1.7}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div style="flex:2">
+          <h2 style="margin:0">الموظفين</h2>
+          <div class="mini">
+            <b>تبويب 1:</b> employees (مسجلين بحساب) — تعديل/حذف<br>
+            <b>تبويب 2:</b> employees_email (إيميل فقط) — إضافة/تعديل/حذف
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn primary" id="btnAdd">إضافة موظف (غير مسجل)</button>
+          <button class="btn" id="btnReload">تحديث</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tabBtn active" id="tabRegistered" type="button">
+          الموظفين المسجلين <span class="countPill" id="countRegistered">0</span>
+        </button>
+        <button class="tabBtn" id="tabUnregistered" type="button">
+          غير المسجلين (إيميل فقط) <span class="countPill" id="countUnregistered">0</span>
+        </button>
+      </div>
+
+      <!-- Panel 1: Registered -->
+      <div class="tabPanel show" id="panelRegistered">
+        <div class="searchRow">
+          <div class="searchBox">
+            <input id="searchRegistered" placeholder="بحث بالاسم أو الإيميل أو الفرع أو النوع...">
+          </div>
+          <div class="mini">يبحث داخل employees فقط</div>
+        </div>
+
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>الإيميل</th>
+                <th>النوع</th>
+                <th>الفرع/التغطية</th>
+                <th>الدور</th>
+                <th>Active</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="tbRegistered"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 2: Unregistered -->
+      <div class="tabPanel" id="panelUnregistered">
+        <div class="searchRow">
+          <div class="searchBox">
+            <input id="searchUnregistered" placeholder="بحث بالاسم أو الإيميل أو الفرع أو النوع...">
+          </div>
+          <div class="mini">يبحث داخل employees_email فقط</div>
+        </div>
+
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>الإيميل</th>
+                <th>النوع</th>
+                <th>الفرع/التغطية</th>
+                <th>الدور</th>
+                <th>Active</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="tbUnregistered"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal (Edit/Add) ===== -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalHead">
+        <div class="modalTitle">
+          <b id="modalTitle">إضافة/تعديل موظف</b>
+          <div class="mini" id="modalSub">...</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn primary" id="btnSave">حفظ</button>
+          <button class="xbtn" id="btnClose">إغلاق ✕</button>
+        </div>
+      </div>
+
+      <div class="modalBody">
+        <div class="mini" id="modalInfo"></div>
+
+        <div class="twoCol" style="margin-top:10px">
+          <div>
+            <label>الإيميل</label>
+            <input id="pEmail" placeholder="user@example.com">
+            <div class="hint" id="emailHint"></div>
+          </div>
+          <div>
+            <label>الاسم</label>
+            <input id="pName" placeholder="اسم الموظف">
+          </div>
+        </div>
+
+        <div class="twoCol">
+          <div>
+            <label>القسم</label>
+            <input id="pDept" placeholder="قسم/وصف">
+          </div>
+          <div>
+            <label>الدور (role)</label>
+            <select id="pRole">
+              <option value="staff">staff</option>
+              <option value="admin">admin</option>
+            </select>
+            <div class="hint">⚠️ انتبه: إذا خليت موظف admin رح يقدر يفوت لوحة الأدمن.</div>
+          </div>
+        </div>
+
+        <div class="twoCol">
+          <div>
+            <label>النوع</label>
+            <select id="pType">
+              <option value="regular">Regular (دوام ثابت)</option>
+              <option value="cover">Cover (تغطية)</option>
+            </select>
+          </div>
+          <div>
+            <label>canCover</label>
+            <select id="pCanCover">
+              <option value="true">نعم</option>
+              <option value="false">لا</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="twoCol">
+          <div>
+            <label>فرع ثابت (Regular)</label>
+            <select id="pBranch"></select>
+          </div>
+          <div>
+            <label>يغطي كل الفروع؟ (Cover)</label>
+            <select id="pCoverAll">
+              <option value="true">نعم</option>
+              <option value="false">لا (فروع محددة)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="pCoverBranchesRow" style="display:none">
+          <label>فروع التغطية (IDs مفصولة بفواصل)</label>
+          <input id="pCoverBranches" placeholder="br_xxxxx, br_yyyyy">
+          <div class="mini">IDs تظهر في صفحة الفروع.</div>
+        </div>
+
+        <div class="twoCol">
+          <div>
+            <label>Active</label>
+            <select id="pActive">
+              <option value="true">نعم</option>
+              <option value="false">لا</option>
+            </select>
+          </div>
+          <div>
+            <label>ملاحظات</label>
+            <input id="pNotes" placeholder="اختياري">
+          </div>
+        </div>
+
+        <div class="warn" id="authWarn" style="display:none">
+          <b>تنبيه:</b> تعديل الإيميل هنا يغيّر حقل Firestore فقط، ولا يغيّر إيميل الحساب في Firebase Auth.
+          إذا بدك تغيّر إيميل الحساب الحقيقي بدها عملية منفصلة (Cloud Function / Admin SDK).
+        </div>
+
+        <div id="msgEmp" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, deleteDoc,
+      collection, getDocs, query, where, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    const safeEmailDocId = (email)=> email.trim().toLowerCase().replace(/\./g,"(dot)");
+    const setMsg = (text, type="ok")=>{
+      const el = $("msgEmp");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    };
+    const hideMsg = ()=>{ $("msgEmp").style.display="none"; };
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    // ===== Tabs control =====
+    function setTab(which){
+      const isReg = which === "registered";
+      $("tabRegistered").classList.toggle("active", isReg);
+      $("tabUnregistered").classList.toggle("active", !isReg);
+      $("panelRegistered").classList.toggle("show", isReg);
+      $("panelUnregistered").classList.toggle("show", !isReg);
+    }
+    $("tabRegistered").addEventListener("click", ()=> setTab("registered"));
+    $("tabUnregistered").addEventListener("click", ()=> setTab("unregistered"));
+
+    // ===== Modal control =====
+    const overlay = $("modalOverlay");
+    function openModal(){
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+      hideMsg();
+      setTimeout(()=> $("pEmail").focus(), 50);
+    }
+    function closeModal(){
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+      hideMsg();
+    }
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
+
+    // ===== UI logic (cover/regular) =====
+    function syncCoverUi(){
+      const isCover = ($("pType").value === "cover");
+      const coverAll = ($("pCoverAll").value === "true");
+      $("pCoverBranchesRow").style.display = (isCover && !coverAll) ? "block" : "none";
+      $("pBranch").disabled = (isCover);
+      if(isCover) $("pBranch").value = "";
+    }
+
+    // ===== branches select =====
+    let branches = [];
+    async function loadBranchesIntoSelect(){
+      const snap = await getDocs(collection(db,"branches"));
+      const rows = [];
+      snap.forEach(d=>rows.push({id:d.id, ...d.data()}));
+      rows.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+      branches = rows;
+
+      const opts = [`<option value="">— اختر —</option>`].concat(
+        rows.map(r=>`<option value="${r.id}">${escapeHtml(r.name)} (${escapeHtml(r.id)})</option>`)
+      ).join("");
+      $("pBranch").innerHTML = opts;
+    }
+    function branchName(id){
+      const b = branches.find(x=>x.id===id);
+      return b ? b.name : id;
+    }
+
+    // ===== In-memory data =====
+    let allEmployees = []; // from employees
+    let allPresets = [];   // from employees_email
+
+    // ===== Edit state =====
+    // mode:
+    // - add => employees_email only
+    // - edit_emp => employees/{uid}
+    // - edit_preset => employees_email/{docId}
+    let editMode = "add";
+    let editCol = "employees_email";
+    let editId = null;
+
+    function clearForm(){
+      $("pEmail").value="";
+      $("pName").value="";
+      $("pDept").value="";
+      $("pRole").value="staff";
+      $("pType").value="regular";
+      $("pBranch").value="";
+      $("pCoverAll").value="true";
+      $("pCoverBranches").value="";
+      $("pActive").value="true";
+      $("pCanCover").value="true";
+      $("pNotes").value="";
+      $("emailHint").textContent = "";
+      $("authWarn").style.display = "none";
+      $("pEmail").disabled = false;
+      syncCoverUi();
+      hideMsg();
+    }
+
+    function fillFormFromRecord(r, colName){
+      // colName: "employees" or "employees_email"
+      $("pEmail").value = r.email || "";
+      $("pName").value = r.name || "";
+      $("pDept").value = r.department || "";
+      $("pRole").value = (r.role === "admin") ? "admin" : "staff";
+      $("pType").value = r.type || "regular";
+      $("pActive").value = (r.active === false) ? "false" : "true";
+      $("pCanCover").value = (r.canCover === false) ? "false" : "true";
+      $("pNotes").value = r.notes || "";
+
+      $("pBranch").value = r.branchId || "";
+      $("pCoverAll").value = (r.coverAllBranches === true) ? "true" : "false";
+      $("pCoverBranches").value = Array.isArray(r.coverBranchIds) ? r.coverBranchIds.join(", ") : "";
+
+      // rules:
+      if(colName === "employees_email"){
+        // الإيميل هو ID (عادةً)، نخليه غير قابل للتعديل لتجنب إنشاء وثيقة جديدة بالغلط
+        $("pEmail").disabled = true;
+        $("emailHint").textContent = "الإيميل هو مفتاح السجل (employees_email) لذلك لا يمكن تغييره أثناء التعديل.";
+        $("authWarn").style.display = "none";
+      } else {
+        // employees: نسمح يعدل كل شي، لكن نحذر إن الإيميل الحقيقي تبع Auth ما بيتغير
+        $("pEmail").disabled = false;
+        $("emailHint").textContent = "يمكن تعديل الإيميل هنا، لكن هذا يغيّر Firestore فقط.";
+        $("authWarn").style.display = "block";
+      }
+
+      syncCoverUi();
+    }
+
+    function openAddPreset(){
+      editMode = "add";
+      editCol = "employees_email";
+      editId = null;
+
+      clearForm();
+      $("modalTitle").textContent = "إضافة موظف (غير مسجل)";
+      $("modalSub").textContent = "سيتم الحفظ في employees_email";
+      $("modalInfo").innerHTML = `سيتم إنشاء/تعديل سجل في <b>employees_email</b>. لما الموظف يعمل Signup بنفس الإيميل، يمكن نسخ البيانات لحسابه.`;
+      openModal();
+      setTab("unregistered");
+    }
+
+    async function openEditEmployee(uid){
+      const s = await getDoc(doc(db,"employees", uid));
+      if(!s.exists()) return;
+
+      editMode = "edit_emp";
+      editCol = "employees";
+      editId = uid;
+
+      clearForm();
+      fillFormFromRecord({id:uid, ...s.data()}, "employees");
+
+      $("modalTitle").textContent = "تعديل موظف (مسجل)";
+      $("modalSub").textContent = "تعديل employees ثم حفظ";
+      $("modalInfo").innerHTML = `هذا يعدّل سجل في <b>employees</b> (مسجل). <span class="mini">ID: ${escapeHtml(uid)}</span>`;
+      openModal();
+      setTab("registered");
+    }
+
+    async function openEditPreset(id){
+      const s = await getDoc(doc(db,"employees_email", id));
+      if(!s.exists()) return;
+
+      editMode = "edit_preset";
+      editCol = "employees_email";
+      editId = id;
+
+      clearForm();
+      fillFormFromRecord({id, ...s.data()}, "employees_email");
+
+      $("modalTitle").textContent = "تعديل موظف (غير مسجل)";
+      $("modalSub").textContent = "تعديل employees_email ثم حفظ";
+      $("modalInfo").innerHTML = `هذا يعدّل سجل في <b>employees_email</b>. <span class="mini">ID: ${escapeHtml(id)}</span>`;
+      openModal();
+      setTab("unregistered");
+    }
+
+    function buildBranchTxt(r){
+      return (r.type==="regular")
+        ? (r.branchId ? branchName(r.branchId) : "-")
+        : (r.coverAllBranches ? "يغطي الكل" : (Array.isArray(r.coverBranchIds) ? r.coverBranchIds.map(id=>branchName(id)).join(", ") : "-"));
+    }
+
+    function normalizeForSearch(r){
+      const parts = [
+        r.name, r.email, r.department, r.role, r.type,
+        r.branchId, buildBranchTxt(r),
+        Array.isArray(r.coverBranchIds) ? r.coverBranchIds.join(" ") : ""
+      ].map(x => String(x ?? "").toLowerCase());
+      return parts.join(" | ");
+    }
+
+    function renderTables(){
+      const qReg = ($("searchRegistered").value || "").trim().toLowerCase();
+      const qUn = ($("searchUnregistered").value || "").trim().toLowerCase();
+
+      const reg = !qReg ? allEmployees : allEmployees.filter(r => normalizeForSearch(r).includes(qReg));
+      const un  = !qUn  ? allPresets   : allPresets.filter(r => normalizeForSearch(r).includes(qUn));
+
+      $("countRegistered").textContent = String(allEmployees.length);
+      $("countUnregistered").textContent = String(allPresets.length);
+
+      const tbR = $("tbRegistered");
+      const tbU = $("tbUnregistered");
+      tbR.innerHTML = "";
+      tbU.innerHTML = "";
+
+      // Registered: employees (editable now)
+      for(const r of reg){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(r.name||"-")}</td>
+          <td>${escapeHtml(r.email||"-")}</td>
+          <td><span class="badge">${escapeHtml(r.type||"regular")}</span></td>
+          <td>${escapeHtml(buildBranchTxt(r)||"-")}</td>
+          <td><span class="badge">${escapeHtml(r.role||"staff")}</span></td>
+          <td>${r.active ? "✅" : "❌"}</td>
+          <td style="white-space:nowrap">
+            <button class="btn" data-edit-emp="${escapeHtml(r.id)}">تعديل</button>
+            <button class="btn danger" data-del-emp="${escapeHtml(r.id)}">حذف</button>
+          </td>
+        `;
+        tbR.appendChild(tr);
+      }
+
+      // Unregistered: employees_email (editable)
+      for(const r of un){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(r.name||"-")}</td>
+          <td>${escapeHtml(r.email||"-")}</td>
+          <td><span class="badge">${escapeHtml(r.type||"regular")}</span></td>
+          <td>${escapeHtml(buildBranchTxt(r)||"-")}</td>
+          <td><span class="badge">${escapeHtml(r.role||"staff")}</span></td>
+          <td>${r.active ? "✅" : "❌"}</td>
+          <td style="white-space:nowrap">
+            <button class="btn" data-edit-preset="${escapeHtml(r.id)}">تعديل</button>
+            <button class="btn danger" data-del-preset="${escapeHtml(r.id)}">حذف</button>
+          </td>
+        `;
+        tbU.appendChild(tr);
+      }
+
+      // attach actions
+      tbR.querySelectorAll("[data-edit-emp]").forEach(btn=>{
+        btn.addEventListener("click", ()=> openEditEmployee(btn.getAttribute("data-edit-emp")));
+      });
+      tbR.querySelectorAll("[data-del-emp]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const uid = btn.getAttribute("data-del-emp");
+          const rec = allEmployees.find(x=>x.id===uid);
+          const name = rec?.name || rec?.email || uid;
+
+          if(!confirm(`حذف الموظف المسجّل من employees فقط؟\n(${name})\n\nملاحظة: هذا لا يحذف حسابه من Auth.`)) return;
+
+          await deleteDoc(doc(db,"employees", uid));
+          await loadAll();
+        });
+      });
+
+      tbU.querySelectorAll("[data-edit-preset]").forEach(btn=>{
+        btn.addEventListener("click", ()=> openEditPreset(btn.getAttribute("data-edit-preset")));
+      });
+      tbU.querySelectorAll("[data-del-preset]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-del-preset");
+          const rec = allPresets.find(x=>x.id===id);
+          const name = rec?.name || rec?.email || id;
+
+          if(!confirm(`حذف الموظف غير المسجّل من employees_email؟\n(${name})`)) return;
+
+          await deleteDoc(doc(db,"employees_email", id));
+          await loadAll();
+        });
+      });
+    }
+
+    let searchTimer = null;
+    function bindSearch(){
+      const handler = ()=>{
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(()=> renderTables(), 120);
+      };
+      $("searchRegistered").addEventListener("input", handler);
+      $("searchUnregistered").addEventListener("input", handler);
+    }
+
+    async function saveRecord(){
+      const email = $("pEmail").value.trim().toLowerCase();
+      const name = $("pName").value.trim();
+      const department = $("pDept").value.trim() || "General";
+      const role = $("pRole").value || "staff";
+      const type = $("pType").value;
+      const active = $("pActive").value==="true";
+      const canCover = $("pCanCover").value==="true";
+      const notes = $("pNotes").value.trim();
+
+      if(!email || !email.includes("@")) return setMsg("اكتب إيميل صحيح","bad");
+      if(!name) return setMsg("اكتب اسم الموظف","bad");
+
+      const branchId = $("pBranch").value || "";
+      const coverAllBranches = $("pCoverAll").value === "true";
+      const coverBranchIds = ($("pCoverBranches").value || "").split(",").map(s=>s.trim()).filter(Boolean);
+
+      if(type==="regular" && !branchId) return setMsg("اختر فرع ثابت للـ Regular","bad");
+      if(type==="cover" && !coverAllBranches && coverBranchIds.length===0) return setMsg("اكتب IDs فروع التغطية أو اختر (يغطي الكل)","bad");
+
+      // payload
+      const payload = {
+        email, name, department, role, type,
+        active, canCover, notes,
+        branchId: (type==="regular") ? branchId : "",
+        fixedBranch: (type==="regular"),
+        coverAllBranches: (type==="cover") ? coverAllBranches : false,
+        coverBranchIds: (type==="cover" && !coverAllBranches) ? coverBranchIds : [],
+        updatedAt: serverTimestamp()
+      };
+
+      if(editMode === "add"){
+        const docId = safeEmailDocId(email);
+        await setDoc(doc(db,"employees_email", docId), payload, { merge:true });
+        setMsg("تمت الإضافة ✅","ok");
+        await loadAll();
+        closeModal();
+        clearForm();
+        setTab("unregistered");
+        return;
+      }
+
+      if(editMode === "edit_preset"){
+        await setDoc(doc(db,"employees_email", editId), payload, { merge:true });
+        setMsg("تم الحفظ ✅","ok");
+        await loadAll();
+        closeModal();
+        clearForm();
+        setTab("unregistered");
+        return;
+      }
+
+      if(editMode === "edit_emp"){
+        await setDoc(doc(db,"employees", editId), payload, { merge:true });
+        setMsg("تم الحفظ ✅","ok");
+        await loadAll();
+        closeModal();
+        clearForm();
+        setTab("registered");
+        return;
+      }
+
+      setMsg("حالة غير معروفة","bad");
+    }
+
+    async function loadAll(){
+      await loadBranchesIntoSelect();
+
+      const [empSnap, presetSnap] = await Promise.all([
+        getDocs(collection(db,"employees")),
+        getDocs(collection(db,"employees_email"))
+      ]);
+
+      const employees = []; empSnap.forEach(d=>employees.push({id:d.id, ...d.data()}));
+      const presets = []; presetSnap.forEach(d=>presets.push({id:d.id, ...d.data()}));
+
+      employees.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+      presets.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+
+      allEmployees = employees;
+      allPresets = presets;
+
+      renderTables();
+    }
+
+    // events
+    $("pType").addEventListener("change", syncCoverUi);
+    $("pCoverAll").addEventListener("change", syncCoverUi);
+
+    $("btnAdd").addEventListener("click", openAddPreset);
+    $("btnSave").addEventListener("click", saveRecord);
+    $("btnClose").addEventListener("click", closeModal);
+
+    $("btnReload").addEventListener("click", async ()=>{ await loadAll(); });
+
+    $("btnOut").addEventListener("click", async ()=>{
+      await signOut(auth);
+      location.href="./login.html";
+    });
+
+    bindSearch();
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+      }
+
+      syncCoverUi();
+      await loadAll();
+      setTab("registered");
+    });
+  </script>
+</body>
+</html>

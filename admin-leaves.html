@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Leaves</title>
+  <link rel="icon" href="./assets/logo.webp">
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+    input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.16);color:var(--txt);outline:none}
+    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+
+    /* ✅ Fix select options visibility (Windows/Chrome) */
+    select{ background: rgba(0,0,0,.45) !important; color: var(--txt) !important; }
+    select option, select optgroup{ background-color:#0b1220 !important; color:#e5e7eb !important; }
+    select option:checked{ background-color:rgba(212,160,25,.25) !important; color:#fff !important; }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
+
+    /* ===== Modal ===== */
+    .modalOverlay{position:fixed; inset:0; z-index:999; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:14px;}
+    .modalOverlay.show{display:flex}
+    .modal{width:min(900px, 100%); max-height:92vh; overflow:auto; border:1px solid rgba(255,255,255,.14); background:rgba(12,18,32,.92); backdrop-filter: blur(10px); border-radius:18px; box-shadow: 0 24px 80px rgba(0,0,0,.55);}
+    .modalHead{position:sticky; top:0; background:rgba(12,18,32,.95); border-bottom:1px solid rgba(255,255,255,.10); padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; z-index:2;}
+    .modalBody{padding:12px}
+    .xbtn{border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--txt); border-radius:12px; padding:10px 12px; font-weight:900; cursor:pointer}
+    .xbtn:hover{background:rgba(255,255,255,.10)}
+    .modalTitle{display:flex; flex-direction:column; gap:2px}
+    .hint{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--muted);font-size:12px}
+
+    /* leave mode pills */
+    .modeRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .modeBtn{cursor:pointer;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:999px;font-weight:900;font-size:13px}
+    .modeBtn.active{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .modePanel{display:none}
+    .modePanel.show{display:block}
+
+    /* scattered dates list */
+    .datesBox{margin-top:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px}
+    .dateLine{display:flex;gap:8px;align-items:center;margin-top:8px}
+    .dateLine input[type="date"]{flex:1}
+    .smBtn{cursor:pointer;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--txt);padding:9px 10px;border-radius:12px;font-weight:900}
+    .smBtn:hover{background:rgba(255,255,255,.10)}
+    .smBtn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .smBtn.danger:hover{background:rgba(239,68,68,.16)}
+
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+        /* ✅ Fix dropdown options visibility */
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+         <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div style="flex:2">
+          <h2 style="margin:0">الإجازات</h2>
+          <div class="mini">إضافة/تعديل: يوم واحد / فترة / أيام متفرقة + اختيار التغطية + تغيير الحالة</div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn primary" id="btnOpenAdd">إضافة إجازة</button>
+          <button class="btn" id="btnReload">تحديث</button>
+        </div>
+      </div>
+      <div id="msgTop" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>طلبات الإجازة (Pending)</h2>
+      <div class="mini">هذه الطلبات تأتي من صفحة الموظف staff.html</div>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>الموظف</th><th>من</th><th>إلى</th><th>الحالة</th><th>إجراء</th></tr></thead>
+          <tbody id="pendingTbody"></tbody>
+        </table>
+      </div>
+      <div id="msgPending" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>آخر الإجازات (Approved/Rejected)</h2>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>الموظف</th><th>النوع</th><th>التواريخ</th><th>التغطية</th><th>الحالة</th><th>إجراء</th></tr></thead>
+          <tbody id="historyTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Add/Edit Leave Modal ===== -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalHead">
+        <div class="modalTitle">
+          <b id="modalTitle">إضافة إجازة</b>
+          <div class="mini" id="modalSub">اختر الموظف + نوع الإجازة + التغطية ثم احفظ</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn danger" id="btnDeleteLeave" style="display:none">حذف</button>
+          <button class="btn primary" id="btnSaveLeave">حفظ</button>
+          <button class="xbtn" id="btnClose">إغلاق ✕</button>
+        </div>
+      </div>
+
+      <div class="modalBody">
+        <div class="hint">
+          • الموظف الأساسي: غالبًا <b>Regular</b><br>
+          • التغطية: <b>Cover</b> أو أي موظف <b>canCover=true</b><br>
+          • للأيام المتفرقة: أضف أكثر من تاريخ بزر (+)
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label>فلترة حسب الفرع</label>
+            <select id="mBranch"></select>
+          </div>
+          <div>
+            <label>الحالة</label>
+            <select id="mStatus">
+              <option value="pending">pending</option>
+              <option value="approved">approved</option>
+              <option value="rejected">rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>الموظف (إجازة)</label>
+            <select id="mEmp"></select>
+          </div>
+          <div>
+            <label>الموظف (تغطية) — اختياري</label>
+            <select id="mCover"></select>
+            <div class="mini" id="coverHint" style="margin-top:6px"></div>
+          </div>
+        </div>
+
+        <label style="margin-top:4px">نوع الإجازة</label>
+        <div class="modeRow">
+          <button class="modeBtn active" id="modeSingle" type="button">يوم واحد</button>
+          <button class="modeBtn" id="modeRange" type="button">فترة (من → إلى)</button>
+          <button class="modeBtn" id="modeScattered" type="button">أيام متفرقة</button>
+        </div>
+
+        <!-- Single -->
+        <div class="modePanel show" id="panelSingle">
+          <div class="row">
+            <div>
+              <label>اليوم</label>
+              <input id="mDay" type="date">
+            </div>
+          </div>
+        </div>
+
+        <!-- Range -->
+        <div class="modePanel" id="panelRange">
+          <div class="row">
+            <div><label>من</label><input id="mFrom" type="date"></div>
+            <div><label>إلى</label><input id="mTo" type="date"></div>
+          </div>
+        </div>
+
+        <!-- Scattered -->
+        <div class="modePanel" id="panelScattered">
+          <div class="datesBox">
+            <div class="row" style="align-items:center;margin:0">
+              <div style="flex:2"><b style="font-size:13px">تواريخ الإجازة</b><div class="mini">أضف تواريخ متعددة (غير متتابعة)</div></div>
+              <div style="display:flex;justify-content:flex-end;gap:8px">
+                <button class="smBtn" id="btnAddDate" type="button">+ إضافة تاريخ</button>
+                <button class="smBtn danger" id="btnClearDates" type="button">تفريغ</button>
+              </div>
+            </div>
+            <div id="datesList"></div>
+          </div>
+        </div>
+
+        <div id="msgAdd" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, addDoc, updateDoc, deleteDoc,
+      collection, getDocs, query, where,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    const setMsg = (id, text, type="ok")=>{
+      const el = $(id);
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    };
+    const hideMsg = (id)=>{ const el=$(id); el.style.display="none"; };
+
+    let me = null;
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    function ymd(d){
+      const dt = new Date(d);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,"0");
+      const da = String(dt.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+
+    // ===== Modal control =====
+    const overlay = $("modalOverlay");
+    function openModal(){
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+      hideMsg("msgAdd");
+      setTimeout(()=> $("mEmp").focus(), 60);
+    }
+    function closeModal(){
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+      hideMsg("msgAdd");
+    }
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
+
+    // ===== Shared helpers for employees =====
+    function empName(x){ return x.name || x.fullName || x.displayName || x.email || x.id; }
+    function empBranchId(x){ return x.branchId || x.branch || x.fixedBranchId || ""; }
+    function isActive(x){ return x.active !== false; }
+    function isStaff(x){ return (x.role || "staff") === "staff"; }
+    function typeOf(x){ return (x.type || "regular"); }
+    function canCover(x){ return x.canCover === true || typeOf(x) === "cover"; }
+
+    // ===== Cache =====
+    let branches = [];
+    let allEmployees = []; // employees
+    let allPresets = [];   // employees_email
+    let editingLeaveId = null; // ✅ edit mode
+
+    async function loadCaches(){
+      const [bSnap, eSnap, pSnap] = await Promise.all([
+        getDocs(collection(db,"branches")),
+        getDocs(collection(db,"employees")),
+        getDocs(collection(db,"employees_email")),
+      ]);
+
+      branches = [];
+      bSnap.forEach(d=> branches.push({ id:d.id, ...(d.data()||{}) }));
+      branches.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+
+      allEmployees = [];
+      eSnap.forEach(d=> allEmployees.push({ id:d.id, source:"employees", ...(d.data()||{}) }));
+
+      allPresets = [];
+      pSnap.forEach(d=> allPresets.push({ id:"preset:"+d.id, source:"employees_email", ...(d.data()||{}) }));
+    }
+
+    function fillBranchesSelect(){
+      const opts = [`<option value="">— كل الفروع —</option>`]
+        .concat(branches.map(b=> `<option value="${b.id}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`))
+        .join("");
+      $("mBranch").innerHTML = opts;
+    }
+
+    function buildLeaveEmployees(branchId){
+      const list = []
+        .concat(allEmployees)
+        .concat(allPresets)
+        .filter(x=> isActive(x) && isStaff(x) && typeOf(x)==="regular")
+        .filter(x=> !branchId || String(empBranchId(x)||"") === String(branchId));
+      list.sort((a,b)=> empName(a).localeCompare(empName(b)));
+      return list;
+    }
+
+    function buildCoverEmployees(branchId){
+      const list = []
+        .concat(allEmployees)
+        .concat(allPresets)
+        .filter(x=> isActive(x) && isStaff(x) && canCover(x));
+
+      const filtered = list.filter(x=>{
+        if(!branchId) return true;
+
+        if(typeOf(x)==="cover"){
+          if(x.coverAllBranches === true) return true;
+          if(Array.isArray(x.coverBranchIds) && x.coverBranchIds.includes(branchId)) return true;
+          if(typeof x.coverBranchIds === "string" && x.coverBranchIds.includes(branchId)) return true;
+          return false;
+        }
+
+        return String(empBranchId(x)||"") === String(branchId);
+      });
+
+      filtered.sort((a,b)=> empName(a).localeCompare(empName(b)));
+      return filtered;
+    }
+
+    function fillSelect(el, list, { allowEmpty=true, emptyLabel="— اختر —", tagFn=null }={}){
+      if(!list.length){
+        el.innerHTML = `<option value="" disabled>لا يوجد</option>`;
+        return;
+      }
+      const empty = allowEmpty ? `<option value="">${escapeHtml(emptyLabel)}</option>` : "";
+      el.innerHTML = empty + list.map(x=>{
+        const tag = tagFn ? tagFn(x) : "";
+        const label = `${empName(x)}${tag ? " — " + tag : ""}`;
+        return `<option value="${escapeHtml(x.id)}">${escapeHtml(label)}</option>`;
+      }).join("");
+    }
+
+    function getEmpById(id){
+      if(!id) return null;
+      return allEmployees.find(x=>x.id===id) || allPresets.find(x=>x.id===id) || null;
+    }
+
+    function syncModalLists(){
+      const br = $("mBranch").value || "";
+      const leaveList = buildLeaveEmployees(br);
+      const coverList = buildCoverEmployees(br);
+
+      const prevEmp = $("mEmp").value;
+      const prevCover = $("mCover").value;
+
+      fillSelect($("mEmp"), leaveList, { allowEmpty:false, emptyLabel:"— اختر موظف —", tagFn:(x)=> (x.source==="employees" ? "حساب" : "إيميل") });
+      if(prevEmp) $("mEmp").value = prevEmp;
+
+      fillSelect($("mCover"), coverList, { allowEmpty:true, emptyLabel:"— بدون تغطية —", tagFn:(x)=>{
+        const t = typeOf(x)==="cover" ? "Cover" : "Regular";
+        return `${t}${x.source==="employees" ? " • حساب" : " • إيميل"}`;
+      }});
+      if(prevCover) $("mCover").value = prevCover;
+
+      $("coverHint").textContent = coverList.length ? `متاح للتغطية: ${coverList.length}` : "لا يوجد موظفين تغطية مطابقين لهذه الفلترة.";
+    }
+
+    // ===== Leave Mode =====
+    let leaveMode = "single"; // single | range | scattered
+
+    function setMode(mode){
+      leaveMode = mode;
+      $("modeSingle").classList.toggle("active", mode==="single");
+      $("modeRange").classList.toggle("active", mode==="range");
+      $("modeScattered").classList.toggle("active", mode==="scattered");
+
+      $("panelSingle").classList.toggle("show", mode==="single");
+      $("panelRange").classList.toggle("show", mode==="range");
+      $("panelScattered").classList.toggle("show", mode==="scattered");
+
+      hideMsg("msgAdd");
+    }
+
+    function addDateLine(val=""){
+      const wrap = $("datesList");
+      const line = document.createElement("div");
+      line.className = "dateLine";
+      line.innerHTML = `
+        <input type="date" value="${escapeHtml(val)}">
+        <button class="smBtn danger" type="button">حذف</button>
+      `;
+      line.querySelector("button").addEventListener("click", ()=> line.remove());
+      wrap.appendChild(line);
+    }
+
+    function clearDates(){
+      $("datesList").innerHTML = "";
+    }
+
+    function getScatteredDates(){
+      const dates = Array.from($("datesList").querySelectorAll('input[type="date"]'))
+        .map(i=>i.value)
+        .filter(Boolean);
+
+      const uniq = Array.from(new Set(dates)).sort();
+      return uniq;
+    }
+
+    function setDefaultDates(){
+      const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+      const after = new Date(tomorrow); after.setDate(after.getDate()+1);
+
+      $("mDay").value = ymd(tomorrow);
+      $("mFrom").value = ymd(tomorrow);
+      $("mTo").value = ymd(after);
+
+      clearDates();
+      addDateLine(ymd(tomorrow));
+    }
+
+    function buildLeaveDates(){
+      if(leaveMode === "single"){
+        const day = $("mDay").value;
+        if(!day) throw new Error("اختر يوم الإجازة");
+        return { from: day, to: day, dates: [day], leaveMode: "single" };
+      }
+
+      if(leaveMode === "range"){
+        const from = $("mFrom").value;
+        const to = $("mTo").value;
+        if(!from || !to) throw new Error("اختر من/إلى");
+        if(from > to) throw new Error("من لازم قبل إلى");
+        return { from, to, dates: [], leaveMode: "range" };
+      }
+
+      const dates = getScatteredDates();
+      if(!dates.length) throw new Error("أضف تاريخ واحد على الأقل");
+      const from = dates[0];
+      const to = dates[dates.length-1];
+      return { from, to, dates, leaveMode: "scattered" };
+    }
+
+    function setModalModeAndDates(r){
+      const m = r.leaveMode || (r.dates && r.dates.length ? "scattered" : "range");
+
+      if(m === "single"){
+        setMode("single");
+        const d = r.from || (Array.isArray(r.dates) ? r.dates[0] : "");
+        if(d) $("mDay").value = d;
+        return;
+      }
+
+      if(m === "scattered"){
+        setMode("scattered");
+        clearDates();
+        const arr = Array.isArray(r.dates) ? r.dates : [];
+        if(arr.length) arr.forEach(x=> addDateLine(x));
+        else if(r.from) addDateLine(r.from);
+        return;
+      }
+
+      setMode("range");
+      if(r.from) $("mFrom").value = r.from;
+      if(r.to) $("mTo").value = r.to;
+    }
+
+    function setEditMode(enabled){
+      $("btnDeleteLeave").style.display = enabled ? "inline-flex" : "none";
+      if(enabled){
+        $("modalTitle").textContent = "تعديل إجازة";
+        $("modalSub").textContent = "عدّل البيانات ثم احفظ";
+      }else{
+        $("modalTitle").textContent = "إضافة إجازة";
+        $("modalSub").textContent = "اختر الموظف + نوع الإجازة + التغطية ثم احفظ";
+      }
+    }
+
+    async function openAddLeave(){
+      editingLeaveId = null;
+      setEditMode(false);
+
+      hideMsg("msgTop");
+      await loadCaches();
+      fillBranchesSelect();
+
+      $("mStatus").value = "approved"; // افتراضي للإضافة من الأدمن
+      $("mBranch").value = "";
+      syncModalLists();
+      setDefaultDates();
+      setMode("single");
+      openModal();
+    }
+
+    async function openEditLeave(leaveId, data){
+      editingLeaveId = leaveId;
+      setEditMode(true);
+
+      await loadCaches();
+      fillBranchesSelect();
+
+      // حاول نحدد الفرع تلقائياً حسب الموظف
+      const emp = getEmpById(data.employeeId);
+      const b = emp ? (empBranchId(emp) || "") : "";
+      $("mBranch").value = b || "";
+
+      syncModalLists();
+
+      $("mStatus").value = (data.status || "pending");
+      $("mEmp").value = data.employeeId || "";
+      $("mCover").value = data.coverEmployeeId || "";
+
+      // type + dates
+      setModalModeAndDates(data);
+
+      openModal();
+    }
+
+    async function saveLeave(){
+      try{
+        const employeeId = $("mEmp").value;
+        const coverEmployeeId = $("mCover").value || null;
+        const status = $("mStatus").value || "pending";
+
+        if(!employeeId) return setMsg("msgAdd","اختر الموظف","bad");
+        if(coverEmployeeId && coverEmployeeId === employeeId) return setMsg("msgAdd","ما بصير نفس الموظف يغطي نفسه","bad");
+
+        const { from, to, dates, leaveMode: mode } = buildLeaveDates();
+
+        const emp = getEmpById(employeeId);
+        const cover = coverEmployeeId ? getEmpById(coverEmployeeId) : null;
+
+        const payload = {
+          employeeId,
+          employeeName: emp ? empName(emp) : null,
+
+          coverEmployeeId: coverEmployeeId || null,
+          coverEmployeeName: cover ? empName(cover) : null,
+
+          leaveMode: mode,
+          dates: (mode==="scattered" || mode==="single") ? dates : [],
+
+          from, to,
+          status,
+
+          updatedAt: serverTimestamp(),
+          updatedBy: me.uid
+        };
+
+        if(editingLeaveId){
+          await updateDoc(doc(db,"leaves", editingLeaveId), payload);
+          setMsg("msgTop","تم تعديل الإجازة ✅","ok");
+        }else{
+          await addDoc(collection(db,"leaves"), {
+            ...payload,
+            createdAt: serverTimestamp(),
+            createdBy: me.uid
+          });
+          setMsg("msgTop","تمت إضافة الإجازة ✅","ok");
+        }
+
+        await loadLeavesTables();
+        closeModal();
+      }catch(err){
+        setMsg("msgAdd", err?.message || "تأكد من البيانات", "bad");
+      }
+    }
+
+    async function deleteLeave(){
+      if(!editingLeaveId) return;
+      if(!confirm("حذف الإجازة نهائياً؟")) return;
+      await deleteDoc(doc(db,"leaves", editingLeaveId));
+      setMsg("msgTop","تم حذف الإجازة ✅","ok");
+      await loadLeavesTables();
+      closeModal();
+      editingLeaveId = null;
+      setEditMode(false);
+    }
+
+    function modeLabel(m){
+      if(m==="single") return "يوم واحد";
+      if(m==="scattered") return "أيام متفرقة";
+      return "فترة";
+    }
+
+    function datesLabel(r){
+      const m = r.leaveMode || (r.dates && r.dates.length ? "scattered" : "range");
+      if(m==="single"){
+        const d = (r.from || (Array.isArray(r.dates) ? r.dates[0] : "")) || "-";
+        return d;
+      }
+      if(m==="scattered"){
+        const arr = Array.isArray(r.dates) ? r.dates : [];
+        if(arr.length<=3) return arr.join(" ، ");
+        return `${arr.slice(0,3).join(" ، ")} ... (+${arr.length-3})`;
+      }
+      return `${r.from||"-"} → ${r.to||"-"}`;
+    }
+
+    // ===== Tables =====
+    async function loadLeavesTables(){
+      const leavesSnap = await getDocs(collection(db,"leaves"));
+
+      if(!allEmployees.length && !allPresets.length){
+        await loadCaches();
+      }
+      const nameMap = new Map();
+      allEmployees.forEach(x=> nameMap.set(x.id, empName(x)));
+      allPresets.forEach(x=> nameMap.set(x.id, empName(x)));
+
+      const leaves=[];
+      leavesSnap.forEach(d=>leaves.push({id:d.id, ...d.data()}));
+      leaves.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+      // Pending
+      const pTb = $("pendingTbody");
+      pTb.innerHTML = "";
+      const pend = leaves.filter(x=> (x.status||"pending")==="pending");
+      for(const r of pend){
+        const who = r.employeeName || nameMap.get(r.employeeId) || r.employeeId || "-";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(who)}</td>
+          <td>${escapeHtml(r.from||"-")}</td>
+          <td>${escapeHtml(r.to||"-")}</td>
+          <td><span class="badge">${escapeHtml(r.status||"pending")}</span></td>
+          <td>
+            <div class="actions">
+              <button class="btn" data-ed="${r.id}">تعديل</button>
+              <button class="btn primary" data-ap="${r.id}">قبول</button>
+              <button class="btn danger" data-rj="${r.id}">رفض</button>
+            </div>
+          </td>
+        `;
+        pTb.appendChild(tr);
+      }
+
+      pTb.querySelectorAll("[data-ed]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-ed");
+          const data = leaves.find(x=>x.id===id);
+          if(data) await openEditLeave(id, data);
+        });
+      });
+
+      pTb.querySelectorAll("[data-ap]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-ap");
+          await updateDoc(doc(db,"leaves",id), { status:"approved", decidedAt: serverTimestamp(), decidedBy: me.uid });
+          setMsg("msgPending","تم قبول الإجازة ✅","ok");
+          await loadLeavesTables();
+        });
+      });
+      pTb.querySelectorAll("[data-rj]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-rj");
+          await updateDoc(doc(db,"leaves",id), { status:"rejected", decidedAt: serverTimestamp(), decidedBy: me.uid });
+          setMsg("msgPending","تم رفض الإجازة ✅","ok");
+          await loadLeavesTables();
+        });
+      });
+
+      // History
+      const hTb = $("historyTbody");
+      hTb.innerHTML = "";
+      const hist = leaves.filter(x=> (x.status||"")!=="pending").slice(0,120);
+      for(const r of hist){
+        const who = r.employeeName || nameMap.get(r.employeeId) || r.employeeId || "-";
+        const cover = r.coverEmployeeName || (r.coverEmployeeId ? (nameMap.get(r.coverEmployeeId) || r.coverEmployeeId) : "—");
+        const m = r.leaveMode || (r.dates && r.dates.length ? "scattered" : "range");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(who)}</td>
+          <td><span class="badge">${escapeHtml(modeLabel(m))}</span></td>
+          <td>${escapeHtml(datesLabel(r))}</td>
+          <td>${cover ? `<span class="badge">${escapeHtml(cover)}</span>` : "—"}</td>
+          <td><span class="badge">${escapeHtml(r.status||"-")}</span></td>
+          <td>
+            <div class="actions">
+              <button class="btn" data-ed2="${r.id}">تعديل</button>
+              <button class="btn danger" data-del2="${r.id}">حذف</button>
+            </div>
+          </td>
+        `;
+        hTb.appendChild(tr);
+      }
+
+      hTb.querySelectorAll("[data-ed2]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-ed2");
+          const data = leaves.find(x=>x.id===id);
+          if(data) await openEditLeave(id, data);
+        });
+      });
+
+      hTb.querySelectorAll("[data-del2]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const id = btn.getAttribute("data-del2");
+          if(!confirm("حذف الإجازة نهائياً؟")) return;
+          await deleteDoc(doc(db,"leaves", id));
+          setMsg("msgTop","تم حذف الإجازة ✅","ok");
+          await loadLeavesTables();
+        });
+      });
+    }
+
+    // ===== Events =====
+    $("btnOpenAdd").addEventListener("click", openAddLeave);
+    $("btnClose").addEventListener("click", closeModal);
+    $("btnSaveLeave").addEventListener("click", saveLeave);
+    $("btnDeleteLeave").addEventListener("click", deleteLeave);
+
+    $("mBranch").addEventListener("change", syncModalLists);
+
+    $("modeSingle").addEventListener("click", ()=> setMode("single"));
+    $("modeRange").addEventListener("click", ()=> setMode("range"));
+    $("modeScattered").addEventListener("click", ()=> setMode("scattered"));
+
+    $("btnAddDate").addEventListener("click", ()=> addDateLine(""));
+    $("btnClearDates").addEventListener("click", clearDates);
+
+    $("btnReload").addEventListener("click", async ()=>{
+      await loadCaches();
+      await loadLeavesTables();
+      setMsg("msgTop","تم التحديث ✅","ok");
+    });
+
+    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      me = user;
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+      }
+
+      await loadCaches();
+      fillBranchesSelect();
+      await loadLeavesTables();
+    });
+  </script>
+</body>
+</html>

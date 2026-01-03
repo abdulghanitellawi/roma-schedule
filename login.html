@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Login</title>
+  <link rel="icon" href="./assets/logo.webp">
+  <style>
+    :root{
+      --bg:#0b1220; --card:rgba(255,255,255,.08); --line:rgba(255,255,255,.14);
+      --txt:#e5e7eb; --muted:#9ca3af; --accent:#d4a019; --ok:#16a34a; --bad:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.18), transparent 55%),
+                  radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.16), transparent 55%),
+                  var(--bg);
+      color:var(--txt);
+      font-family: system-ui, "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+      padding: 18px;
+    }
+    .wrap{width:min(980px,100%); display:grid; gap:16px; grid-template-columns: 1.1fr .9fr}
+    @media (max-width:900px){ .wrap{grid-template-columns:1fr} }
+    .hero{
+      border:1px solid var(--line); background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+      border-radius:18px; padding:22px; box-shadow:var(--shadow);
+    }
+    .hero h1{margin:0 0 8px; font-size:28px}
+    .hero p{margin:0; color:var(--muted); line-height:1.8}
+    .card{
+      border:1px solid var(--line); background:rgba(255,255,255,.06);
+      border-radius:18px; padding:18px; box-shadow:var(--shadow);
+    }
+    label{display:block; margin:10px 0 6px; color:var(--muted); font-size:14px}
+    input{
+      width:100%; padding:12px 12px; border-radius:12px;
+      border:1px solid var(--line); background:rgba(0,0,0,.18);
+      color:var(--txt); outline:none;
+    }
+    input:focus{border-color:rgba(212,160,25,.65); box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+    .btn{
+      cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.06);
+      color:var(--txt); padding:11px 12px; border-radius:12px; flex:1;
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      font-weight:800;
+    }
+    .btn.primary{border-color:rgba(212,160,25,.45); background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+    .note{margin-top:12px; color:var(--muted); font-size:13px; line-height:1.7}
+    .msg{margin-top:12px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:none}
+    .msg.ok{display:block; border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12)}
+    .msg.bad{display:block; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12)}
+    .tiny{color:var(--muted); font-size:12px; margin-top:8px}
+    .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
+    .logoRow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .logoRow img{width:44px;height:44px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="logoRow">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div class="badge">Roma Schedule</div>
+      </div>
+      <h1>نظام الدوامات والإجازات والتغطيات</h1>
+      <p>
+        • أدمن يضيف موظفين + موظفي تغطية<br/>
+        • لكل فرع أوقات دوام (شفتات 8 ساعات)<br/>
+        • توليد جدول تلقائي مع تعويض التغطية
+      </p>
+      <p class="note">
+        أول مرة: اعمل Signup بحسابك، بعدين افتح admin.html واضغط “اجعل Admin”.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px">تسجيل الدخول</h2>
+
+      <label>البريد الإلكتروني</label>
+      <input id="email" type="email" placeholder="name@example.com" autocomplete="email"/>
+
+      <label>كلمة المرور</label>
+      <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+
+      <div class="row">
+        <button class="btn primary" id="btnLogin">دخول</button>
+        <button class="btn" id="btnSignup">إنشاء حساب</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+      <div class="tiny">سيتم تحويلك تلقائيًا إلى صفحة الأدمن أو الموظف حسب دورك.</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const msg = (text, type="ok")=>{
+      const el = $("msg");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+    };
+    const setLoading = (on)=>{
+      $("btnLogin").disabled = on;
+      $("btnSignup").disabled = on;
+    };
+
+    const safeEmailDocId = (email)=> email.trim().toLowerCase().replace(/\./g,"(dot)");
+
+    async function readPresetByEmail(email){
+      const ref = doc(db, "employees_email", safeEmailDocId(email));
+      const snap = await getDoc(ref);
+      return snap.exists() ? snap.data() : null;
+    }
+
+    async function ensureEmployeeDoc(user){
+      const uidRef = doc(db, "employees", user.uid);
+      const snap = await getDoc(uidRef);
+      if(snap.exists()) return;
+
+      const preset = await readPresetByEmail(user.email || "");
+      const base = {
+        name: (user.email || "user").split("@")[0],
+        email: user.email || "",
+        role: "staff",
+        type: "regular",      // regular | cover
+        department: "General",
+        branchId: "",         // ثابت للـ regular
+        fixedBranch: true,
+        coverAllBranches: false,
+        coverBranchIds: [],
+        canCover: true,
+        active: true,
+        createdAt: serverTimestamp()
+      };
+
+      const data = preset ? { ...base, ...preset } : base;
+      await setDoc(uidRef, data, { merge:true });
+    }
+
+    async function getRole(uid){
+      const snap = await getDoc(doc(db, "employees", uid));
+      return snap.exists() ? (snap.data()?.role || "staff") : "staff";
+    }
+
+    async function routeByRole(user){
+      setLoading(true);
+      try{
+        await ensureEmployeeDoc(user);
+      }catch(e){
+        console.error(e);
+        msg("تم تسجيل الدخول ✅ لكن Firestore غير جاهز أو Rules مانعة.", "bad");
+        setLoading(false);
+        return;
+      }
+
+      let role = "staff";
+      try{ role = await getRole(user.uid); }catch(e){ console.error(e); }
+
+      if(role === "admin") location.href = "./admin-dashboard.html";
+      else location.href = "./staff.html";
+    }
+
+    onAuthStateChanged(auth, (user)=>{
+      if(user) routeByRole(user);
+    });
+
+    $("btnLogin").addEventListener("click", async ()=>{
+      const email = $("email").value.trim();
+      const pass  = $("pass").value;
+      if(!email || !pass) return msg("اكتب الإيميل وكلمة المرور", "bad");
+      try{
+        setLoading(true);
+        await signInWithEmailAndPassword(auth, email, pass);
+        msg("تم تسجيل الدخول…", "ok");
+      }catch(e){
+        setLoading(false);
+        msg(e?.message || "خطأ بالدخول", "bad");
+      }
+    });
+
+    $("btnSignup").addEventListener("click", async ()=>{
+      const email = $("email").value.trim();
+      const pass  = $("pass").value;
+      if(!email || !pass) return msg("اكتب الإيميل وكلمة المرور", "bad");
+      try{
+        setLoading(true);
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        try{ await ensureEmployeeDoc(cred.user); }catch(e){ console.error(e); }
+        msg("تم إنشاء الحساب…", "ok");
+      }catch(e){
+        setLoading(false);
+        msg(e?.message || "خطأ بإنشاء الحساب", "bad");
+      }
+    });
+  </script>
+</body>
+</html>

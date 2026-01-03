@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Branches</title>
+  <link rel="icon" href="./assets/logo.webp">
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+    input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.16);color:var(--txt);outline:none}
+    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    input[readonly]{opacity:.75; cursor:not-allowed}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row > *{flex:1}
+    .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:900px){.twoCol{grid-template-columns:1fr}}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04)}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+
+    /* ===== Modal (edit/add) ===== */
+    .modalOverlay{position:fixed; inset:0; z-index:999; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:14px;}
+    .modalOverlay.show{display:flex}
+    .modal{width:min(980px, 100%); max-height:92vh; overflow:auto; border:1px solid rgba(255,255,255,.14); background:rgba(12,18,32,.92); backdrop-filter: blur(10px); border-radius:18px; box-shadow: 0 24px 80px rgba(0,0,0,.55);}
+    .modalHead{position:sticky; top:0; background:rgba(12,18,32,.95); border-bottom:1px solid rgba(255,255,255,.10); padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; z-index:2;}
+    .modalBody{padding:12px}
+    .xbtn{border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--txt); border-radius:12px; padding:10px 12px; font-weight:900; cursor:pointer}
+    .xbtn:hover{background:rgba(255,255,255,.10)}
+    .modalTitle{display:flex; flex-direction:column; gap:2px}
+
+    /* ===== Days cards ===== */
+    .daysGrid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-top:8px;}
+    .dayCard{min-width:0;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;}
+    .dayTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .dayName{font-weight:900;font-size:13px}
+    .dayToggle{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;user-select:none}
+    .dayToggle input{width:auto;padding:0;margin:0;accent-color:var(--accent);transform:scale(1.05)}
+    .dayTimes{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .dayTimes input[type="time"]{width:130px;max-width:100%;padding:8px 10px;border-radius:12px;font-size:12px;}
+    .arrow{color:var(--muted);font-size:12px}
+
+    .shiftHeadRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+    .shiftButtons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .shiftHidden{display:none !important;}
+
+    /* ===== Preview Modals ===== */
+    .previewGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap:10px;
+    }
+    .pDay{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      border-radius:14px;
+      padding:10px;
+      min-width:0;
+    }
+    .pTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .pName{font-weight:900;font-size:13px}
+    .pHours{color:var(--muted);font-size:12px}
+    .pItem{
+      margin-top:8px;
+      padding:8px 10px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.16);
+      border-radius:12px;
+      font-size:12px;
+      line-height:1.6;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .pItem b{font-size:12px}
+    .mut{color:var(--muted)}
+    .hr{height:1px;background:rgba(255,255,255,.08);margin:10px 0}
+    .miniBtnRow{display:flex;gap:8px;flex-wrap:wrap}
+    .tiny{font-size:12px;padding:8px 10px;border-radius:12px}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+    <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div style="flex:2">
+          <h2 style="margin:0">قائمة الفروع</h2>
+          <div class="mini">أوقات العمل + الشفتات صاروا بزر واحد يفتح مودال ✅</div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn primary" id="btnAdd">إضافة فرع</button>
+          <button class="btn" id="btnReload">تحديث</button>
+        </div>
+      </div>
+
+      <div style="overflow:auto;margin-top:10px">
+        <table>
+          <thead><tr><th>الفرع</th><th>أوقات العمل</th><th>الشفتات</th><th>إجراء</th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal (add/edit) ===== -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalHead">
+        <div class="modalTitle">
+          <b id="modalTitle">إضافة فرع</b>
+          <div class="mini" id="modalSub">أدخل البيانات ثم احفظ</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn primary" id="btnSave">حفظ</button>
+          <button class="xbtn" id="btnClose">إغلاق ✕</button>
+        </div>
+      </div>
+
+      <div class="modalBody">
+        <div class="mini">
+          • حساب الشفتات حسب كل يوم ✅<br>
+          • إذا شفت واحد → Full Day (فتح→تسكير)<br>
+          • إذا شفتين → شفت1 (فتح→فتح+8) و شفت2 (تسكير-8→تسكير)
+        </div>
+
+        <div class="row">
+          <div>
+            <label>اسم الفرع</label>
+            <input id="bName" placeholder="مثال: فرع حمص - الدبلان">
+          </div>
+        </div>
+
+        <label style="margin-top:6px">أوقات الفتح/الإغلاق حسب اليوم</label>
+        <div class="daysGrid" id="daysGrid"></div>
+
+        <div class="shiftHeadRow">
+          <div>
+            <b style="font-size:13px">الشفتات</b>
+            <div class="mini">شفت 1 + شفت 2 (سمارت). يمكن إضافة شفت 3 يدويًا (اختياري)</div>
+          </div>
+          <div class="shiftButtons">
+            <button class="btn" id="btnAddShift">إضافة شفت 3</button>
+            <button class="btn danger" id="btnRemoveShift" style="display:none">إزالة شفت 3</button>
+          </div>
+        </div>
+
+        <div class="twoCol" style="margin-top:10px">
+          <div class="card" style="margin:0">
+            <h2 style="font-size:14px;margin:0 0 8px">شفت 1</h2>
+            <label>الموظف</label>
+            <select id="emp1"><option value="">— اختر موظف —</option></select>
+            <label>minStaff</label>
+            <input id="bm1" type="number" min="0" value="0">
+            <div class="mini">معاينة (أول يوم مفتوح): <span class="badge" id="p1">--:--</span></div>
+          </div>
+
+          <div class="card" style="margin:0">
+            <h2 style="font-size:14px;margin:0 0 8px">شفت 2</h2>
+            <label>الموظف</label>
+            <select id="emp2"><option value="">— اختر موظف —</option></select>
+            <label>minStaff</label>
+            <input id="bm2" type="number" min="0" value="0">
+            <div class="mini">معاينة (أول يوم مفتوح): <span class="badge" id="p2">--:--</span></div>
+          </div>
+
+          <div class="card shiftHidden" id="shift3Card" style="margin:0">
+            <h2 style="font-size:14px;margin:0 0 8px">شفت 3 (يدوي)</h2>
+            <label>الموظف</label>
+            <select id="emp3"><option value="">— اختر موظف —</option></select>
+            <label>بداية</label>
+            <input id="bs3" type="time" step="60" value="00:00">
+            <label>minStaff</label>
+            <input id="bm3" type="number" min="0" value="0">
+            <div class="mini">النهاية: <span class="badge" id="p3">--:--</span></div>
+          </div>
+
+          <div class="card" style="margin:0">
+            <h2 style="font-size:14px;margin:0 0 8px">ملاحظات</h2>
+            <div class="mini">• minStaff=0 يعني الشفت غير مفعل</div>
+            <div class="mini" id="empHint" style="margin-top:8px"></div>
+          </div>
+        </div>
+
+        <div id="msg" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Preview Modal: Shifts ===== -->
+  <div class="modalOverlay" id="previewShiftOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewShiftTitle">
+      <div class="modalHead">
+        <div class="modalTitle">
+          <b id="previewShiftTitle">عرض الشفتات</b>
+          <div class="mini" id="previewShiftSub">—</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="xbtn" id="previewShiftClose">إغلاق ✕</button>
+        </div>
+      </div>
+      <div class="modalBody">
+        <div class="miniBtnRow" style="margin-bottom:10px">
+          <span class="badge" id="previewShiftId">ID: —</span>
+          <span class="badge" id="previewShiftCount">Shifts: —</span>
+        </div>
+        <div class="previewGrid" id="previewShiftGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Preview Modal: Hours (NEW) ===== -->
+  <div class="modalOverlay" id="previewHoursOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewHoursTitle">
+      <div class="modalHead">
+        <div class="modalTitle">
+          <b id="previewHoursTitle">عرض أوقات العمل</b>
+          <div class="mini" id="previewHoursSub">—</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="xbtn" id="previewHoursClose">إغلاق ✕</button>
+        </div>
+      </div>
+      <div class="modalBody">
+        <div class="miniBtnRow" style="margin-bottom:10px">
+          <span class="badge" id="previewHoursId">ID: —</span>
+          <span class="badge" id="previewHoursCount">Days: —</span>
+        </div>
+        <div class="previewGrid" id="previewHoursGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    const setMsg = (text, type="ok")=>{
+      const el = $("msg");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    };
+    const hideMsg = ()=>{ $("msg").style.display="none"; };
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    // ===== time helpers =====
+    function timeToMin(t){
+      if(!t) return null;
+      const m = String(t).trim().match(/^(\d{1,2}):(\d{2})$/);
+      if(!m) return null;
+      const hh = Math.max(0, Math.min(23, parseInt(m[1],10)));
+      const mm = Math.max(0, Math.min(59, parseInt(m[2],10)));
+      return hh*60 + mm;
+    }
+    function minToTime(min){
+      const m = ((min % 1440) + 1440) % 1440;
+      const hh = String(Math.floor(m/60)).padStart(2,"0");
+      const mm = String(m%60).padStart(2,"0");
+      return `${hh}:${mm}`;
+    }
+    function minutesBetween(open, close){
+      const a = timeToMin(open), b = timeToMin(close);
+      if(a===null || b===null) return null;
+      return ((b - a) + 1440) % 1440;
+    }
+
+    // ======= days =======
+    const DAYS = [
+      { key:"sun", label:"الأحد" },
+      { key:"mon", label:"الإثنين" },
+      { key:"tue", label:"الثلاثاء" },
+      { key:"wed", label:"الأربعاء" },
+      { key:"thu", label:"الخميس" },
+      { key:"fri", label:"الجمعة" },
+      { key:"sat", label:"السبت" },
+    ];
+    const DAY_LABEL = Object.fromEntries(DAYS.map(d=>[d.key,d.label]));
+
+    function renderDaysCards(){
+      const wrap = $("daysGrid");
+      wrap.innerHTML = "";
+      for(const d of DAYS){
+        const card = document.createElement("div");
+        card.className = "dayCard";
+        card.innerHTML = `
+          <div class="dayTop">
+            <div class="dayName">${d.label}</div>
+            <label class="dayToggle">
+              <input type="checkbox" id="cl_${d.key}">
+              مغلق
+            </label>
+          </div>
+          <div class="dayTimes">
+            <input type="time" step="60" id="op_${d.key}" value="08:00">
+            <span class="arrow">→</span>
+            <input type="time" step="60" id="co_${d.key}" value="00:00">
+          </div>
+        `;
+        wrap.appendChild(card);
+
+        const chk = document.getElementById(`cl_${d.key}`);
+        const op = document.getElementById(`op_${d.key}`);
+        const co = document.getElementById(`co_${d.key}`);
+
+        const apply = ()=>{
+          const closed = chk.checked;
+          op.disabled = closed;
+          co.disabled = closed;
+          op.style.opacity = closed ? .55 : 1;
+          co.style.opacity = closed ? .55 : 1;
+          recomputePreviewTimes();
+        };
+        chk.addEventListener("change", apply);
+        op.addEventListener("input", recomputePreviewTimes);
+        co.addEventListener("input", recomputePreviewTimes);
+        apply();
+      }
+    }
+
+    function getHoursByDay(){
+      const hours = {};
+      for(const d of DAYS){
+        const closed = document.getElementById(`cl_${d.key}`).checked;
+        const open = document.getElementById(`op_${d.key}`).value;
+        const close = document.getElementById(`co_${d.key}`).value;
+
+        if(!closed){
+          if(timeToMin(open) === null) throw new Error(`اختر وقت فتح صحيح ليوم ${d.label}`);
+          if(timeToMin(close) === null) throw new Error(`اختر وقت إغلاق صحيح ليوم ${d.label}`);
+        }
+        hours[d.key] = { closed, openTime: open, closeTime: close };
+      }
+      return hours;
+    }
+
+    function setHoursByDay(hours){
+      const def = { closed:false, openTime:"08:00", closeTime:"00:00" };
+      for(const d of DAYS){
+        const v = (hours && hours[d.key]) ? hours[d.key] : def;
+        document.getElementById(`cl_${d.key}`).checked = !!v.closed;
+        document.getElementById(`op_${d.key}`).value = v.openTime || "08:00";
+        document.getElementById(`co_${d.key}`).value = v.closeTime || "00:00";
+        document.getElementById(`cl_${d.key}`).dispatchEvent(new Event("change"));
+      }
+      recomputePreviewTimes();
+    }
+
+    function getFirstOpenDay(hoursByDay){
+      for(const d of DAYS){
+        const v = hoursByDay[d.key];
+        if(v && !v.closed) return { dayKey:d.key, open:v.openTime, close:v.closeTime };
+      }
+      return null;
+    }
+
+    function recomputePreviewTimes(){
+      let hours;
+      try{ hours = getHoursByDay(); }catch{ return; }
+      const ref = getFirstOpenDay(hours);
+      const ms1 = Number($("bm1").value||0);
+      const ms2 = Number($("bm2").value||0);
+      const oneShiftOnly = ms1>0 && ms2<=0;
+
+      // preview shift3
+      const bs3 = $("bs3").value;
+      const m3 = timeToMin(bs3);
+      $("p3").textContent = (m3===null) ? "--:--" : minToTime(m3+480);
+
+      if(!ref){
+        $("p1").textContent="--:--";
+        $("p2").textContent="--:--";
+        return;
+      }
+      const open = ref.open, close=ref.close;
+      const s1End = oneShiftOnly ? close : minToTime(timeToMin(open)+480);
+      const s2Start = minToTime(timeToMin(close)-480);
+
+      $("p1").textContent = `${open} → ${s1End}`;
+      $("p2").textContent = oneShiftOnly ? "—" : `${s2Start} → ${close}`;
+    }
+
+    // ===== Employees dropdown =====
+    let cachedEmployees = [];
+
+    function employeeLabel(emp){
+      const name = emp.name || emp.fullName || emp.displayName || emp.username || "";
+      const email = emp.email || "";
+      return (name && email) ? `${name} — ${email}` : (name || email || emp.id);
+    }
+
+    function fillEmployeeSelect(selectEl, selectedId=""){
+      const prev = selectedId || "";
+      const opts = [`<option value="">— اختر موظف —</option>`];
+
+      if(cachedEmployees.length){
+        for(const e of cachedEmployees){
+          const tag = e.source === "employees" ? "حساب" : "إيميل";
+          opts.push(`<option value="${escapeHtml(e.id)}">${escapeHtml(employeeLabel(e))} (${tag})</option>`);
+        }
+      }else{
+        opts.push(`<option value="" disabled>لا يوجد موظفين ضمن هذا الفرع</option>`);
+      }
+
+      selectEl.innerHTML = opts.join("");
+      selectEl.value = prev;
+    }
+
+    function matchesBranch(emp, branchId){
+      const bid = emp.branchId || emp.branch || emp.fixedBranchId || (emp.branchRef && emp.branchRef.id) || "";
+      return String(bid) === String(branchId);
+    }
+
+    async function loadEmployeesForBranch(branchId){
+      cachedEmployees = [];
+
+      if(!branchId){
+        $("empHint").textContent = "لإظهار موظفين الفرع: احفظ الفرع أولاً ثم اربط الموظفين به.";
+        fillEmployeeSelect($("emp1"), "");
+        fillEmployeeSelect($("emp2"), "");
+        fillEmployeeSelect($("emp3"), "");
+        return;
+      }
+
+      const empSnap = await getDocs(collection(db,"employees"));
+      const emps = [];
+      empSnap.forEach(d=>{
+        const data = d.data() || {};
+        if(matchesBranch(data, branchId) && data.active !== false){
+          emps.push({ id:d.id, source:"employees", ...data });
+        }
+      });
+
+      const presetSnap = await getDocs(collection(db,"employees_email"));
+      const presets = [];
+      presetSnap.forEach(d=>{
+        const data = d.data() || {};
+        if(String(data.branchId||"") === String(branchId) && data.active !== false){
+          presets.push({ id:"preset:"+d.id, source:"employees_email", ...data });
+        }
+      });
+
+      cachedEmployees = [...emps, ...presets].sort((a,b)=> employeeLabel(a).localeCompare(employeeLabel(b)));
+
+      $("empHint").textContent = cachedEmployees.length
+        ? `الموظفين ضمن هذا الفرع: ${cachedEmployees.length}`
+        : "لا يوجد موظفين مرتبطين بهذا الفرع بعد (employees / employees_email).";
+
+      fillEmployeeSelect($("emp1"), $("emp1").value);
+      fillEmployeeSelect($("emp2"), $("emp2").value);
+      fillEmployeeSelect($("emp3"), $("emp3").value);
+    }
+
+    function getSelectedEmployee(empId){
+      return cachedEmployees.find(e=>e.id === empId) || null;
+    }
+
+    // ===== Shift3 toggle =====
+    let shift3Enabled = false;
+    function setShift3(enabled){
+      shift3Enabled = !!enabled;
+      $("shift3Card").classList.toggle("shiftHidden", !shift3Enabled);
+      $("btnRemoveShift").style.display = shift3Enabled ? "inline-flex" : "none";
+      $("btnAddShift").style.display = shift3Enabled ? "none" : "inline-flex";
+      if(!shift3Enabled){
+        $("bm3").value = 0;
+        $("emp3").value = "";
+      }
+      recomputePreviewTimes();
+    }
+
+    // ===== Shift config + build per day =====
+    function packShiftConfig(){
+      return {
+        mode: "smart_by_day",
+        shift1: { minStaff: Number($("bm1").value||0), assignedEmployeeId: ($("emp1").value||"").trim() || null },
+        shift2: { minStaff: Number($("bm2").value||0), assignedEmployeeId: ($("emp2").value||"").trim() || null },
+        shift3: {
+          enabled: !!shift3Enabled,
+          start: $("bs3").value || "00:00",
+          minStaff: Number($("bm3").value||0),
+          assignedEmployeeId: ($("emp3").value||"").trim() || null
+        }
+      };
+    }
+
+    function buildDayShifts(open, close, cfg){
+      const out = [];
+      const ms1 = Number(cfg.shift1?.minStaff||0);
+      const ms2 = Number(cfg.shift2?.minStaff||0);
+      const oneShiftOnly = ms1>0 && ms2<=0;
+
+      const fullMin = minutesBetween(open, close);
+      if(fullMin === null) return out;
+
+      const add = (label, start, end, minStaff, empSelId, durationHours)=>{
+        if(Number(minStaff||0) <= 0) return;
+        const sel = (empSelId || "").trim();
+        const emp = sel ? getSelectedEmployee(sel) : null;
+
+        out.push({
+          key: label,
+          name: label,
+          start,
+          end,
+          minStaff: Number(minStaff||0),
+          durationHours,
+          assignedEmployeeId: sel || null,
+          assignedEmployeeSource: emp?.source || null,
+          assignedEmployeeName: emp ? (emp.name || emp.fullName || emp.displayName || emp.email || emp.id) : null,
+          assignedEmployeeEmail: emp?.email || null
+        });
+      };
+
+      const s1Start = open;
+      const s1End = oneShiftOnly ? close : minToTime(timeToMin(open) + 480);
+      const dur1 = oneShiftOnly ? +(fullMin/60).toFixed(2) : 8;
+      add("Shift 1", s1Start, s1End, ms1, cfg.shift1?.assignedEmployeeId, dur1);
+
+      if(!oneShiftOnly){
+        const s2Start = minToTime(timeToMin(close) - 480);
+        add("Shift 2", s2Start, close, ms2, cfg.shift2?.assignedEmployeeId, 8);
+      }
+
+      if(cfg.shift3?.enabled){
+        const ms3 = Number(cfg.shift3?.minStaff||0);
+        if(ms3>0){
+          const st = cfg.shift3?.start || "00:00";
+          add("Shift 3", st, minToTime(timeToMin(st)+480), ms3, cfg.shift3?.assignedEmployeeId, 8);
+        }
+      }
+
+      return out;
+    }
+
+    function packShiftsByDay(hoursByDay, cfg){
+      const map = {};
+      for(const d of DAYS){
+        const v = hoursByDay[d.key];
+        if(!v || v.closed){ map[d.key]=[]; continue; }
+        map[d.key] = buildDayShifts(v.openTime, v.closeTime, cfg);
+      }
+      return map;
+    }
+
+    // ===== add/edit modal =====
+    const overlay = $("modalOverlay");
+    function openModal(mode){
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+      hideMsg();
+      recomputePreviewTimes();
+
+      if(mode==="edit"){
+        $("modalTitle").textContent = "تعديل فرع";
+        $("modalSub").textContent = "عدّل البيانات ثم احفظ";
+      }else{
+        $("modalTitle").textContent = "إضافة فرع";
+        $("modalSub").textContent = "أدخل البيانات ثم احفظ";
+      }
+      setTimeout(()=> $("bName").focus(), 50);
+    }
+    function closeModal(){
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+      hideMsg();
+    }
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
+
+    // ===== Preview Shifts Modal =====
+    const shiftOv = $("previewShiftOverlay");
+    function openShiftsModal(branch){
+      $("previewShiftTitle").textContent = `الشفتات — ${branch.name || "-"}`;
+      $("previewShiftSub").textContent = "عرض حسب كل يوم";
+      $("previewShiftId").textContent = `ID: ${branch.id}`;
+
+      const shiftsByDay = branch.shiftsByDay || null;
+      const hoursByDay = branch.hoursByDay || null;
+
+      let cnt = 0;
+      if(shiftsByDay){
+        for(const d of DAYS){
+          const arr = Array.isArray(shiftsByDay[d.key]) ? shiftsByDay[d.key] : [];
+          cnt += arr.length;
+        }
+      } else if(Array.isArray(branch.shifts)) {
+        cnt = branch.shifts.length;
+      }
+      $("previewShiftCount").textContent = `Shifts: ${cnt}`;
+
+      const grid = $("previewShiftGrid");
+      grid.innerHTML = "";
+
+      for(const d of DAYS){
+        const key = d.key;
+        const hv = hoursByDay?.[key];
+        const closed = hv ? !!hv.closed : false;
+        const hoursText = hv ? (closed ? "مغلق" : `${hv.openTime} → ${hv.closeTime}`) : "—";
+
+        const arr = shiftsByDay ? (Array.isArray(shiftsByDay[key]) ? shiftsByDay[key] : []) : [];
+
+        const card = document.createElement("div");
+        card.className = "pDay";
+        card.innerHTML = `
+          <div class="pTop">
+            <div class="pName">${d.label}</div>
+            <div class="pHours">${escapeHtml(hoursText)}</div>
+          </div>
+          <div class="hr"></div>
+          <div class="pBody"></div>
+        `;
+        grid.appendChild(card);
+
+        const body = card.querySelector(".pBody");
+
+        if(!hoursByDay){ body.innerHTML = `<div class="mut">لا يوجد ساعات دوام</div>`; continue; }
+        if(closed){ body.innerHTML = `<div class="mut">مغلق</div>`; continue; }
+        if(!arr.length){ body.innerHTML = `<div class="mut">لا يوجد شفتات (minStaff=0)</div>`; continue; }
+
+        for(const s of arr){
+          const emp = s.assignedEmployeeName ? s.assignedEmployeeName : (s.assignedEmployeeEmail || "");
+          const empLine = emp ? `<span class="mut">${escapeHtml(emp)}</span>` : `<span class="mut">— بدون موظف</span>`;
+          const item = document.createElement("div");
+          item.className = "pItem";
+          item.innerHTML = `
+            <b>${escapeHtml(s.name || s.key || "Shift")}</b>
+            <div>${escapeHtml(s.start)} → ${escapeHtml(s.end)} <span class="mut">(min=${Number(s.minStaff||0)})</span></div>
+            <div>${empLine}</div>
+          `;
+          body.appendChild(item);
+        }
+      }
+
+      shiftOv.classList.add("show");
+      shiftOv.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeShiftsModal(){
+      shiftOv.classList.remove("show");
+      shiftOv.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+    }
+    $("previewShiftClose").addEventListener("click", closeShiftsModal);
+    shiftOv.addEventListener("click", (e)=>{ if(e.target === shiftOv) closeShiftsModal(); });
+
+    // ===== Preview Hours Modal (NEW) =====
+    const hoursOv = $("previewHoursOverlay");
+    function openHoursModal(branch){
+      $("previewHoursTitle").textContent = `أوقات العمل — ${branch.name || "-"}`;
+      $("previewHoursSub").textContent = "عرض حسب كل يوم";
+      $("previewHoursId").textContent = `ID: ${branch.id}`;
+
+      const hoursByDay = branch.hoursByDay || null;
+      let openDays = 0;
+      if(hoursByDay){
+        for(const d of DAYS){
+          const v = hoursByDay[d.key];
+          if(v && !v.closed) openDays++;
+        }
+      }
+      $("previewHoursCount").textContent = `Days: ${hoursByDay ? openDays + "/7" : "—"}`;
+
+      const grid = $("previewHoursGrid");
+      grid.innerHTML = "";
+
+      for(const d of DAYS){
+        const v = hoursByDay?.[d.key] || null;
+        const closed = v ? !!v.closed : false;
+        const hoursText = v ? (closed ? "مغلق" : `${v.openTime} → ${v.closeTime}`) : "—";
+
+        const card = document.createElement("div");
+        card.className = "pDay";
+        card.innerHTML = `
+          <div class="pTop">
+            <div class="pName">${d.label}</div>
+            <div class="pHours">${escapeHtml(hoursText)}</div>
+          </div>
+          <div class="hr"></div>
+          <div class="pBody">
+            ${v ? (closed ? `<div class="mut">مغلق</div>` : `<div class="pItem"><b>الدوام</b><div>${escapeHtml(v.openTime)} → ${escapeHtml(v.closeTime)}</div></div>`) : `<div class="mut">غير محدد</div>`}
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+
+      hoursOv.classList.add("show");
+      hoursOv.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+    }
+    function closeHoursModal(){
+      hoursOv.classList.remove("show");
+      hoursOv.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+    }
+    $("previewHoursClose").addEventListener("click", closeHoursModal);
+    hoursOv.addEventListener("click", (e)=>{ if(e.target === hoursOv) closeHoursModal(); });
+
+    // ESC closes whichever modal is open
+    document.addEventListener("keydown", (e)=>{
+      if(e.key!=="Escape") return;
+      if(overlay.classList.contains("show")) closeModal();
+      if(shiftOv.classList.contains("show")) closeShiftsModal();
+      if(hoursOv.classList.contains("show")) closeHoursModal();
+    });
+
+    // ===== Branch state =====
+    let editingId = null;
+    const branchesCache = new Map();
+
+    function resetForm(){
+      editingId = null;
+      $("bName").value = "";
+      setHoursByDay(null);
+
+      $("bm1").value=0;
+      $("bm2").value=0;
+
+      $("bs3").value="00:00";
+      $("bm3").value=0;
+      setShift3(false);
+
+      $("emp1").value = "";
+      $("emp2").value = "";
+      $("emp3").value = "";
+
+      cachedEmployees = [];
+      fillEmployeeSelect($("emp1"), "");
+      fillEmployeeSelect($("emp2"), "");
+      fillEmployeeSelect($("emp3"), "");
+
+      hideMsg();
+      $("empHint").textContent = "لإظهار موظفين الفرع: احفظ الفرع أولاً ثم اربط الموظفين به.";
+      recomputePreviewTimes();
+    }
+
+    function countShiftsFast(branch){
+      if(branch.shiftsByDay){
+        let c=0;
+        for(const d of DAYS){
+          const arr = Array.isArray(branch.shiftsByDay[d.key]) ? branch.shiftsByDay[d.key] : [];
+          c += arr.length;
+        }
+        return c;
+      }
+      return Array.isArray(branch.shifts) ? branch.shifts.length : 0;
+    }
+
+    function countOpenDays(branch){
+      const h = branch.hoursByDay || null;
+      if(!h) return 0;
+      let c=0;
+      for(const d of DAYS){
+        const v = h[d.key];
+        if(v && !v.closed) c++;
+      }
+      return c;
+    }
+
+    function summarizeHoursTiny(branch){
+      // small one-liner for table (optional)
+      const c = countOpenDays(branch);
+      return `${c}/7`;
+    }
+
+    async function load(){
+      branchesCache.clear();
+
+      const snap = await getDocs(collection(db,"branches"));
+      const rows=[];
+      snap.forEach(d=>{
+        const obj = {id:d.id, ...d.data()};
+        rows.push(obj);
+        branchesCache.set(d.id, obj);
+      });
+      rows.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
+
+      const tb = $("tb");
+      tb.innerHTML="";
+
+      for(const r of rows){
+        // ✅ ساعات: زر واحد
+        const hoursBtn = `
+          <button class="btn tiny" data-hours="${escapeHtml(r.id)}">عرض أوقات العمل</button>
+          <span class="badge">${summarizeHoursTiny(r)}</span>
+        `;
+
+        // ✅ شفتات: زر واحد
+        const shiftCount = countShiftsFast(r);
+        const shiftBtn = `
+          <button class="btn tiny" data-shifts="${escapeHtml(r.id)}">عرض الشفتات</button>
+          <span class="badge">${shiftCount}</span>
+        `;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <b>${escapeHtml(r.name||"-")}</b>
+            <div class="mini">ID: <span class="badge">${escapeHtml(r.id)}</span></div>
+          </td>
+          <td>${hoursBtn}</td>
+          <td>${shiftBtn}</td>
+          <td>
+            <button class="btn" data-ed="${escapeHtml(r.id)}">تعديل</button>
+            <button class="btn danger" data-del="${escapeHtml(r.id)}">حذف</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      // open hours modal
+      tb.querySelectorAll("[data-hours]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const id = b.getAttribute("data-hours");
+          const br = branchesCache.get(id);
+          if(br) openHoursModal(br);
+        });
+      });
+
+      // open shifts modal
+      tb.querySelectorAll("[data-shifts]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const id = b.getAttribute("data-shifts");
+          const br = branchesCache.get(id);
+          if(br) openShiftsModal(br);
+        });
+      });
+
+      // edit
+      tb.querySelectorAll("[data-ed]").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          const id = b.getAttribute("data-ed");
+          const s = await getDoc(doc(db,"branches",id));
+          if(!s.exists()) return;
+          const d = s.data();
+
+          editingId = id;
+          $("bName").value = d.name || "";
+          setHoursByDay(d.hoursByDay || null);
+
+          await loadEmployeesForBranch(editingId);
+
+          const cfg = d.shiftConfig || null;
+          if(cfg){
+            $("bm1").value = cfg.shift1?.minStaff || 0;
+            $("emp1").value = cfg.shift1?.assignedEmployeeId || "";
+
+            $("bm2").value = cfg.shift2?.minStaff || 0;
+            $("emp2").value = cfg.shift2?.assignedEmployeeId || "";
+
+            if(cfg.shift3?.enabled){
+              setShift3(true);
+              $("bs3").value = cfg.shift3?.start || "00:00";
+              $("bm3").value = cfg.shift3?.minStaff || 0;
+              $("emp3").value = cfg.shift3?.assignedEmployeeId || "";
+            }else{
+              $("bs3").value = "00:00"; $("bm3").value = 0;
+              $("emp3").value = "";
+              setShift3(false);
+            }
+          }else{
+            const shifts = Array.isArray(d.shifts)? d.shifts: [];
+            const pick = (label)=> shifts.find(x=>x.name===label);
+            const s1=pick("Shift 1"), s2=pick("Shift 2"), s3=pick("Shift 3");
+
+            $("bm1").value = s1?.minStaff || 0;
+            $("emp1").value = s1?.assignedEmployeeId || "";
+
+            $("bm2").value = s2?.minStaff || 0;
+            $("emp2").value = s2?.assignedEmployeeId || "";
+
+            if(s3 && Number(s3.minStaff||0) > 0){
+              setShift3(true);
+              $("bs3").value = s3?.start || "00:00";
+              $("bm3").value = s3?.minStaff || 0;
+              $("emp3").value = s3?.assignedEmployeeId || "";
+            }else{
+              $("bs3").value = "00:00"; $("bm3").value = 0;
+              $("emp3").value = "";
+              setShift3(false);
+            }
+          }
+
+          fillEmployeeSelect($("emp1"), $("emp1").value);
+          fillEmployeeSelect($("emp2"), $("emp2").value);
+          fillEmployeeSelect($("emp3"), $("emp3").value);
+
+          recomputePreviewTimes();
+          openModal("edit");
+        });
+      });
+
+      // delete
+      tb.querySelectorAll("[data-del]").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          const id = b.getAttribute("data-del");
+          if(!confirm("حذف الفرع؟")) return;
+          await deleteDoc(doc(db,"branches",id));
+          await load();
+        });
+      });
+    }
+
+    async function save(){
+      const name = $("bName").value.trim();
+      if(!name) return setMsg("اكتب اسم الفرع","bad");
+
+      let hoursByDay;
+      try{ hoursByDay = getHoursByDay(); }
+      catch(err){ return setMsg(err?.message || "تأكد من أوقات الفتح/الإغلاق","bad"); }
+
+      const shiftConfig = packShiftConfig();
+      const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfig);
+
+      const anyActive = DAYS.some(d => (shiftsByDay[d.key]||[]).length > 0);
+      if(!anyActive) return setMsg("فعّل شفت واحد على الأقل (minStaff > 0)","bad");
+
+      const ref = getFirstOpenDay(hoursByDay);
+      const shiftsSample = ref ? buildDayShifts(ref.open, ref.close, shiftConfig) : [];
+
+      const payload = {
+        name,
+        hoursByDay,
+        shiftConfig,
+        shiftsByDay,
+        shifts: shiftsSample,
+        updatedAt: serverTimestamp()
+      };
+
+      if(editingId){
+        await updateDoc(doc(db,"branches",editingId), payload);
+        setMsg("تم تعديل الفرع ✅","ok");
+      }else{
+        const id = "br_" + crypto.randomUUID().slice(0,10);
+        await setDoc(doc(db,"branches",id), { ...payload, createdAt: serverTimestamp() });
+        setMsg("تمت إضافة الفرع ✅","ok");
+      }
+
+      await load();
+      closeModal();
+      resetForm();
+    }
+
+    // ===== events =====
+    $("bm1").addEventListener("input", recomputePreviewTimes);
+    $("bm2").addEventListener("input", recomputePreviewTimes);
+    $("bs3").addEventListener("input", recomputePreviewTimes);
+
+    $("btnSave").addEventListener("click", save);
+    $("btnClose").addEventListener("click", closeModal);
+    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    $("btnAdd").addEventListener("click", async ()=>{
+      resetForm();
+      openModal("add");
+      await loadEmployeesForBranch(null);
+    });
+
+    $("btnReload").addEventListener("click", load);
+
+    $("btnAddShift").addEventListener("click", ()=>{
+      setShift3(true);
+      setTimeout(()=> $("bs3").focus(), 50);
+    });
+    $("btnRemoveShift").addEventListener("click", ()=> setShift3(false));
+
+    renderDaysCards();
+    resetForm();
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+      }
+
+      await load();
+    });
+  </script>
+</body>
+</html>
