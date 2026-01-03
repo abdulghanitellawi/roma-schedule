@@ -163,25 +163,6 @@
           </div>
         </div>
 
-        <div class="row">
-          <div>
-            <label>GPS Latitude</label>
-            <input id="geoLat" type="number" step="0.000001" placeholder="مثال: 25.204849">
-          </div>
-          <div>
-            <label>GPS Longitude</label>
-            <input id="geoLng" type="number" step="0.000001" placeholder="مثال: 55.270783">
-          </div>
-          <div>
-            <label>Radius (meters)</label>
-            <input id="geoRadiusM" type="number" min="30" step="10" value="150">
-          </div>
-        </div>
-        <div class="row" style="margin-top:-4px">
-          <button class="btn" id="btnUseMyGps">استخدم موقعي الحالي (للأدمن)</button>
-          <div class="mini" style="flex:2">* ضروري حتى يشتغل Check-in/Check-out للموظفين ضمن نطاق الفرع</div>
-        </div>
-
         <label style="margin-top:6px">أوقات الفتح/الإغلاق حسب اليوم</label>
         <div class="daysGrid" id="daysGrid"></div>
 
@@ -273,7 +254,21 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
-    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    
+    // ===== Helpers (IDs) =====
+    const safeEmailDocId = (email)=> String(email||"").trim().toLowerCase().replace(/\./g,"(dot)");
+    const normalizeEmailToPresetId = (email)=>{
+      const e = String(email||"").trim().toLowerCase();
+      if(!e || !e.includes("@")) return null;
+      return "preset:" + safeEmailDocId(e);
+    };
+    const normalizeAssignedId = (id, email)=>{
+      const v = String(id||"").trim();
+      if(!v) return "";
+      if(v.startsWith("preset:")) return v;
+      const p = normalizeEmailToPresetId(email);
+      return p || v;
+    };
     const setMsg = (text, type="ok")=>{
       const el = $("msg");
       el.className = "msg " + (type==="bad"?"bad":"ok");
@@ -555,7 +550,9 @@
       empSnap.forEach(d=>{
         const data = d.data() || {};
         if(matchesBranch(data, branchId) && data.active !== false){
-          emps.push({ id:d.id, source:"employees", ...data });
+          const email = String(data.email||""").trim().toLowerCase();
+          const pid = normalizeEmailToPresetId(email) || ("uid:"+d.id);
+          emps.push({ id: pid, uid: d.id, source:"employees", email, ...data });
         }
       });
 
@@ -564,7 +561,8 @@
       presetSnap.forEach(d=>{
         const data = d.data() || {};
         if(String(data.branchId||"") === String(branchId) && data.active !== false){
-          presets.push({ id:"preset:"+d.id, source:"employees_email", ...data });
+          const email = String(data.email||""").trim().toLowerCase();
+          presets.push({ id:"preset:"+d.id, source:"employees_email", email, ...data });
         }
       });
 
@@ -589,9 +587,6 @@
     function resetForm(){
       editingId = null;
       $("bName").value = "";
-      $("geoLat").value = "";
-      $("geoLng").value = "";
-      $("geoRadiusM").value = 150;
       setHoursByDay(null);
 
       $("bm1").value=0;
@@ -725,9 +720,6 @@
 
           editingId = id;
           $("bName").value = d.name || "";
-          $("geoLat").value = (d.geoLat ?? d.lat ?? d.latitude ?? d.location?.lat ?? "");
-          $("geoLng").value = (d.geoLng ?? d.lng ?? d.longitude ?? d.location?.lng ?? "");
-          $("geoRadiusM").value = Number(d.geoRadiusM ?? d.radiusM ?? d.radius ?? 150);
           setHoursByDay(d.hoursByDay || null);
 
           await loadEmployeesForBranch(editingId);
@@ -738,16 +730,16 @@
           const s1=pick("Shift 1"), s2=pick("Shift 2"), s3=pick("Shift 3");
 
           $("bm1").value = s1?.minStaff || 0;
-          $("emp1").value = s1?.assignedEmployeeId || "";
+          $("emp1").value = normalizeAssignedId(s1?.assignedEmployeeId, s1?.assignedEmployeeEmail);
 
           $("bm2").value = s2?.minStaff || 0;
-          $("emp2").value = s2?.assignedEmployeeId || "";
+          $("emp2").value = normalizeAssignedId(s2?.assignedEmployeeId, s2?.assignedEmployeeEmail);
 
           if(s3 && Number(s3.minStaff||0) > 0){
             setShift3(true);
             $("bs3").value = s3?.start || "00:00";
             $("bm3").value = s3?.minStaff || 0;
-            $("emp3").value = s3?.assignedEmployeeId || "";
+            $("emp3").value = normalizeAssignedId(s3?.assignedEmployeeId, s3?.assignedEmployeeEmail);
           }else{
             $("bs3").value = "00:00"; $("bm3").value = 0;
             $("emp3").value = "";
@@ -793,12 +785,7 @@
 
       if(!shifts.length) return setMsg("فعّل شفت واحد على الأقل (minStaff > 0)","bad");
 
-      const geoLat = $("geoLat").value.trim();
-      const geoLng = $("geoLng").value.trim();
-      const geoRadiusM = Number($("geoRadiusM").value||150);
-      const geoPayload = (geoLat && geoLng) ? { geoLat: Number(geoLat), geoLng: Number(geoLng), geoRadiusM: (isFinite(geoRadiusM)?geoRadiusM:150) } : {};
-
-      const payload = { name, hoursByDay, shifts, ...geoPayload, updatedAt: serverTimestamp() };
+      const payload = { name, hoursByDay, shifts, updatedAt: serverTimestamp() };
 
       if(editingId){
         await updateDoc(doc(db,"branches",editingId), payload);
@@ -830,22 +817,6 @@
     });
 
     $("btnReload").addEventListener("click", load);
-
-    $("btnUseMyGps").addEventListener("click", async ()=>{
-      try{
-        if(location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1"){
-          return setMsg("الـ GPS يحتاج HTTPS/localhost.","bad");
-        }
-        if(!("geolocation" in navigator)) return setMsg("الجهاز لا يدعم GPS.","bad");
-        setMsg("...جاري تحديد موقعك","ok");
-        const pos = await new Promise((res,rej)=> navigator.geolocation.getCurrentPosition(res,rej,{ enableHighAccuracy:true, timeout:15000, maximumAge:0 }));
-        $("geoLat").value = Number(pos.coords.latitude).toFixed(6);
-        $("geoLng").value = Number(pos.coords.longitude).toFixed(6);
-        setMsg("تم جلب GPS ✅ عدّل الراديوس ثم احفظ.","ok");
-      }catch(e){
-        setMsg(e?.message || "فشل الحصول على GPS","bad");
-      }
-    });
 
     $("btnAddShift").addEventListener("click", ()=>{
       setShift3(true);
