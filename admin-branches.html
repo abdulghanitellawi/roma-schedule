@@ -163,9 +163,12 @@
           </div>
         </div>
 
-        <label style="margin-top:6px">أوقات الفتح/الإغلاق حسب اليوم</label>
-        <div class="daysGrid" id="daysGrid"></div>
+        <div id="secHours">
+          <label style="margin-top:6px">أوقات الفتح/الإغلاق حسب اليوم</label>
+          <div class="daysGrid" id="daysGrid"></div>
+        </div>
 
+        <div id="secShifts">
         <div class="shiftHeadRow">
           <div>
             <b style="font-size:13px">الشفتات</b>
@@ -175,6 +178,8 @@
             <button class="btn" id="btnAddShift">إضافة شفت 3</button>
             <button class="btn danger" id="btnRemoveShift" style="display:none">إزالة شفت 3</button>
           </div>
+        </div>
+
         </div>
 
         <div class="twoCol" style="margin-top:10px">
@@ -254,6 +259,7 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
+    const escapeHtml = (s)=> String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
     
     // ===== Helpers (IDs) =====
     const safeEmailDocId = (email)=> String(email||"").trim().toLowerCase().replace(/\./g,"(dot)");
@@ -487,7 +493,14 @@
         $("modalTitle").textContent = "إضافة فرع";
         $("modalSub").textContent = "أدخل البيانات ثم احفظ";
       }
-      setTimeout(()=> $("bName").focus(), 50);
+      setTimeout(()=> {
+        $("bName").focus();
+        if(window.__scrollTo){
+          const el = document.getElementById(window.__scrollTo);
+          if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+          window.__scrollTo = null;
+        }
+      }, 80);
     }
     function closeModal(){
       overlay.classList.remove("show");
@@ -550,7 +563,7 @@
       empSnap.forEach(d=>{
         const data = d.data() || {};
         if(matchesBranch(data, branchId) && data.active !== false){
-          const email = String(data.email||""").trim().toLowerCase();
+          const email = String(data.email||"").trim().toLowerCase();
           const pid = normalizeEmailToPresetId(email) || ("uid:"+d.id);
           emps.push({ id: pid, uid: d.id, source:"employees", email, ...data });
         }
@@ -561,7 +574,7 @@
       presetSnap.forEach(d=>{
         const data = d.data() || {};
         if(String(data.branchId||"") === String(branchId) && data.active !== false){
-          const email = String(data.email||""").trim().toLowerCase();
+          const email = String(data.email||"").trim().toLowerCase();
           presets.push({ id:"preset:"+d.id, source:"employees_email", email, ...data });
         }
       });
@@ -704,6 +717,8 @@
           <td>${hoursHtml ? `<div class="mini">${hoursHtml}</div>` : "<span class='mini'>—</span>"}</td>
           <td>${sh}</td>
           <td>
+            <button class="btn" data-ed-hours="${r.id}">الدوام</button>
+            <button class="btn" data-ed-shifts="${r.id}">الشفتات</button>
             <button class="btn" data-ed="${r.id}">تعديل</button>
             <button class="btn danger" data-del="${r.id}">حذف</button>
           </td>
@@ -755,6 +770,21 @@
         });
       });
 
+
+
+      tb.querySelectorAll("[data-ed-hours]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          window.__scrollTo = "secHours";
+          b.closest("tr")?.querySelector('[data-ed]')?.click();
+        });
+      });
+
+      tb.querySelectorAll("[data-ed-shifts]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          window.__scrollTo = "secShifts";
+          b.closest("tr")?.querySelector('[data-ed]')?.click();
+        });
+      });
       tb.querySelectorAll("[data-del]").forEach(b=>{
         b.addEventListener("click", async ()=>{
           const id = b.getAttribute("data-del");
