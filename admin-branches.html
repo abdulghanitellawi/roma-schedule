@@ -42,7 +42,7 @@
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
 
-    /* ===== Modal (edit/add) ===== */
+    /* ===== Modal ===== */
     .modalOverlay{position:fixed; inset:0; z-index:999; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:14px;}
     .modalOverlay.show{display:flex}
     .modal{width:min(980px, 100%); max-height:92vh; overflow:auto; border:1px solid rgba(255,255,255,.14); background:rgba(12,18,32,.92); backdrop-filter: blur(10px); border-radius:18px; box-shadow: 0 24px 80px rgba(0,0,0,.55);}
@@ -52,54 +52,43 @@
     .xbtn:hover{background:rgba(255,255,255,.10)}
     .modalTitle{display:flex; flex-direction:column; gap:2px}
 
-    /* ===== Days cards ===== */
-    .daysGrid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-top:8px;}
-    .dayCard{min-width:0;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;}
+    /* ===== Compact day cards ===== */
+    .daysGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap:10px;
+      margin-top:8px;
+    }
+    .dayCard{
+      min-width:0;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      border-radius:14px;
+      padding:10px;
+    }
     .dayTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .dayName{font-weight:900;font-size:13px}
     .dayToggle{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;user-select:none}
     .dayToggle input{width:auto;padding:0;margin:0;accent-color:var(--accent);transform:scale(1.05)}
-    .dayTimes{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-    .dayTimes input[type="time"]{width:130px;max-width:100%;padding:8px 10px;border-radius:12px;font-size:12px;}
+    .dayTimes{
+      margin-top:8px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .dayTimes input[type="time"]{
+      width:130px;
+      max-width:100%;
+      padding:8px 10px;
+      border-radius:12px;
+      font-size:12px;
+    }
     .arrow{color:var(--muted);font-size:12px}
 
     .shiftHeadRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
     .shiftButtons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .shiftHidden{display:none !important;}
-
-    /* ===== Preview Modals ===== */
-    .previewGrid{
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap:10px;
-    }
-    .pDay{
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.05);
-      border-radius:14px;
-      padding:10px;
-      min-width:0;
-    }
-    .pTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .pName{font-weight:900;font-size:13px}
-    .pHours{color:var(--muted);font-size:12px}
-    .pItem{
-      margin-top:8px;
-      padding:8px 10px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.16);
-      border-radius:12px;
-      font-size:12px;
-      line-height:1.6;
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-    .pItem b{font-size:12px}
-    .mut{color:var(--muted)}
-    .hr{height:1px;background:rgba(255,255,255,.08);margin:10px 0}
-    .miniBtnRow{display:flex;gap:8px;flex-wrap:wrap}
-    .tiny{font-size:12px;padding:8px 10px;border-radius:12px}
   </style>
 </head>
 <body>
@@ -118,7 +107,6 @@
         <a class="btn" href="./admin-employees.html">الموظفين</a>
         <a class="btn" href="./admin-leaves.html">الإجازات</a>
         <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
-    <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
         <button class="btn danger" id="btnOut">خروج</button>
       </div>
     </div>
@@ -129,7 +117,7 @@
       <div class="row" style="align-items:center">
         <div style="flex:2">
           <h2 style="margin:0">قائمة الفروع</h2>
-          <div class="mini">أوقات العمل + الشفتات صاروا بزر واحد يفتح مودال ✅</div>
+          <div class="mini">إضافة / تعديل يتم عبر مودال</div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn primary" id="btnAdd">إضافة فرع</button>
@@ -146,7 +134,7 @@
     </div>
   </div>
 
-  <!-- ===== Modal (add/edit) ===== -->
+  <!-- ===== Modal ===== -->
   <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
@@ -162,9 +150,10 @@
 
       <div class="modalBody">
         <div class="mini">
-          • حساب الشفتات حسب كل يوم ✅<br>
-          • إذا شفت واحد → Full Day (فتح→تسكير)<br>
-          • إذا شفتين → شفت1 (فتح→فتح+8) و شفت2 (تسكير-8→تسكير)
+          • منطق الشفتات سمارت ✅<br>
+          • إذا شفت واحد → <b>Full Day</b> من الفتح للتسكير<br>
+          • إذا شفتين → الأول من الفتح 8 ساعات، والثاني 8 ساعات قبل التسكير<br>
+          • لكل شفت يمكن اختيار موظف من موظفين هذا الفرع
         </div>
 
         <div class="row">
@@ -172,6 +161,25 @@
             <label>اسم الفرع</label>
             <input id="bName" placeholder="مثال: فرع حمص - الدبلان">
           </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>GPS Latitude</label>
+            <input id="geoLat" type="number" step="0.000001" placeholder="مثال: 25.204849">
+          </div>
+          <div>
+            <label>GPS Longitude</label>
+            <input id="geoLng" type="number" step="0.000001" placeholder="مثال: 55.270783">
+          </div>
+          <div>
+            <label>Radius (meters)</label>
+            <input id="geoRadiusM" type="number" min="30" step="10" value="150">
+          </div>
+        </div>
+        <div class="row" style="margin-top:-4px">
+          <button class="btn" id="btnUseMyGps">استخدم موقعي الحالي (للأدمن)</button>
+          <div class="mini" style="flex:2">* ضروري حتى يشتغل Check-in/Check-out للموظفين ضمن نطاق الفرع</div>
         </div>
 
         <label style="margin-top:6px">أوقات الفتح/الإغلاق حسب اليوم</label>
@@ -191,85 +199,56 @@
         <div class="twoCol" style="margin-top:10px">
           <div class="card" style="margin:0">
             <h2 style="font-size:14px;margin:0 0 8px">شفت 1</h2>
+
             <label>الموظف</label>
             <select id="emp1"><option value="">— اختر موظف —</option></select>
+
+            <label>بداية (تلقائي)</label>
+            <input id="bs1" type="time" step="60" value="08:00" readonly>
             <label>minStaff</label>
             <input id="bm1" type="number" min="0" value="0">
-            <div class="mini">معاينة (أول يوم مفتوح): <span class="badge" id="p1">--:--</span></div>
+            <div class="mini">النهاية: <span class="badge" id="be1">--:--</span></div>
           </div>
 
           <div class="card" style="margin:0">
             <h2 style="font-size:14px;margin:0 0 8px">شفت 2</h2>
+
             <label>الموظف</label>
             <select id="emp2"><option value="">— اختر موظف —</option></select>
+
+            <label>بداية (تلقائي)</label>
+            <input id="bs2" type="time" step="60" value="16:00" readonly>
             <label>minStaff</label>
             <input id="bm2" type="number" min="0" value="0">
-            <div class="mini">معاينة (أول يوم مفتوح): <span class="badge" id="p2">--:--</span></div>
+            <div class="mini">النهاية: <span class="badge" id="be2">--:--</span></div>
           </div>
 
           <div class="card shiftHidden" id="shift3Card" style="margin:0">
             <h2 style="font-size:14px;margin:0 0 8px">شفت 3 (يدوي)</h2>
+
             <label>الموظف</label>
             <select id="emp3"><option value="">— اختر موظف —</option></select>
+
             <label>بداية</label>
             <input id="bs3" type="time" step="60" value="00:00">
             <label>minStaff</label>
             <input id="bm3" type="number" min="0" value="0">
-            <div class="mini">النهاية: <span class="badge" id="p3">--:--</span></div>
+            <div class="mini">النهاية: <span class="badge" id="be3">--:--</span></div>
           </div>
 
           <div class="card" style="margin:0">
             <h2 style="font-size:14px;margin:0 0 8px">ملاحظات</h2>
-            <div class="mini">• minStaff=0 يعني الشفت غير مفعل</div>
+            <div class="mini">
+              • minStaff=0 يعني الشفت غير مفعل<br>
+              • إذا فعلت شفت 1 فقط → يصبح Full Day تلقائيًا<br>
+              • إذا فعلت شفت 1 + شفت 2 → كل واحد 8 ساعات تلقائيًا<br>
+              • اختيار الموظف اختياري لكن يفضّل عند تفعيل الشفت
+            </div>
             <div class="mini" id="empHint" style="margin-top:8px"></div>
           </div>
         </div>
 
         <div id="msg" class="msg"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== Preview Modal: Shifts ===== -->
-  <div class="modalOverlay" id="previewShiftOverlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewShiftTitle">
-      <div class="modalHead">
-        <div class="modalTitle">
-          <b id="previewShiftTitle">عرض الشفتات</b>
-          <div class="mini" id="previewShiftSub">—</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="xbtn" id="previewShiftClose">إغلاق ✕</button>
-        </div>
-      </div>
-      <div class="modalBody">
-        <div class="miniBtnRow" style="margin-bottom:10px">
-          <span class="badge" id="previewShiftId">ID: —</span>
-          <span class="badge" id="previewShiftCount">Shifts: —</span>
-        </div>
-        <div class="previewGrid" id="previewShiftGrid"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== Preview Modal: Hours (NEW) ===== -->
-  <div class="modalOverlay" id="previewHoursOverlay" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewHoursTitle">
-      <div class="modalHead">
-        <div class="modalTitle">
-          <b id="previewHoursTitle">عرض أوقات العمل</b>
-          <div class="mini" id="previewHoursSub">—</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="xbtn" id="previewHoursClose">إغلاق ✕</button>
-        </div>
-      </div>
-      <div class="modalBody">
-        <div class="miniBtnRow" style="margin-bottom:10px">
-          <span class="badge" id="previewHoursId">ID: —</span>
-          <span class="badge" id="previewHoursCount">Days: —</span>
-        </div>
-        <div class="previewGrid" id="previewHoursGrid"></div>
       </div>
     </div>
   </div>
@@ -326,10 +305,10 @@
     function minutesBetween(open, close){
       const a = timeToMin(open), b = timeToMin(close);
       if(a===null || b===null) return null;
-      return ((b - a) + 1440) % 1440;
+      return ((b - a) + 1440) % 1440; // supports overnight
     }
 
-    // ======= days =======
+    // ======= ساعات العمل حسب اليوم =======
     const DAYS = [
       { key:"sun", label:"الأحد" },
       { key:"mon", label:"الإثنين" },
@@ -339,7 +318,6 @@
       { key:"fri", label:"الجمعة" },
       { key:"sat", label:"السبت" },
     ];
-    const DAY_LABEL = Object.fromEntries(DAYS.map(d=>[d.key,d.label]));
 
     function renderDaysCards(){
       const wrap = $("daysGrid");
@@ -373,11 +351,11 @@
           co.disabled = closed;
           op.style.opacity = closed ? .55 : 1;
           co.style.opacity = closed ? .55 : 1;
-          recomputePreviewTimes();
+          recomputeSmartShifts();
         };
         chk.addEventListener("change", apply);
-        op.addEventListener("input", recomputePreviewTimes);
-        co.addEventListener("input", recomputePreviewTimes);
+        op.addEventListener("input", recomputeSmartShifts);
+        co.addEventListener("input", recomputeSmartShifts);
         apply();
       }
     }
@@ -407,45 +385,126 @@
         document.getElementById(`co_${d.key}`).value = v.closeTime || "00:00";
         document.getElementById(`cl_${d.key}`).dispatchEvent(new Event("change"));
       }
-      recomputePreviewTimes();
+      recomputeSmartShifts();
     }
 
-    function getFirstOpenDay(hoursByDay){
+    function summarizeHours(hoursByDay){
+      if(!hoursByDay) return "—";
+      const lines = [];
       for(const d of DAYS){
         const v = hoursByDay[d.key];
-        if(v && !v.closed) return { dayKey:d.key, open:v.openTime, close:v.closeTime };
+        if(!v) continue;
+        lines.push(v.closed ? `${d.label}: مغلق` : `${d.label}: ${v.openTime}→${v.closeTime}`);
+      }
+      return lines.join("<br>");
+    }
+
+    // ===== Smart shift logic =====
+    function getReferenceOpenClose(){
+      let hours;
+      try{ hours = getHoursByDay(); }catch{ return null; }
+      for(const d of DAYS){
+        const v = hours[d.key];
+        if(v && !v.closed){
+          return { open: v.openTime, close: v.closeTime, hours };
+        }
       }
       return null;
     }
 
-    function recomputePreviewTimes(){
-      let hours;
-      try{ hours = getHoursByDay(); }catch{ return; }
-      const ref = getFirstOpenDay(hours);
-      const ms1 = Number($("bm1").value||0);
-      const ms2 = Number($("bm2").value||0);
-      const oneShiftOnly = ms1>0 && ms2<=0;
+    function recomputeSmartShifts(){
+      // شفت 1 و 2 سمارت فقط
+      const bm1 = Number($("bm1").value||0);
+      const bm2 = Number($("bm2").value||0);
 
-      // preview shift3
-      const bs3 = $("bs3").value;
-      const m3 = timeToMin(bs3);
-      $("p3").textContent = (m3===null) ? "--:--" : minToTime(m3+480);
-
+      const ref = getReferenceOpenClose();
       if(!ref){
-        $("p1").textContent="--:--";
-        $("p2").textContent="--:--";
+        $("be1").textContent = "--:--";
+        $("be2").textContent = "--:--";
         return;
       }
-      const open = ref.open, close=ref.close;
-      const s1End = oneShiftOnly ? close : minToTime(timeToMin(open)+480);
-      const s2Start = minToTime(timeToMin(close)-480);
 
-      $("p1").textContent = `${open} → ${s1End}`;
-      $("p2").textContent = oneShiftOnly ? "—" : `${s2Start} → ${close}`;
+      const open = ref.open;
+      const close = ref.close;
+
+      const fullMin = minutesBetween(open, close);
+      if(fullMin===null){
+        $("be1").textContent="--:--";
+        $("be2").textContent="--:--";
+        return;
+      }
+
+      // إذا شفت واحد فقط (مفعل) => Full Day
+      const oneShiftOnly = bm1>0 && bm2<=0;
+
+      // Shift 1
+      $("bs1").value = open;
+      $("be1").textContent = oneShiftOnly
+        ? close
+        : minToTime(timeToMin(open) + 480);
+
+      // Shift 2
+      if(oneShiftOnly){
+        $("bs2").value = minToTime(timeToMin(close) - 480); // عرض فقط (مش مستخدم)
+        $("be2").textContent = "--:--";
+      }else{
+        $("bs2").value = minToTime(timeToMin(close) - 480);
+        $("be2").textContent = close;
+      }
+
+      // Shift 3 (يدوي)
+      $("be3").textContent = add8($("bs3").value);
     }
 
+    function add8(t){
+      const m = timeToMin(t);
+      if(m===null) return "--:--";
+      return minToTime(m+480);
+    }
+
+    // ===== Shifts 2 default + add/remove shift 3 =====
+    let shift3Enabled = false;
+    function setShift3(enabled){
+      shift3Enabled = !!enabled;
+      $("shift3Card").classList.toggle("shiftHidden", !shift3Enabled);
+      $("btnRemoveShift").style.display = shift3Enabled ? "inline-flex" : "none";
+      $("btnAddShift").style.display = shift3Enabled ? "none" : "inline-flex";
+      if(!shift3Enabled){
+        $("bm3").value = 0;
+        $("emp3").value = "";
+      }
+      recomputeSmartShifts();
+    }
+
+    // ===== Modal control =====
+    const overlay = $("modalOverlay");
+    function openModal(mode){
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+      hideMsg();
+      recomputeSmartShifts();
+
+      if(mode==="edit"){
+        $("modalTitle").textContent = "تعديل فرع";
+        $("modalSub").textContent = "عدّل البيانات ثم احفظ";
+      }else{
+        $("modalTitle").textContent = "إضافة فرع";
+        $("modalSub").textContent = "أدخل البيانات ثم احفظ";
+      }
+      setTimeout(()=> $("bName").focus(), 50);
+    }
+    function closeModal(){
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+      hideMsg();
+    }
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
+
     // ===== Employees dropdown =====
-    let cachedEmployees = [];
+    let cachedEmployees = []; // { id, source, name, email }
 
     function employeeLabel(emp){
       const name = emp.name || emp.fullName || emp.displayName || emp.username || "";
@@ -471,7 +530,12 @@
     }
 
     function matchesBranch(emp, branchId){
-      const bid = emp.branchId || emp.branch || emp.fixedBranchId || (emp.branchRef && emp.branchRef.id) || "";
+      const bid =
+        emp.branchId ||
+        emp.branch ||
+        emp.fixedBranchId ||
+        (emp.branchRef && emp.branchRef.id) ||
+        "";
       return String(bid) === String(branchId);
     }
 
@@ -519,271 +583,21 @@
       return cachedEmployees.find(e=>e.id === empId) || null;
     }
 
-    // ===== Shift3 toggle =====
-    let shift3Enabled = false;
-    function setShift3(enabled){
-      shift3Enabled = !!enabled;
-      $("shift3Card").classList.toggle("shiftHidden", !shift3Enabled);
-      $("btnRemoveShift").style.display = shift3Enabled ? "inline-flex" : "none";
-      $("btnAddShift").style.display = shift3Enabled ? "none" : "inline-flex";
-      if(!shift3Enabled){
-        $("bm3").value = 0;
-        $("emp3").value = "";
-      }
-      recomputePreviewTimes();
-    }
-
-    // ===== Shift config + build per day =====
-    function packShiftConfig(){
-      return {
-        mode: "smart_by_day",
-        shift1: { minStaff: Number($("bm1").value||0), assignedEmployeeId: ($("emp1").value||"").trim() || null },
-        shift2: { minStaff: Number($("bm2").value||0), assignedEmployeeId: ($("emp2").value||"").trim() || null },
-        shift3: {
-          enabled: !!shift3Enabled,
-          start: $("bs3").value || "00:00",
-          minStaff: Number($("bm3").value||0),
-          assignedEmployeeId: ($("emp3").value||"").trim() || null
-        }
-      };
-    }
-
-    function buildDayShifts(open, close, cfg){
-      const out = [];
-      const ms1 = Number(cfg.shift1?.minStaff||0);
-      const ms2 = Number(cfg.shift2?.minStaff||0);
-      const oneShiftOnly = ms1>0 && ms2<=0;
-
-      const fullMin = minutesBetween(open, close);
-      if(fullMin === null) return out;
-
-      const add = (label, start, end, minStaff, empSelId, durationHours)=>{
-        if(Number(minStaff||0) <= 0) return;
-        const sel = (empSelId || "").trim();
-        const emp = sel ? getSelectedEmployee(sel) : null;
-
-        out.push({
-          key: label,
-          name: label,
-          start,
-          end,
-          minStaff: Number(minStaff||0),
-          durationHours,
-          assignedEmployeeId: sel || null,
-          assignedEmployeeSource: emp?.source || null,
-          assignedEmployeeName: emp ? (emp.name || emp.fullName || emp.displayName || emp.email || emp.id) : null,
-          assignedEmployeeEmail: emp?.email || null
-        });
-      };
-
-      const s1Start = open;
-      const s1End = oneShiftOnly ? close : minToTime(timeToMin(open) + 480);
-      const dur1 = oneShiftOnly ? +(fullMin/60).toFixed(2) : 8;
-      add("Shift 1", s1Start, s1End, ms1, cfg.shift1?.assignedEmployeeId, dur1);
-
-      if(!oneShiftOnly){
-        const s2Start = minToTime(timeToMin(close) - 480);
-        add("Shift 2", s2Start, close, ms2, cfg.shift2?.assignedEmployeeId, 8);
-      }
-
-      if(cfg.shift3?.enabled){
-        const ms3 = Number(cfg.shift3?.minStaff||0);
-        if(ms3>0){
-          const st = cfg.shift3?.start || "00:00";
-          add("Shift 3", st, minToTime(timeToMin(st)+480), ms3, cfg.shift3?.assignedEmployeeId, 8);
-        }
-      }
-
-      return out;
-    }
-
-    function packShiftsByDay(hoursByDay, cfg){
-      const map = {};
-      for(const d of DAYS){
-        const v = hoursByDay[d.key];
-        if(!v || v.closed){ map[d.key]=[]; continue; }
-        map[d.key] = buildDayShifts(v.openTime, v.closeTime, cfg);
-      }
-      return map;
-    }
-
-    // ===== add/edit modal =====
-    const overlay = $("modalOverlay");
-    function openModal(mode){
-      overlay.classList.add("show");
-      overlay.setAttribute("aria-hidden","false");
-      document.body.style.overflow = "hidden";
-      hideMsg();
-      recomputePreviewTimes();
-
-      if(mode==="edit"){
-        $("modalTitle").textContent = "تعديل فرع";
-        $("modalSub").textContent = "عدّل البيانات ثم احفظ";
-      }else{
-        $("modalTitle").textContent = "إضافة فرع";
-        $("modalSub").textContent = "أدخل البيانات ثم احفظ";
-      }
-      setTimeout(()=> $("bName").focus(), 50);
-    }
-    function closeModal(){
-      overlay.classList.remove("show");
-      overlay.setAttribute("aria-hidden","true");
-      document.body.style.overflow = "";
-      hideMsg();
-    }
-    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
-    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
-
-    // ===== Preview Shifts Modal =====
-    const shiftOv = $("previewShiftOverlay");
-    function openShiftsModal(branch){
-      $("previewShiftTitle").textContent = `الشفتات — ${branch.name || "-"}`;
-      $("previewShiftSub").textContent = "عرض حسب كل يوم";
-      $("previewShiftId").textContent = `ID: ${branch.id}`;
-
-      const shiftsByDay = branch.shiftsByDay || null;
-      const hoursByDay = branch.hoursByDay || null;
-
-      let cnt = 0;
-      if(shiftsByDay){
-        for(const d of DAYS){
-          const arr = Array.isArray(shiftsByDay[d.key]) ? shiftsByDay[d.key] : [];
-          cnt += arr.length;
-        }
-      } else if(Array.isArray(branch.shifts)) {
-        cnt = branch.shifts.length;
-      }
-      $("previewShiftCount").textContent = `Shifts: ${cnt}`;
-
-      const grid = $("previewShiftGrid");
-      grid.innerHTML = "";
-
-      for(const d of DAYS){
-        const key = d.key;
-        const hv = hoursByDay?.[key];
-        const closed = hv ? !!hv.closed : false;
-        const hoursText = hv ? (closed ? "مغلق" : `${hv.openTime} → ${hv.closeTime}`) : "—";
-
-        const arr = shiftsByDay ? (Array.isArray(shiftsByDay[key]) ? shiftsByDay[key] : []) : [];
-
-        const card = document.createElement("div");
-        card.className = "pDay";
-        card.innerHTML = `
-          <div class="pTop">
-            <div class="pName">${d.label}</div>
-            <div class="pHours">${escapeHtml(hoursText)}</div>
-          </div>
-          <div class="hr"></div>
-          <div class="pBody"></div>
-        `;
-        grid.appendChild(card);
-
-        const body = card.querySelector(".pBody");
-
-        if(!hoursByDay){ body.innerHTML = `<div class="mut">لا يوجد ساعات دوام</div>`; continue; }
-        if(closed){ body.innerHTML = `<div class="mut">مغلق</div>`; continue; }
-        if(!arr.length){ body.innerHTML = `<div class="mut">لا يوجد شفتات (minStaff=0)</div>`; continue; }
-
-        for(const s of arr){
-          const emp = s.assignedEmployeeName ? s.assignedEmployeeName : (s.assignedEmployeeEmail || "");
-          const empLine = emp ? `<span class="mut">${escapeHtml(emp)}</span>` : `<span class="mut">— بدون موظف</span>`;
-          const item = document.createElement("div");
-          item.className = "pItem";
-          item.innerHTML = `
-            <b>${escapeHtml(s.name || s.key || "Shift")}</b>
-            <div>${escapeHtml(s.start)} → ${escapeHtml(s.end)} <span class="mut">(min=${Number(s.minStaff||0)})</span></div>
-            <div>${empLine}</div>
-          `;
-          body.appendChild(item);
-        }
-      }
-
-      shiftOv.classList.add("show");
-      shiftOv.setAttribute("aria-hidden","false");
-      document.body.style.overflow = "hidden";
-    }
-    function closeShiftsModal(){
-      shiftOv.classList.remove("show");
-      shiftOv.setAttribute("aria-hidden","true");
-      document.body.style.overflow = "";
-    }
-    $("previewShiftClose").addEventListener("click", closeShiftsModal);
-    shiftOv.addEventListener("click", (e)=>{ if(e.target === shiftOv) closeShiftsModal(); });
-
-    // ===== Preview Hours Modal (NEW) =====
-    const hoursOv = $("previewHoursOverlay");
-    function openHoursModal(branch){
-      $("previewHoursTitle").textContent = `أوقات العمل — ${branch.name || "-"}`;
-      $("previewHoursSub").textContent = "عرض حسب كل يوم";
-      $("previewHoursId").textContent = `ID: ${branch.id}`;
-
-      const hoursByDay = branch.hoursByDay || null;
-      let openDays = 0;
-      if(hoursByDay){
-        for(const d of DAYS){
-          const v = hoursByDay[d.key];
-          if(v && !v.closed) openDays++;
-        }
-      }
-      $("previewHoursCount").textContent = `Days: ${hoursByDay ? openDays + "/7" : "—"}`;
-
-      const grid = $("previewHoursGrid");
-      grid.innerHTML = "";
-
-      for(const d of DAYS){
-        const v = hoursByDay?.[d.key] || null;
-        const closed = v ? !!v.closed : false;
-        const hoursText = v ? (closed ? "مغلق" : `${v.openTime} → ${v.closeTime}`) : "—";
-
-        const card = document.createElement("div");
-        card.className = "pDay";
-        card.innerHTML = `
-          <div class="pTop">
-            <div class="pName">${d.label}</div>
-            <div class="pHours">${escapeHtml(hoursText)}</div>
-          </div>
-          <div class="hr"></div>
-          <div class="pBody">
-            ${v ? (closed ? `<div class="mut">مغلق</div>` : `<div class="pItem"><b>الدوام</b><div>${escapeHtml(v.openTime)} → ${escapeHtml(v.closeTime)}</div></div>`) : `<div class="mut">غير محدد</div>`}
-          </div>
-        `;
-        grid.appendChild(card);
-      }
-
-      hoursOv.classList.add("show");
-      hoursOv.setAttribute("aria-hidden","false");
-      document.body.style.overflow = "hidden";
-    }
-    function closeHoursModal(){
-      hoursOv.classList.remove("show");
-      hoursOv.setAttribute("aria-hidden","true");
-      document.body.style.overflow = "";
-    }
-    $("previewHoursClose").addEventListener("click", closeHoursModal);
-    hoursOv.addEventListener("click", (e)=>{ if(e.target === hoursOv) closeHoursModal(); });
-
-    // ESC closes whichever modal is open
-    document.addEventListener("keydown", (e)=>{
-      if(e.key!=="Escape") return;
-      if(overlay.classList.contains("show")) closeModal();
-      if(shiftOv.classList.contains("show")) closeShiftsModal();
-      if(hoursOv.classList.contains("show")) closeHoursModal();
-    });
-
     // ===== Branch state =====
     let editingId = null;
-    const branchesCache = new Map();
 
     function resetForm(){
       editingId = null;
       $("bName").value = "";
+      $("geoLat").value = "";
+      $("geoLng").value = "";
+      $("geoRadiusM").value = 150;
       setHoursByDay(null);
 
       $("bm1").value=0;
       $("bm2").value=0;
 
-      $("bs3").value="00:00";
-      $("bm3").value=0;
+      $("bs3").value="00:00"; $("bm3").value=0;
       setShift3(false);
 
       $("emp1").value = "";
@@ -797,102 +611,111 @@
 
       hideMsg();
       $("empHint").textContent = "لإظهار موظفين الفرع: احفظ الفرع أولاً ثم اربط الموظفين به.";
-      recomputePreviewTimes();
+      recomputeSmartShifts();
     }
 
-    function countShiftsFast(branch){
-      if(branch.shiftsByDay){
-        let c=0;
-        for(const d of DAYS){
-          const arr = Array.isArray(branch.shiftsByDay[d.key]) ? branch.shiftsByDay[d.key] : [];
-          c += arr.length;
-        }
-        return c;
-      }
-      return Array.isArray(branch.shifts) ? branch.shifts.length : 0;
-    }
+    // ===== ✅ pack shifts with SMART logic =====
+    function packShifts(){
+      const shifts = [];
+      const hoursByDay = getHoursByDay();
 
-    function countOpenDays(branch){
-      const h = branch.hoursByDay || null;
-      if(!h) return 0;
-      let c=0;
+      // reference open/close from first open day
+      let open=null, close=null;
       for(const d of DAYS){
-        const v = h[d.key];
-        if(v && !v.closed) c++;
+        const v = hoursByDay[d.key];
+        if(v && !v.closed){
+          open = v.openTime;
+          close = v.closeTime;
+          break;
+        }
       }
-      return c;
-    }
+      if(!open || !close) throw new Error("حدد يوم واحد على الأقل غير مغلق ضمن أوقات الدوام.");
 
-    function summarizeHoursTiny(branch){
-      // small one-liner for table (optional)
-      const c = countOpenDays(branch);
-      return `${c}/7`;
+      const fullMin = minutesBetween(open, close);
+      if(fullMin===null) throw new Error("أوقات الدوام غير صحيحة.");
+
+      const ms1 = Number($("bm1").value||0);
+      const ms2 = Number($("bm2").value||0);
+
+      const oneShiftOnly = ms1>0 && ms2<=0;
+
+      const add = (label, start, end, minStaff, empSelId, durationHours)=>{
+        if(Number(minStaff||0) <= 0) return;
+
+        const sel = (empSelId || "").trim();
+        const emp = sel ? getSelectedEmployee(sel) : null;
+
+        shifts.push({
+          key: label,
+          name: label,
+          start,
+          end,
+          minStaff: Number(minStaff||0),
+          durationHours,
+
+          assignedEmployeeId: sel || null,
+          assignedEmployeeSource: emp?.source || null,
+          assignedEmployeeName: emp ? (emp.name || emp.fullName || emp.displayName || emp.email || emp.id) : null,
+          assignedEmployeeEmail: emp?.email || null
+        });
+      };
+
+      // Shift 1: open -> (full day OR open+8)
+      const s1Start = open;
+      const s1End = oneShiftOnly ? close : minToTime(timeToMin(open) + 480);
+      const dur1 = oneShiftOnly ? +(fullMin/60).toFixed(2) : 8;
+      add("Shift 1", s1Start, s1End, ms1, $("emp1").value, dur1);
+
+      // Shift 2: (close-8) -> close (only if enabled and not oneShiftOnly)
+      if(!oneShiftOnly){
+        const s2Start = minToTime(timeToMin(close) - 480);
+        const s2End = close;
+        add("Shift 2", s2Start, s2End, ms2, $("emp2").value, 8);
+      }
+
+      // Shift 3: optional manual (8h by default)
+      if(shift3Enabled){
+        const ms3 = Number($("bm3").value||0);
+        if(ms3>0){
+          const st = $("bs3").value;
+          add("Shift 3", st, minToTime(timeToMin(st)+480), ms3, $("emp3").value, 8);
+        }
+      }
+
+      return shifts;
     }
 
     async function load(){
-      branchesCache.clear();
-
       const snap = await getDocs(collection(db,"branches"));
       const rows=[];
-      snap.forEach(d=>{
-        const obj = {id:d.id, ...d.data()};
-        rows.push(obj);
-        branchesCache.set(d.id, obj);
-      });
+      snap.forEach(d=>rows.push({id:d.id, ...d.data()}));
       rows.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
 
       const tb = $("tb");
       tb.innerHTML="";
-
       for(const r of rows){
-        // ✅ ساعات: زر واحد
-        const hoursBtn = `
-          <button class="btn tiny" data-hours="${escapeHtml(r.id)}">عرض أوقات العمل</button>
-          <span class="badge">${summarizeHoursTiny(r)}</span>
-        `;
+        const sh = (Array.isArray(r.shifts)? r.shifts: [])
+          .map(s=>{
+            const emp = s.assignedEmployeeName ? ` — <span class="badge">${escapeHtml(s.assignedEmployeeName)}</span>` : "";
+            return `${escapeHtml(s.name)}: ${escapeHtml(s.start)}-${escapeHtml(s.end)} (min=${Number(s.minStaff||0)})${emp}`;
+          })
+          .join("<br>") || "<span class='mini'>—</span>";
 
-        // ✅ شفتات: زر واحد
-        const shiftCount = countShiftsFast(r);
-        const shiftBtn = `
-          <button class="btn tiny" data-shifts="${escapeHtml(r.id)}">عرض الشفتات</button>
-          <span class="badge">${shiftCount}</span>
-        `;
+        const hoursHtml = summarizeHours(r.hoursByDay);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
+          <td><b>${escapeHtml(r.name||"-")}</b><div class="mini">ID: <span class="badge">${escapeHtml(r.id)}</span></div></td>
+          <td>${hoursHtml ? `<div class="mini">${hoursHtml}</div>` : "<span class='mini'>—</span>"}</td>
+          <td>${sh}</td>
           <td>
-            <b>${escapeHtml(r.name||"-")}</b>
-            <div class="mini">ID: <span class="badge">${escapeHtml(r.id)}</span></div>
-          </td>
-          <td>${hoursBtn}</td>
-          <td>${shiftBtn}</td>
-          <td>
-            <button class="btn" data-ed="${escapeHtml(r.id)}">تعديل</button>
-            <button class="btn danger" data-del="${escapeHtml(r.id)}">حذف</button>
+            <button class="btn" data-ed="${r.id}">تعديل</button>
+            <button class="btn danger" data-del="${r.id}">حذف</button>
           </td>
         `;
         tb.appendChild(tr);
       }
 
-      // open hours modal
-      tb.querySelectorAll("[data-hours]").forEach(b=>{
-        b.addEventListener("click", ()=>{
-          const id = b.getAttribute("data-hours");
-          const br = branchesCache.get(id);
-          if(br) openHoursModal(br);
-        });
-      });
-
-      // open shifts modal
-      tb.querySelectorAll("[data-shifts]").forEach(b=>{
-        b.addEventListener("click", ()=>{
-          const id = b.getAttribute("data-shifts");
-          const br = branchesCache.get(id);
-          if(br) openShiftsModal(br);
-        });
-      });
-
-      // edit
       tb.querySelectorAll("[data-ed]").forEach(b=>{
         b.addEventListener("click", async ()=>{
           const id = b.getAttribute("data-ed");
@@ -902,61 +725,44 @@
 
           editingId = id;
           $("bName").value = d.name || "";
+          $("geoLat").value = (d.geoLat ?? d.lat ?? d.latitude ?? d.location?.lat ?? "");
+          $("geoLng").value = (d.geoLng ?? d.lng ?? d.longitude ?? d.location?.lng ?? "");
+          $("geoRadiusM").value = Number(d.geoRadiusM ?? d.radiusM ?? d.radius ?? 150);
           setHoursByDay(d.hoursByDay || null);
 
           await loadEmployeesForBranch(editingId);
 
-          const cfg = d.shiftConfig || null;
-          if(cfg){
-            $("bm1").value = cfg.shift1?.minStaff || 0;
-            $("emp1").value = cfg.shift1?.assignedEmployeeId || "";
+          const shifts = Array.isArray(d.shifts)? d.shifts: [];
+          const pick = (label)=> shifts.find(x=>x.name===label);
 
-            $("bm2").value = cfg.shift2?.minStaff || 0;
-            $("emp2").value = cfg.shift2?.assignedEmployeeId || "";
+          const s1=pick("Shift 1"), s2=pick("Shift 2"), s3=pick("Shift 3");
 
-            if(cfg.shift3?.enabled){
-              setShift3(true);
-              $("bs3").value = cfg.shift3?.start || "00:00";
-              $("bm3").value = cfg.shift3?.minStaff || 0;
-              $("emp3").value = cfg.shift3?.assignedEmployeeId || "";
-            }else{
-              $("bs3").value = "00:00"; $("bm3").value = 0;
-              $("emp3").value = "";
-              setShift3(false);
-            }
+          $("bm1").value = s1?.minStaff || 0;
+          $("emp1").value = s1?.assignedEmployeeId || "";
+
+          $("bm2").value = s2?.minStaff || 0;
+          $("emp2").value = s2?.assignedEmployeeId || "";
+
+          if(s3 && Number(s3.minStaff||0) > 0){
+            setShift3(true);
+            $("bs3").value = s3?.start || "00:00";
+            $("bm3").value = s3?.minStaff || 0;
+            $("emp3").value = s3?.assignedEmployeeId || "";
           }else{
-            const shifts = Array.isArray(d.shifts)? d.shifts: [];
-            const pick = (label)=> shifts.find(x=>x.name===label);
-            const s1=pick("Shift 1"), s2=pick("Shift 2"), s3=pick("Shift 3");
-
-            $("bm1").value = s1?.minStaff || 0;
-            $("emp1").value = s1?.assignedEmployeeId || "";
-
-            $("bm2").value = s2?.minStaff || 0;
-            $("emp2").value = s2?.assignedEmployeeId || "";
-
-            if(s3 && Number(s3.minStaff||0) > 0){
-              setShift3(true);
-              $("bs3").value = s3?.start || "00:00";
-              $("bm3").value = s3?.minStaff || 0;
-              $("emp3").value = s3?.assignedEmployeeId || "";
-            }else{
-              $("bs3").value = "00:00"; $("bm3").value = 0;
-              $("emp3").value = "";
-              setShift3(false);
-            }
+            $("bs3").value = "00:00"; $("bm3").value = 0;
+            $("emp3").value = "";
+            setShift3(false);
           }
 
           fillEmployeeSelect($("emp1"), $("emp1").value);
           fillEmployeeSelect($("emp2"), $("emp2").value);
           fillEmployeeSelect($("emp3"), $("emp3").value);
 
-          recomputePreviewTimes();
+          recomputeSmartShifts();
           openModal("edit");
         });
       });
 
-      // delete
       tb.querySelectorAll("[data-del]").forEach(b=>{
         b.addEventListener("click", async ()=>{
           const id = b.getAttribute("data-del");
@@ -972,26 +778,27 @@
       if(!name) return setMsg("اكتب اسم الفرع","bad");
 
       let hoursByDay;
-      try{ hoursByDay = getHoursByDay(); }
-      catch(err){ return setMsg(err?.message || "تأكد من أوقات الفتح/الإغلاق","bad"); }
+      try{
+        hoursByDay = getHoursByDay();
+      }catch(err){
+        return setMsg(err?.message || "تأكد من أوقات الفتح/الإغلاق","bad");
+      }
 
-      const shiftConfig = packShiftConfig();
-      const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfig);
+      let shifts;
+      try{
+        shifts = packShifts();
+      }catch(err){
+        return setMsg(err?.message || "خطأ في إعداد الشفتات","bad");
+      }
 
-      const anyActive = DAYS.some(d => (shiftsByDay[d.key]||[]).length > 0);
-      if(!anyActive) return setMsg("فعّل شفت واحد على الأقل (minStaff > 0)","bad");
+      if(!shifts.length) return setMsg("فعّل شفت واحد على الأقل (minStaff > 0)","bad");
 
-      const ref = getFirstOpenDay(hoursByDay);
-      const shiftsSample = ref ? buildDayShifts(ref.open, ref.close, shiftConfig) : [];
+      const geoLat = $("geoLat").value.trim();
+      const geoLng = $("geoLng").value.trim();
+      const geoRadiusM = Number($("geoRadiusM").value||150);
+      const geoPayload = (geoLat && geoLng) ? { geoLat: Number(geoLat), geoLng: Number(geoLng), geoRadiusM: (isFinite(geoRadiusM)?geoRadiusM:150) } : {};
 
-      const payload = {
-        name,
-        hoursByDay,
-        shiftConfig,
-        shiftsByDay,
-        shifts: shiftsSample,
-        updatedAt: serverTimestamp()
-      };
+      const payload = { name, hoursByDay, shifts, ...geoPayload, updatedAt: serverTimestamp() };
 
       if(editingId){
         await updateDoc(doc(db,"branches",editingId), payload);
@@ -1007,10 +814,10 @@
       resetForm();
     }
 
-    // ===== events =====
-    $("bm1").addEventListener("input", recomputePreviewTimes);
-    $("bm2").addEventListener("input", recomputePreviewTimes);
-    $("bs3").addEventListener("input", recomputePreviewTimes);
+    // events
+    $("bm1").addEventListener("input", recomputeSmartShifts);
+    $("bm2").addEventListener("input", recomputeSmartShifts);
+    $("bs3").addEventListener("input", recomputeSmartShifts);
 
     $("btnSave").addEventListener("click", save);
     $("btnClose").addEventListener("click", closeModal);
@@ -1023,6 +830,22 @@
     });
 
     $("btnReload").addEventListener("click", load);
+
+    $("btnUseMyGps").addEventListener("click", async ()=>{
+      try{
+        if(location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1"){
+          return setMsg("الـ GPS يحتاج HTTPS/localhost.","bad");
+        }
+        if(!("geolocation" in navigator)) return setMsg("الجهاز لا يدعم GPS.","bad");
+        setMsg("...جاري تحديد موقعك","ok");
+        const pos = await new Promise((res,rej)=> navigator.geolocation.getCurrentPosition(res,rej,{ enableHighAccuracy:true, timeout:15000, maximumAge:0 }));
+        $("geoLat").value = Number(pos.coords.latitude).toFixed(6);
+        $("geoLng").value = Number(pos.coords.longitude).toFixed(6);
+        setMsg("تم جلب GPS ✅ عدّل الراديوس ثم احفظ.","ok");
+      }catch(e){
+        setMsg(e?.message || "فشل الحصول على GPS","bad");
+      }
+    });
 
     $("btnAddShift").addEventListener("click", ()=>{
       setShift3(true);
