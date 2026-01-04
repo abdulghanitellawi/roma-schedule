@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Roma Schedule - Admin Dashboard</title>
   <link rel="icon" href="./assets/logo.webp">
+  <!-- Excel export (same as admin-schedule / admin-saved-shifts) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <style>
-    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;}
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;--warn:#f59e0b;}
     *{box-sizing:border-box}
     body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
     .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
@@ -20,29 +22,37 @@
     .btn.primary:hover{background:rgba(212,160,25,.20)}
     .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
     .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .btn.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10)}
+    .btn.warn:hover{background:rgba(245,158,11,.15)}
     .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
     .wrap{max-width:1200px;margin:0 auto;padding:14px}
-    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow)}
     h2{margin:0 0 10px;font-size:18px}
+    h3{margin:12px 0 8px;font-size:15px}
     .mini{color:var(--muted);font-size:12px;line-height:1.7}
-    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none}
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
     .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
     .box{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:16px;padding:12px}
     .box b{font-size:22px}
-    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
-    input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.16);color:var(--txt);outline:none}
-    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row>*{flex:1}
-    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
-    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
-    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04)}
-    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
-    .timeCell{direction:ltr; unicode-bidi:embed; text-align:left;}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,select{
+      border:1px solid var(--line); background:rgba(0,0,0,.18); color:var(--txt);
+      padding:10px 12px; border-radius:12px; outline:none;
+    }
+    table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:right; font-size:13px}
+    th{color:var(--muted); font-weight:900; background:rgba(255,255,255,.04)}
+    .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
+    .badge.ok{border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12); color:#d1fae5}
+    .badge.bad{border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:#fee2e2}
+    .badge.warn{border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.10); color:#ffedd5}
+    .actions{display:flex; gap:8px; flex-wrap:wrap}
+    .sep{border:none;border-top:1px solid rgba(255,255,255,.12); margin:14px 0}
   </style>
 </head>
 <body>
@@ -61,6 +71,7 @@
         <a class="btn" href="./admin-employees.html">الموظفين</a>
         <a class="btn" href="./admin-leaves.html">الإجازات</a>
         <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
         <button class="btn primary" id="btnMakeAdmin" title="مرة واحدة فقط">اجعل Admin</button>
         <button class="btn danger" id="btnOut">خروج</button>
       </div>
@@ -78,189 +89,90 @@
       </div>
       <div id="msgDash" class="msg"></div>
       <div class="mini" style="margin-top:10px">
-        • الحضور يعتمد على collection: <b>attendance</b><br>
-        • ربط GPS لكل فرع من صفحة: الفروع + الدوام<br>
-        • ربط الحساب بالجهاز: collection <b>attendance_devices</b> (Reset من هنا)
+        • كل فرع له شفتات 8 ساعات (end يُحسب تلقائيًا)<br>
+        • Regular له branchId ثابت<br>
+        • Cover يغطي الكل أو فروع محددة<br>
+        • الجداول تنحفظ داخل: employees/{uid}/schedules لتجنب مشاكل الـ Index
       </div>
     </div>
 
-    <div class="card">
-      <div class="row" style="align-items:center">
-        <div style="flex:2">
-          <h2 style="margin:0">تنبيهات اليوم</h2>
-          <div class="mini">
-            • Blocked = خارج النطاق أو جهاز مختلف<br>
-            • Missing = شفت بدأ وانتهت مهلة التأخير ولم يتم Check-in
-          </div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card">
+        <h2>Dashboard الحضور</h2>
+        <div class="row">
+          <label class="mini">التاريخ</label>
+          <input type="date" id="fDate">
+          <label class="mini">الفرع</label>
+          <select id="fBranch"></select>
+
+          <button class="btn" id="btnReloadAtt">تحديث</button>
+          <button class="btn primary" id="btnExportExcel">تصدير Excel</button>
+          <button class="btn" id="btnExportPdf">تصدير PDF</button>
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn" id="btnAlertsReload">تحديث</button>
+
+        <div class="kpi" style="margin-top:10px">
+          <div class="box"><div class="mini">👤 حضر</div><b id="kPresent">0</b></div>
+          <div class="box"><div class="mini">⏰ متأخر</div><b id="kLate">0</b></div>
+          <div class="box"><div class="mini">❌ غايب</div><b id="kAbsent">0</b></div>
+          <div class="box"><div class="mini">✅ إجازة</div><b id="kLeaveDay">0</b></div>
+        </div>
+
+        <div id="msgAtt" class="msg"></div>
+
+        <hr class="sep">
+
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>الموظف</th>
+                <th>الفرع</th>
+                <th>الشفت</th>
+                <th>الحالة</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+                <th>Late</th>
+                <th>Worked</th>
+              </tr>
+            </thead>
+            <tbody id="attTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="mini" style="margin-top:10px">
+          • الغياب التلقائي يتم تسجيله عندما يكون الشفت انتهى ولم يوجد Check-In.<br>
+          • إذا الموظف بإجازة Approved: نسجّل الحالة Leave ونمنع Check-In.
         </div>
       </div>
 
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>اليوم</label>
-          <input id="alDay" type="date">
+      <div class="card">
+        <h2>طلبات تصحيح الدوام</h2>
+        <div class="row">
+          <button class="btn" id="btnReloadFix">تحديث</button>
         </div>
-        <div>
-          <label>Grace (Late) بالدقائق</label>
-          <input id="alGrace" type="number" min="0" value="10">
-        </div>
-        <div>
-          <label>فرع (اختياري)</label>
-          <select id="alBranch"></select>
-        </div>
-      </div>
 
-      <div class="kpi" style="margin-top:10px">
-        <div class="box"><div class="mini">Blocked</div><b id="kAlBlocked">0</b></div>
-        <div class="box"><div class="mini">Missing check-in</div><b id="kAlMissing">0</b></div>
-        <div class="box"><div class="mini">Late</div><b id="kAlLate">0</b></div>
-        <div class="box"><div class="mini">Early out</div><b id="kAlEarly">0</b></div>
-      </div>
+        <div style="overflow:auto; margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>الموظف</th>
+                <th>الفرع</th>
+                <th>الشفت</th>
+                <th>السبب</th>
+                <th>الحالة</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="fixTbody"></tbody>
+          </table>
+        </div>
+        <div id="msgFix" class="msg"></div>
 
-      <div class="row" style="margin-top:10px">
-        <div style="flex:1">
-          <h2 style="margin:0 0 10px;font-size:16px">Blocked</h2>
-          <div style="overflow:auto">
-            <table>
-              <thead><tr><th>الموظف</th><th>الفرع</th><th>السبب</th><th class="timeCell">الوقت</th></tr></thead>
-              <tbody id="tbBlocked"></tbody>
-            </table>
-          </div>
+        <div class="mini" style="margin-top:10px">
+          • عند الموافقة: يتم وضع علامة Approved على الطلب فقط (تقدر توسّعها لاحقاً لتعديل الوقت فعلياً).<br>
+          • هذه الصفحة جاهزة لتطوير “تعديل دخول/خروج” حسب ما بدك.
         </div>
-        <div style="flex:1">
-          <h2 style="margin:0 0 10px;font-size:16px">Missing</h2>
-          <div style="overflow:auto">
-            <table>
-              <thead><tr><th>الموظف</th><th>الفرع</th><th>الشفت</th><th class="timeCell">start</th></tr></thead>
-              <tbody id="tbMissing"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div id="msgAlerts" class="msg"></div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="align-items:center">
-        <div style="flex:2">
-          <h2 style="margin:0">الحضور (Check-in / Check-out)</h2>
-          <div class="mini">
-            • فلترة حسب اليوم/الفرع/الحالة بدون Composite Index (فلترة محلية)<br>
-            • زر Reset Device يمسح الربط من attendance_devices للموظف
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn" id="btnAttReload">تحديث</button>
-          <button class="btn" id="btnAttExport">تصدير CSV</button>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>الفرع</label>
-          <select id="attBranch"></select>
-        </div>
-        <div>
-          <label>اليوم</label>
-          <input id="attDay" type="date">
-        </div>
-        <div>
-          <label>فلتر الحالة</label>
-          <select id="attStatus">
-            <option value="">الكل</option>
-            <option value="in">in</option>
-            <option value="out">out</option>
-            <option value="late">late</option>
-            <option value="early_out">early_out</option>
-            <option value="blocked">blocked</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="kpi" style="margin-top:10px">
-        <div class="box"><div class="mini">Records</div><b id="kAtt">0</b></div>
-        <div class="box"><div class="mini">In/late</div><b id="kIn">0</b></div>
-        <div class="box"><div class="mini">Out</div><b id="kOut">0</b></div>
-        <div class="box"><div class="mini">Blocked</div><b id="kBlocked">0</b></div>
-      </div>
-
-      <div id="msgAtt" class="msg"></div>
-
-      <div style="overflow:auto;margin-top:10px">
-        <table>
-          <thead>
-            <tr>
-              <th>الموظف</th>
-              <th>الإيميل</th>
-              <th>الفرع</th>
-              <th>التاريخ</th>
-              <th class="timeCell">Check-in</th>
-              <th class="timeCell">Check-out</th>
-              <th>الحالة</th>
-              <th>Late/Early</th>
-              <th>Device</th>
-              <th>Reset</th>
-            </tr>
-          </thead>
-          <tbody id="attTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="align-items:center">
-        <div style="flex:2">
-          <h2 style="margin:0">تقرير شهري</h2>
-          <div class="mini">
-            • يجلب shifts + attendance خلال شهر محدد<br>
-            • يحسب: scheduled / present / late / early_out / absent + مجموع دقائق التأخير والخروج المبكر + ساعات فعلية (إن وجدت)
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn" id="btnRepRun">عرض التقرير</button>
-          <button class="btn" id="btnRepExport">تصدير CSV</button>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>الشهر</label>
-          <input id="repMonth" type="month">
-        </div>
-        <div>
-          <label>فرع (اختياري)</label>
-          <select id="repBranch"></select>
-        </div>
-        <div>
-          <label>بحث موظف (name/email)</label>
-          <input id="repQ" placeholder="مثال: ahmad أو gmail">
-        </div>
-      </div>
-
-      <div id="msgRep" class="msg"></div>
-
-      <div style="overflow:auto;margin-top:10px">
-        <table>
-          <thead>
-            <tr>
-              <th>الموظف</th>
-              <th>الإيميل</th>
-              <th>Scheduled</th>
-              <th>Present</th>
-              <th>Late</th>
-              <th>Early out</th>
-              <th>Absent</th>
-              <th>Late min</th>
-              <th>Early min</th>
-              <th>Hours</th>
-            </tr>
-          </thead>
-          <tbody id="repTbody"></tbody>
-        </table>
       </div>
     </div>
   </div>
@@ -269,8 +181,10 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, setDoc, deleteDoc,
-      collection, getDocs, query, where, serverTimestamp
+      getFirestore, doc, getDoc, setDoc, updateDoc,
+      collection, getDocs,
+      query, where,
+      serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -294,7 +208,11 @@
       el.textContent = text;
     };
 
-    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
     function ymd(d){
       const dt = new Date(d);
       const y = dt.getFullYear();
@@ -302,499 +220,425 @@
       const da = String(dt.getDate()).padStart(2,"0");
       return `${y}-${m}-${da}`;
     }
-    function fmtTime(ts){
-      if(!ts) return "—";
-      const d = (typeof ts.toDate === "function") ? ts.toDate() : (ts instanceof Date ? ts : new Date(ts));
-      const hh = String(d.getHours()).padStart(2,"0");
-      const mm = String(d.getMinutes()).padStart(2,"0");
-      return `${hh}:${mm}`;
-    }
     function timeToMin(t){
-      const m = String(t||"").trim().match(/^(\\d{1,2}):(\\d{2})$/);
+      const s = String(t||"").trim();
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s);
       if(!m) return null;
-      const hh = Math.max(0, Math.min(23, parseInt(m[1],10)));
-      const mm = Math.max(0, Math.min(59, parseInt(m[2],10)));
-      return hh*60 + mm;
+      const hh = Math.max(0, Math.min(23, Number(m[1])));
+      const mm = Math.max(0, Math.min(59, Number(m[2])));
+      return hh*60+mm;
     }
-    function combineDateAndMin(ymdStr, mins){
-      const [y,m,d] = String(ymdStr).split("-").map(n=>parseInt(n,10));
-      const dt = new Date(y, (m||1)-1, d||1, 0,0,0,0);
-      dt.setMinutes(mins);
-      return dt;
+    function nowMin(){
+      const d=new Date();
+      return d.getHours()*60 + d.getMinutes();
     }
-
-    // server time offset (for missing check-in logic)
-    let _serverOffsetMs = null;
-    async function getServerOffsetMs(){
-      if(_serverOffsetMs != null) return _serverOffsetMs;
+    function safeId(s){
+      return String(s||"").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,240);
+    }
+    function fmtTime(ms){
+      if(!ms) return "-";
       try{
-        const ref = doc(db,"meta","clock");
-        await setDoc(ref, { ts: serverTimestamp() }, { merge:true });
-        const snap = await getDoc(ref);
-        const ts = snap.exists() ? snap.data()?.ts : null;
-        if(ts && typeof ts.toDate === "function"){
-          const serverNow = ts.toDate().getTime();
-          _serverOffsetMs = serverNow - Date.now();
-          return _serverOffsetMs;
-        }
-      }catch(_){}
-      _serverOffsetMs = 0;
-      return 0;
+        return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      }catch{ return "-"; }
+    }
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"]/g, (c)=>({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        "\"":"&quot;"
+      }[c]));
     }
 
-    // ===== Branches =====
-    let branches = [];
-    async function loadBranches(){
+    async function loadBranchSelect(){
       const snap = await getDocs(collection(db,"branches"));
-      const rows=[];
+      const rows = [];
       snap.forEach(d=> rows.push({ id:d.id, ...(d.data()||{}) }));
-      rows.sort((a,b)=> (a.name||a.id).localeCompare(b.name||b.id));
-      branches = rows;
+      rows.sort((a,b)=> (a.name||a.id||"").localeCompare(b.name||b.id||""));
 
-      const opt = `<option value="">— كل الفروع —</option>` + rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
-      $("attBranch").innerHTML = opt;
-      $("alBranch").innerHTML  = opt;
-      $("repBranch").innerHTML = opt;
-    }
-    const branchName = (id)=> (branches.find(x=>x.id===id)?.name) || id || "—";
+      const sel = $("fBranch");
+      sel.innerHTML =
+        `<option value="">— كل الفروع —</option>` +
+        rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
 
-    function statusLabel(r){
-      const blocked = r.blocked === true || r.status === "blocked";
-      if(blocked) return "blocked";
-      if(r.status) return r.status;
-      const hasIn = !!r.checkInAt;
-      const hasOut = !!r.checkOutAt;
-      if(hasIn && hasOut) return "out";
-      if(hasIn) return "in";
-      return (r.status||"-");
+      return rows;
     }
 
-    // ===== Attendance Day =====
-    let lastAttendance = [];
-    async function loadAttendance(){
-      try{
-        setMsg("msgAtt","جاري التحميل...","ok");
+    async function loadEmployees(){
+      const snap = await getDocs(collection(db,"employees"));
+      const out=[];
+      snap.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
+      return out;
+    }
 
-        const day = $("attDay").value || ymd(new Date());
-        const snap = await getDocs(query(collection(db,"attendance"), where("date","==",day)));
-        const rows=[];
-        snap.forEach(d=> rows.push({ id:d.id, ...(d.data()||{}) }));
+    async function loadLeavesApproved(){
+      const snap = await getDocs(collection(db,"leaves"));
+      const out=[];
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        if(String(x.status||"").toLowerCase() !== "approved") return;
+        if(!x.employeeId || !x.from || !x.to) return;
+        out.push({ ...x });
+      });
+      return out;
+    }
 
-        const branchId = $("attBranch").value || "";
-        const status = $("attStatus").value || "";
-
-        let filtered = rows;
-        if(branchId) filtered = filtered.filter(r=> String(r.branchId||"") === String(branchId));
-        if(status) filtered = filtered.filter(r=> statusLabel(r) === status);
-
-        filtered.sort((a,b)=> ((b.checkInAt?.seconds||0) - (a.checkInAt?.seconds||0)));
-
-        lastAttendance = filtered;
-        renderAttendance(filtered);
-
-        const total = filtered.length;
-        const inCount = filtered.filter(r=> ["in","late"].includes(statusLabel(r))).length;
-        const outCount = filtered.filter(r=> statusLabel(r)==="out" || statusLabel(r)==="early_out").length;
-        const blockedCount = filtered.filter(r=> statusLabel(r)==="blocked").length;
-
-        $("kAtt").textContent = total;
-        $("kIn").textContent = inCount;
-        $("kOut").textContent = outCount;
-        $("kBlocked").textContent = blockedCount;
-
-        setMsg("msgAtt", `تم تحميل ${total} سجل ✅`, "ok");
-      }catch(e){
-        setMsg("msgAtt", e?.message || "خطأ أثناء تحميل الحضور", "bad");
+    function isOnLeave(leaves, employeeId, dateStr){
+      for(const l of leaves){
+        if(l.employeeId !== employeeId) continue;
+        if(dateStr >= l.from && dateStr <= l.to) return true;
       }
+      return false;
     }
 
-    function renderAttendance(rows){
+    async function markAutoAbsencesForDate(dateStr){
+      const shiftsSnap = await getDocs(collection(db,"shifts"));
+      const shifts = [];
+      shiftsSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(!x.employeeId) return;
+        shifts.push({ id:d.id, ...x });
+      });
+
+      const leaves = await loadLeavesApproved();
+
+      const attSnap = await getDocs(collection(db,"attendance"));
+      const attByKey = new Map();
+      attSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(!x.employeeId) return;
+        const k = `${x.employeeId}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        attByKey.set(k, { id:d.id, ...x });
+      });
+
+      let checked = 0;
+      let marked = 0;
+
+      for(const s of shifts){
+        checked++;
+
+        const endMin = timeToMin(s.end);
+        const ended = (endMin===null) ? false : (nowMin() >= endMin);
+        if(!ended) continue;
+
+        const k = `${s.employeeId}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const hasAttendance = attByKey.has(k);
+
+        const onLeave = isOnLeave(leaves, s.employeeId, dateStr);
+        const attId = safeId(k);
+
+        if(onLeave){
+          if(!hasAttendance){
+            await setDoc(doc(db,"attendance", attId), {
+              employeeId: s.employeeId,
+              employeeName: s.employeeName || "",
+              employeeEmail: s.employeeEmail || "",
+              date: s.date,
+              branchId: s.branchId || "",
+              branchName: s.branchName || "",
+              shiftName: s.shiftName || "",
+              start: s.start || "",
+              end: s.end || "",
+              status: "leave",
+              note: "On approved leave",
+              updatedAt: serverTimestamp()
+            }, { merge:true });
+            marked++;
+          }
+          continue;
+        }
+
+        if(!hasAttendance){
+          await setDoc(doc(db,"attendance", attId), {
+            employeeId: s.employeeId,
+            employeeName: s.employeeName || "",
+            employeeEmail: s.employeeEmail || "",
+            date: s.date,
+            branchId: s.branchId || "",
+            branchName: s.branchName || "",
+            shiftName: s.shiftName || "",
+            start: s.start || "",
+            end: s.end || "",
+            status: "absent",
+            minutesLate: null,
+            note: "Auto absent (shift ended, no check-in)",
+            updatedAt: serverTimestamp()
+          }, { merge:true });
+          marked++;
+        }
+      }
+
+      return { checked, marked };
+    }
+
+    async function loadAttendanceForDate(dateStr, branchId=""){
+      const [attSnap, shiftsSnap, emps, leaves] = await Promise.all([
+        getDocs(collection(db,"attendance")),
+        getDocs(collection(db,"shifts")),
+        loadEmployees(),
+        loadLeavesApproved()
+      ]);
+
+      const rows = [];
+      const attMap = new Map();
+
+      attSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(branchId && String(x.branchId||"") !== String(branchId)) return;
+        const k = `${x.employeeId}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        attMap.set(k, { __id: d.id, ...x });
+      });
+
+      const shifts = [];
+      shiftsSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(branchId && String(x.branchId||"") !== String(branchId)) return;
+        if(!x.employeeId) return;
+        shifts.push({ __id: d.id, ...x });
+      });
+
+      for(const s of shifts){
+        const k = `${s.employeeId}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const a = attMap.get(k);
+
+        if(a){
+          rows.push({ ...a });
+        }else{
+          const onLeave = isOnLeave(leaves, s.employeeId, dateStr);
+          rows.push({
+            employeeId: s.employeeId,
+            employeeName: s.employeeName || (emps.find(e=>e.id===s.employeeId)?.name || ""),
+            employeeEmail: s.employeeEmail || (emps.find(e=>e.id===s.employeeId)?.email || ""),
+            date: s.date,
+            branchId: s.branchId || "",
+            branchName: s.branchName || "",
+            shiftName: s.shiftName || "",
+            start: s.start || "",
+            end: s.end || "",
+            status: onLeave ? "leave" : "absent",
+            note: onLeave ? "Leave (no attendance record)" : "Absent (no attendance record)"
+          });
+        }
+      }
+
+      rows.sort((a,b)=>{
+        const an = (a.branchName||a.branchId||"");
+        const bn = (b.branchName||b.branchId||"");
+        if(an!==bn) return an.localeCompare(bn);
+        const ae = (a.employeeName||a.employeeEmail||"");
+        const be = (b.employeeName||b.employeeEmail||"");
+        return ae.localeCompare(be);
+      });
+
+      let present=0, late=0, absent=0, leaveDay=0;
+      for(const r of rows){
+        const st = String(r.status||"").toLowerCase();
+        if(st==="leave"){ leaveDay++; continue; }
+        if(st==="absent"){ absent++; continue; }
+        if(st==="completed" || st==="present"){
+          present++;
+          if(Number(r.minutesLate||0)>0) late++;
+        }
+      }
+
+      $("kPresent").textContent = present;
+      $("kLate").textContent = late;
+      $("kAbsent").textContent = absent;
+      $("kLeaveDay").textContent = leaveDay;
+
       const tb = $("attTbody");
       tb.innerHTML = "";
-      if(!rows.length){
-        tb.innerHTML = `<tr><td colspan="10" class="mini">لا يوجد سجلات لهذه الفلترة.</td></tr>`;
-        return;
-      }
-
       for(const r of rows){
-        const st = statusLabel(r);
-        const dev = (r.deviceInfo?.id || r.attemptedDeviceId || "").slice(0,8);
-        const le = r.lateMinutes ? `Late ${r.lateMinutes}m` : (r.earlyMinutes ? `Early ${r.earlyMinutes}m` : "—");
-        const resetBtn = r.employeeId ? `<button class="btn danger" data-reset="${escapeHtml(r.employeeId)}">Reset</button>` : "—";
+        const st = String(r.status||"").toLowerCase();
+        const badge =
+          st==="leave" ? `<span class="badge ok">Leave</span>` :
+          st==="absent" ? `<span class="badge bad">Absent</span>` :
+          (Number(r.minutesLate||0)>0 ? `<span class="badge warn">Late</span>` : `<span class="badge ok">Present</span>`);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${escapeHtml(r.employeeName||r.employeeId||"—")}</td>
-          <td>${escapeHtml(r.employeeEmail||"—")}</td>
-          <td>${escapeHtml(branchName(r.branchId))}</td>
-          <td>${escapeHtml(r.date||"—")}</td>
-          <td class="timeCell">${escapeHtml(fmtTime(r.checkInAt))}</td>
-          <td class="timeCell">${escapeHtml(fmtTime(r.checkOutAt))}</td>
-          <td><span class="badge">${escapeHtml(st)}</span></td>
-          <td>${escapeHtml(le)}</td>
-          <td class="mono">${escapeHtml(dev||"—")}</td>
-          <td>${resetBtn}</td>
+          <td>${escapeHtml(r.employeeName || r.employeeEmail || r.employeeId || "-")}</td>
+          <td>${escapeHtml(r.branchName || r.branchId || "-")}</td>
+          <td>${escapeHtml(r.shiftName || "-")} <span class="badge">${escapeHtml((r.start&&r.end)?(r.start+"-"+r.end):"")}</span></td>
+          <td>${badge}</td>
+          <td>${fmtTime(r.checkInAtLocal)}</td>
+          <td>${fmtTime(r.checkOutAtLocal)}</td>
+          <td>${r.minutesLate ? `${escapeHtml(r.minutesLate)}د` : "-"}</td>
+          <td>${r.workedMinutes ? `${escapeHtml(r.workedMinutes)}د` : "-"}</td>
         `;
         tb.appendChild(tr);
       }
 
-      tb.querySelectorAll("button[data-reset]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          const empId = btn.getAttribute("data-reset");
-          if(!empId) return;
-          try{
-            await deleteDoc(doc(db,"attendance_devices", empId));
-            setMsg("msgAtt",`تم Reset للجهاز للموظف: ${empId} ✅`,"ok");
-          }catch(e){
-            setMsg("msgAtt", e?.message || "فشل Reset", "bad");
+      window.__attRows = rows;
+      window.__attDate = dateStr;
+      window.__attBranchId = branchId || "";
+    }
+
+    async function exportAttendanceExcel(){
+      const rows = window.__attRows || [];
+      if(!rows.length) return setMsg("msgAtt","لا يوجد بيانات للتصدير.","bad");
+      const XLSX = window.XLSX;
+      if(!XLSX) return setMsg("msgAtt","مكتبة Excel غير محمّلة.","bad");
+
+      const headers = ["التاريخ","الموظف","الإيميل","الفرع","الشفت","البداية","النهاية","الحالة","CheckIn","CheckOut","Late(min)","Worked(min)","ملاحظة"];
+      const data = rows.map(r=>[
+        r.date || "",
+        r.employeeName || "",
+        r.employeeEmail || "",
+        r.branchName || r.branchId || "",
+        r.shiftName || "",
+        r.start || "",
+        r.end || "",
+        (r.status || ""),
+        r.checkInAtLocal ? new Date(r.checkInAtLocal).toISOString() : "",
+        r.checkOutAtLocal ? new Date(r.checkOutAtLocal).toISOString() : "",
+        r.minutesLate || "",
+        r.workedMinutes || "",
+        r.note || ""
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+      for(let c=0; c<headers.length; c++){
+        const addr = XLSX.utils.encode_cell({ r:0, c });
+        if(ws[addr]) ws[addr].s = {
+          font: { bold:true, color:{ rgb:"FFFFFFFF" } },
+          fill: { patternType:"solid", fgColor:{ rgb:"FF111827" } },
+          alignment: { horizontal:"center", vertical:"center" },
+          border: {
+            top:{style:"thin",color:{rgb:"FF374151"}},
+            bottom:{style:"thin",color:{rgb:"FF374151"}},
+            left:{style:"thin",color:{rgb:"FF374151"}},
+            right:{style:"thin",color:{rgb:"FF374151"}},
           }
+        };
+      }
+
+      ws["!cols"] = headers.map(()=>({ wch: 18 }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+
+      const date = window.__attDate || "date";
+      const br = window.__attBranchId || "all";
+      XLSX.writeFile(wb, `attendance_${br}_${date}.xlsx`);
+      setMsg("msgAtt","تم تصدير Excel ✅","ok");
+    }
+
+    function exportAttendancePdf(){
+      const rows = window.__attRows || [];
+      if(!rows.length) return setMsg("msgAtt","لا يوجد بيانات للتصدير.","bad");
+
+      const date = window.__attDate || "";
+      const br = window.__attBranchId || "";
+
+      /* ✅ FIXED: no nested template literals */
+      const title = "Attendance Report — " + date + (br ? " (" + br + ")" : "");
+
+      const html = `
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="utf-8"/>
+          <title>${title}</title>
+          <style>
+            body{font-family:system-ui, Tahoma, Arial; padding:16px}
+            h1{margin:0 0 12px; font-size:18px}
+            table{width:100%; border-collapse:collapse}
+            th,td{border:1px solid #ddd; padding:8px; font-size:12px; text-align:right}
+            th{background:#f5f5f5}
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>الموظف</th><th>الفرع</th><th>الشفت</th><th>الحالة</th><th>دخول</th><th>خروج</th><th>Late</th><th>Worked</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>${escapeHtml(r.employeeName||r.employeeEmail||r.employeeId||'')}</td>
+                  <td>${escapeHtml(r.branchName||r.branchId||'')}</td>
+                  <td>${escapeHtml(r.shiftName||'')} ${escapeHtml((r.start && r.end) ? ("(" + r.start + "-" + r.end + ")") : "")}</td>
+                  <td>${escapeHtml(r.status||'')}</td>
+                  <td>${escapeHtml(fmtTime(r.checkInAtLocal))}</td>
+                  <td>${escapeHtml(fmtTime(r.checkOutAtLocal))}</td>
+                  <td>${escapeHtml(r.minutesLate||'')}</td>
+                  <td>${escapeHtml(r.workedMinutes||'')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+       
+        </body>
+        </html>
+      `;
+
+      const w = window.open('', '_blank');
+      if(!w) return setMsg("msgAtt","المتصفح منع فتح نافذة جديدة.","bad");
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      setMsg("msgAtt","تم فتح PDF للطباعة ✅ (اختر Save as PDF)","ok");
+    }
+
+    async function loadCorrections(){
+      const snap = await getDocs(collection(db,"attendance_corrections"));
+      const rows=[];
+      snap.forEach(d=>{
+        const x=d.data()||{};
+        rows.push({ __id:d.id, ...x });
+      });
+      rows.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+      const tb = $("fixTbody");
+      tb.innerHTML = "";
+      for(const r of rows.slice(0,100)){
+        const st = String(r.status||"pending").toLowerCase();
+        const badge =
+          st==="approved" ? `<span class="badge ok">Approved</span>` :
+          st==="rejected" ? `<span class="badge bad">Rejected</span>` :
+          `<span class="badge warn">Pending</span>`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(r.date||"-")}</td>
+          <td>${escapeHtml(r.employeeName||r.employeeEmail||r.employeeId||"-")}</td>
+          <td>${escapeHtml(r.branchName||r.branchId||"-")}</td>
+          <td>${escapeHtml(r.shiftName||"-")}</td>
+          <td>${escapeHtml(r.note||"")}</td>
+          <td>${badge}</td>
+          <td class="actions">
+            <button class="btn primary" data-approve="${escapeHtml(r.__id)}">موافقة</button>
+            <button class="btn danger" data-reject="${escapeHtml(r.__id)}">رفض</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      tb.querySelectorAll("button[data-approve]").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          const id = b.getAttribute("data-approve");
+          await updateDoc(doc(db,"attendance_corrections", id), { status:"approved", updatedAt: serverTimestamp() });
+          setMsg("msgFix","تمت الموافقة ✅","ok");
+          await loadCorrections();
+        });
+      });
+      tb.querySelectorAll("button[data-reject]").forEach(b=>{
+        b.addEventListener("click", async ()=>{
+          const id = b.getAttribute("data-reject");
+          await updateDoc(doc(db,"attendance_corrections", id), { status:"rejected", updatedAt: serverTimestamp() });
+          setMsg("msgFix","تم الرفض ✅","ok");
+          await loadCorrections();
         });
       });
     }
-
-    function exportCSV(){
-      if(!lastAttendance.length){
-        return setMsg("msgAtt","لا يوجد بيانات للتصدير (اعمل تحديث/فلترة أولاً)","bad");
-      }
-      const header = ["employeeName","employeeEmail","employeeId","branchId","date","checkIn","checkOut","status","lateMinutes","earlyMinutes","deviceId","blockedReason"];
-      const lines = [header.join(",")];
-      for(const r of lastAttendance){
-        const row = [
-          r.employeeName||"",
-          r.employeeEmail||"",
-          r.employeeId||"",
-          r.branchId||"",
-          r.date||"",
-          fmtTime(r.checkInAt),
-          fmtTime(r.checkOutAt),
-          statusLabel(r),
-          r.lateMinutes ?? "",
-          r.earlyMinutes ?? "",
-          r.deviceInfo?.id ?? r.attemptedDeviceId ?? "",
-          r.blockedReason ?? ""
-        ].map(v=> `"${String(v??"").replaceAll('"','""')}"`);
-        lines.push(row.join(","));
-      }
-      const blob = new Blob(["\ufeff" + lines.join("\n")], { type:"text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const day = $("attDay").value || "day";
-      a.download = `attendance_${day}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setMsg("msgAtt","تم تصدير CSV ✅","ok");
-    }
-
-    // ===== Alerts =====
-    async function loadAlerts(){
-      try{
-        setMsg("msgAlerts","جاري التحميل...","ok");
-        const day = $("alDay").value || ymd(new Date());
-        const branchId = $("alBranch").value || "";
-        const grace = Math.max(0, Number($("alGrace").value||10));
-
-        const serverNow = new Date(Date.now() + await getServerOffsetMs());
-
-        // attendance of day
-        const atSnap = await getDocs(query(collection(db,"attendance"), where("date","==",day)));
-        const attendance=[];
-        atSnap.forEach(d=> attendance.push({ id:d.id, ...(d.data()||{}) }));
-        const attFiltered = branchId ? attendance.filter(r=> String(r.branchId||"")===String(branchId)) : attendance;
-
-        const blocked = attFiltered.filter(r=> statusLabel(r)==="blocked");
-        const late = attFiltered.filter(r=> statusLabel(r)==="late");
-        const early = attFiltered.filter(r=> statusLabel(r)==="early_out");
-
-        $("kAlBlocked").textContent = blocked.length;
-        $("kAlLate").textContent = late.length;
-        $("kAlEarly").textContent = early.length;
-
-        // missing check-in:
-        const shSnap = await getDocs(query(collection(db,"shifts"), where("date","==",day)));
-        const shifts=[];
-        shSnap.forEach(d=>{
-          const x=d.data()||{};
-          if(branchId && String(x.branchId||"")!==String(branchId)) return;
-          shifts.push({ id:d.id, ...x });
-        });
-
-        // map: shiftId -> has check-in
-        const attByShift = new Map();
-        for(const r of attFiltered){
-          if(r.shiftId) attByShift.set(String(r.shiftId), r);
-        }
-
-        const missing=[];
-        for(const sh of shifts){
-          // only assigned
-          if(!sh.employeeId) continue;
-
-          const rec = attByShift.get(String(sh.id)) || null;
-          const hasIn = !!rec?.checkInAt && statusLabel(rec)!=="blocked";
-          if(hasIn) continue;
-
-          const startMin = timeToMin(sh.start||"");
-          if(startMin==null) continue;
-
-          const shiftStart = combineDateAndMin(day, startMin);
-          const due = new Date(shiftStart.getTime() + (grace*60000));
-          if(serverNow >= due){
-            missing.push(sh);
-          }
-        }
-
-        $("kAlMissing").textContent = missing.length;
-
-        // render blocked
-        const tbB = $("tbBlocked");
-        tbB.innerHTML = blocked.slice(0,40).map(r=>{
-          const t = r.blockedAt || r.updatedAt || r.checkInAt || null;
-          return `<tr>
-            <td>${escapeHtml(r.employeeName||r.employeeId||"—")}</td>
-            <td>${escapeHtml(branchName(r.branchId))}</td>
-            <td>${escapeHtml(r.blockedReason||"blocked")}</td>
-            <td class="timeCell">${escapeHtml(fmtTime(t))}</td>
-          </tr>`;
-        }).join("") || `<tr><td colspan="4" class="mini">لا يوجد</td></tr>`;
-
-        const tbM = $("tbMissing");
-        tbM.innerHTML = missing.slice(0,60).map(sh=>{
-          return `<tr>
-            <td>${escapeHtml(sh.employeeName||sh.employeeId||"—")}</td>
-            <td>${escapeHtml(branchName(sh.branchId))}</td>
-            <td>${escapeHtml(sh.shiftName||"—")}</td>
-            <td class="timeCell">${escapeHtml(sh.start||"—")}</td>
-          </tr>`;
-        }).join("") || `<tr><td colspan="4" class="mini">لا يوجد</td></tr>`;
-
-        setMsg("msgAlerts",`تم ✅ (الوقت المعتمد: ${serverNow.toLocaleString()})`,"ok");
-      }catch(e){
-        setMsg("msgAlerts", e?.message || "خطأ في التنبيهات", "bad");
-      }
-    }
-
-    // ===== Monthly report =====
-    let lastReport = [];
-    async function runMonthlyReport(){
-      try{
-        setMsg("msgRep","جاري التحميل...","ok");
-        const m = $("repMonth").value;
-        if(!m) return setMsg("msgRep","اختر شهر أولاً","bad");
-
-        const [yy,mm] = m.split("-").map(x=>parseInt(x,10));
-        const from = `${yy}-${String(mm).padStart(2,"0")}-01`;
-        const endDate = new Date(yy, mm, 0); // last day of month
-        const to = ymd(endDate);
-
-        const branchId = $("repBranch").value || "";
-        const qText = ($("repQ").value||"").trim().toLowerCase();
-
-        // shifts range (single-field range, usually no composite index required)
-        const shSnap = await getDocs(query(collection(db,"shifts"), where("date",">=",from), where("date","<=",to)));
-        const shifts=[];
-        shSnap.forEach(d=>{
-          const x=d.data()||{};
-          if(branchId && String(x.branchId||"")!==String(branchId)) return;
-          shifts.push({ id:d.id, ...x });
-        });
-
-        // attendance range
-        const atSnap = await getDocs(query(collection(db,"attendance"), where("date",">=",from), where("date","<=",to)));
-        const attendance=[];
-        atSnap.forEach(d=>{
-          const x=d.data()||{};
-          if(branchId && String(x.branchId||"")!==String(branchId)) return;
-          attendance.push({ id:d.id, ...x });
-        });
-
-        // map attendance by shiftId (prefer the same shift)
-        const attByShift = new Map();
-        for(const r of attendance){
-          if(r.shiftId) attByShift.set(String(r.shiftId), r);
-        }
-
-        // aggregate per employeeId
-        const agg = new Map();
-        function ensure(empId, name, email){
-          if(!agg.has(empId)){
-            agg.set(empId, {
-              employeeId: empId,
-              employeeName: name || empId,
-              employeeEmail: email || "",
-              scheduled: 0, present:0, late:0, early:0, absent:0,
-              lateMin:0, earlyMin:0, hours:0
-            });
-          }
-          return agg.get(empId);
-        }
-
-        for(const sh of shifts){
-          const empId = sh.employeeId;
-          if(!empId) continue;
-          const a = ensure(empId, sh.employeeName, sh.employeeEmail);
-          a.scheduled++;
-
-          const rec = attByShift.get(String(sh.id)) || null;
-          const st = rec ? statusLabel(rec) : null;
-          const okIn = rec && rec.checkInAt && st!=="blocked";
-
-          if(okIn){
-            a.present++;
-            if(st==="late"){ a.late++; a.lateMin += Number(rec.lateMinutes||0); }
-            if(st==="early_out"){ a.early++; a.earlyMin += Number(rec.earlyMinutes||0); }
-            if(st==="out"){ /* ok */ }
-
-            // hours if we have both timestamps
-            const inTs = rec.checkInAt && typeof rec.checkInAt.toDate==="function" ? rec.checkInAt.toDate() : null;
-            const outTs = rec.checkOutAt && typeof rec.checkOutAt.toDate==="function" ? rec.checkOutAt.toDate() : null;
-            if(inTs && outTs){
-              const h = Math.max(0, (outTs.getTime()-inTs.getTime())/3600000);
-              if(isFinite(h)) a.hours += h;
-            }
-          }else{
-            // absent only if shift started in past (for past months it's true)
-            a.absent++;
-          }
-        }
-
-        // build rows + search filter
-        let rows = Array.from(agg.values());
-        if(qText){
-          rows = rows.filter(r=> (r.employeeName||"").toLowerCase().includes(qText) || (r.employeeEmail||"").toLowerCase().includes(qText) || (r.employeeId||"").toLowerCase().includes(qText));
-        }
-        rows.sort((a,b)=> (b.present - a.present) || (a.employeeName||"").localeCompare(b.employeeName||""));
-
-        lastReport = rows;
-        renderReport(rows);
-
-        setMsg("msgRep",`تم تحميل التقرير للشهر ${m} ✅ (from ${from} to ${to})`,"ok");
-      }catch(e){
-        setMsg("msgRep", e?.message || "خطأ بالتقرير", "bad");
-      }
-    }
-
-    function renderReport(rows){
-      const tb = $("repTbody");
-      tb.innerHTML = "";
-      if(!rows.length){
-        tb.innerHTML = `<tr><td colspan="10" class="mini">لا يوجد بيانات</td></tr>`;
-        return;
-      }
-      for(const r of rows){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(r.employeeName||r.employeeId||"—")}</td>
-          <td>${escapeHtml(r.employeeEmail||"—")}</td>
-          <td>${escapeHtml(r.scheduled)}</td>
-          <td>${escapeHtml(r.present)}</td>
-          <td>${escapeHtml(r.late)}</td>
-          <td>${escapeHtml(r.early)}</td>
-          <td>${escapeHtml(r.absent)}</td>
-          <td>${escapeHtml(r.lateMin)}</td>
-          <td>${escapeHtml(r.earlyMin)}</td>
-          <td class="timeCell">${escapeHtml(r.hours.toFixed(2))}</td>
-        `;
-        tb.appendChild(tr);
-      }
-    }
-
-    function exportReportCSV(){
-      if(!lastReport.length){
-        return setMsg("msgRep","لا يوجد تقرير لتصديره (اعمل عرض التقرير أولاً)","bad");
-      }
-      const header = ["employeeName","employeeEmail","employeeId","scheduled","present","late","early_out","absent","lateMin","earlyMin","hours"];
-      const lines = [header.join(",")];
-      for(const r of lastReport){
-        const row = [
-          r.employeeName||"",
-          r.employeeEmail||"",
-          r.employeeId||"",
-          r.scheduled||0,
-          r.present||0,
-          r.late||0,
-          r.early||0,
-          r.absent||0,
-          r.lateMin||0,
-          r.earlyMin||0,
-          (r.hours||0).toFixed(2)
-        ].map(v=> `"${String(v??"").replaceAll('"','""')}"`);
-        lines.push(row.join(","));
-      }
-      const blob = new Blob(["\ufeff" + lines.join("\n")], { type:"text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `monthly_report_${$("repMonth").value||"month"}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setMsg("msgRep","تم تصدير CSV ✅","ok");
-    }
-
-    async function requireAdmin(user){
-      const snap = await getDoc(doc(db,"employees",user.uid));
-      return snap.exists() && snap.data()?.role === "admin";
-    }
-
-    onAuthStateChanged(auth, async (user)=>{
-      if(!user){ location.href="./login.html"; return; }
-      $("mePill").textContent = user.email || user.uid;
-
-      const ok = await requireAdmin(user);
-      if(!ok){
-        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
-        if(admins.size>0){ location.href="./staff.html"; return; }
-        setMsg("msgDash","لا يوجد Admin بعد. اضغط (اجعل Admin) لتصبح أول أدمن.", "bad");
-      }
-
-      const [bSnap, eSnap, pSnap, lSnap] = await Promise.all([
-        getDocs(collection(db,"branches")),
-        getDocs(collection(db,"employees")),
-        getDocs(collection(db,"employees_email")),
-        getDocs(query(collection(db,"leaves"), where("status","==","pending")))
-      ]);
-
-      $("kBranches").textContent = bSnap.size;
-      $("kEmployees").textContent = eSnap.size;
-      $("kPresets").textContent  = pSnap.size;
-      $("kLeaves").textContent   = lSnap.size;
-
-      await loadBranches();
-
-      const today = ymd(new Date());
-      $("attDay").value = today;
-      $("alDay").value = today;
-
-      // default report month
-      const now = new Date();
-      $("repMonth").value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-
-      await loadAlerts();
-      await loadAttendance();
-      await runMonthlyReport();
-    });
-
-    // events
-    $("btnAttReload").addEventListener("click", loadAttendance);
-    $("attBranch").addEventListener("change", loadAttendance);
-    $("attDay").addEventListener("change", loadAttendance);
-    $("attStatus").addEventListener("change", loadAttendance);
-    $("btnAttExport").addEventListener("click", exportCSV);
-
-    $("btnAlertsReload").addEventListener("click", loadAlerts);
-    $("alDay").addEventListener("change", loadAlerts);
-    $("alBranch").addEventListener("change", loadAlerts);
-    $("alGrace").addEventListener("change", loadAlerts);
-
-    $("btnRepRun").addEventListener("click", runMonthlyReport);
-    $("repMonth").addEventListener("change", runMonthlyReport);
-    $("repBranch").addEventListener("change", runMonthlyReport);
-    $("repQ").addEventListener("input", ()=>{ renderReport(lastReport.filter(r=>true)); runMonthlyReport(); });
-    $("btnRepExport").addEventListener("click", exportReportCSV);
 
     $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
 
@@ -812,7 +656,63 @@
         createdAt: serverTimestamp()
       }, { merge:true });
 
-      setMsg("msgDash","تم تعيين دورك Admin ✅ أعد تحميل الصفحة.", "ok");
+      setMsg("msgDash","تم تعيين دورك Admin ✅ أعد تحميل الصفحة.","ok");
+    });
+
+    $("btnReloadAtt").addEventListener("click", async ()=>{
+      const date = $("fDate").value;
+      const br = $("fBranch").value || "";
+      await loadAttendanceForDate(date, br);
+      setMsg("msgAtt","تم التحديث ✅","ok");
+    });
+
+    $("btnExportExcel").addEventListener("click", exportAttendanceExcel);
+    $("btnExportPdf").addEventListener("click", exportAttendancePdf);
+
+    $("btnReloadFix").addEventListener("click", async ()=>{
+      await loadCorrections();
+      setMsg("msgFix","تم التحديث ✅","ok");
+    });
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+      $("mePill").textContent = user.email || user.uid;
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+        setMsg("msgDash","لا يوجد Admin بعد. اضغط (اجعل Admin) لتصبح أول أدمن.","bad");
+      }
+
+      const [bSnap, eSnap, pSnap, lSnap] = await Promise.all([
+        getDocs(collection(db,"branches")),
+        getDocs(collection(db,"employees")),
+        getDocs(collection(db,"employees_email")),
+        getDocs(query(collection(db,"leaves"), where("status","==","pending")))
+      ]);
+
+      $("kBranches").textContent = bSnap.size;
+      $("kEmployees").textContent = eSnap.size;
+      $("kPresets").textContent  = pSnap.size;
+      $("kLeaves").textContent   = lSnap.size;
+
+      await loadBranchSelect();
+
+      $("fDate").value = ymd(new Date());
+
+      try{
+        const date = $("fDate").value;
+        const res = await markAutoAbsencesForDate(date);
+        if(res?.marked){
+          setMsg("msgAtt", `تم تسجيل غياب تلقائي: ${res.marked} (من أصل ${res.checked}) ✅`, "ok");
+        }
+      }catch(e){
+        console.warn(e);
+      }
+
+      await loadAttendanceForDate($("fDate").value, "");
+      await loadCorrections();
     });
   </script>
 </body>

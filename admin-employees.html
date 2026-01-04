@@ -94,6 +94,22 @@
     @media (max-width:900px){.twoCol{grid-template-columns:1fr}}
     .hint{color:var(--muted);font-size:12px;margin-top:6px}
     .warn{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);padding:10px 12px;border-radius:12px;color:#ffd3d3;margin-top:10px;font-size:12px;line-height:1.7}
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
   </style>
 </head>
 <body>

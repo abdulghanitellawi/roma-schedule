@@ -9,7 +9,7 @@
     :root{
       --bg:#0b1220; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.14);
       --txt:#e5e7eb; --muted:#9ca3af; --accent:#d4a019; --shadow: 0 18px 60px rgba(0,0,0,.35);
-      --ok:#16a34a; --bad:#ef4444;
+      --ok:#16a34a; --bad:#ef4444; --warn:#f59e0b;
     }
     *{box-sizing:border-box}
     body{
@@ -40,28 +40,64 @@
     .btn.primary:hover{background:rgba(212,160,25,.20)}
     .btn.danger{border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12)}
     .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .btn.warn{border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.10)}
+    .btn.warn:hover{background:rgba(245,158,11,.15)}
     .wrap{max-width:1100px; margin:0 auto; padding:14px}
     .grid{display:grid; grid-template-columns: 360px 1fr; gap:14px}
     @media (max-width:980px){ .grid{grid-template-columns:1fr} }
     .card{border:1px solid var(--line); background:var(--panel); border-radius:18px; padding:12px; box-shadow:var(--shadow)}
     h2{margin:0 0 10px; font-size:18px}
-    .mini{color:var(--muted); font-size:12px; line-height:1.7}
+    h3{margin:12px 0 8px; font-size:15px}
     label{display:block; margin:10px 0 6px; color:var(--muted); font-size:13px}
-    input,select{
+    input{
       width:100%; padding:11px 12px; border-radius:12px;
       border:1px solid var(--line); background:rgba(0,0,0,.16);
       color:var(--txt); outline:none;
     }
-    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
     table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px}
-    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:right; font-size:13px; vertical-align:top}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:right; font-size:13px}
     th{color:var(--muted); font-weight:900; background:rgba(255,255,255,.04)}
-    .msg{margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:none; white-space:pre-line}
+    .msg{margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:none}
     .msg.ok{display:block; border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12)}
     .msg.bad{display:block; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12)}
     .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.05)}
-    .timeCell{direction:ltr; unicode-bidi:embed; text-align:left;}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
+    .pill.ok{border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12); color:#d1fae5}
+    .pill.bad{border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:#fee2e2}
+    .pill.warn{border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.10); color:#ffedd5}
+    .sep{border:none;border-top:1px solid rgba(255,255,255,.12); margin:14px 0}
+    .tiny{color:var(--muted); font-size:12px; line-height:1.7}
+
+    /* Tabs */
+    .tabs{display:flex; gap:8px; flex-wrap:wrap}
+    .tabBtn{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .tabBtn.active{
+      border-color:rgba(212,160,25,.45);
+      background:rgba(212,160,25,.14);
+    }
+    .tabPanel{display:none}
+    .tabPanel.show{display:block}
+
+    .modalOv{
+      position:fixed; inset:0; display:none; place-items:center; padding:16px;
+      background:rgba(0,0,0,.55); z-index:50;
+    }
+    .modalOv.show{display:grid}
+    .modal{
+      width:min(560px, 100%); border:1px solid var(--line); background:rgba(12,18,32,.92);
+      border-radius:18px; box-shadow:var(--shadow); padding:14px;
+    }
+    .modal .topRow{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .muted{color:var(--muted)}
   </style>
 </head>
 <body>
@@ -76,13 +112,14 @@
       </div>
       <div style="display:flex; gap:10px; align-items:center">
         <a class="btn" href="./admin-dashboard.html" id="goAdmin" style="display:none">لوحة الأدمن</a>
-        <button class="btn danger" id="btnOut">تسجيل خروج</button>
+        <button class="btn danger" id="btnLogout">تسجيل خروج</button>
       </div>
     </div>
   </div>
 
   <div class="wrap">
     <div class="grid">
+      <!-- Left: Leaves -->
       <div class="card">
         <h2>طلب إجازة</h2>
         <label>من تاريخ</label>
@@ -92,7 +129,7 @@
         <button class="btn primary" id="btnLeave" style="margin-top:12px; width:100%">إرسال الطلب</button>
         <div id="msgLeave" class="msg"></div>
 
-        <hr style="border:none;border-top:1px solid rgba(255,255,255,.12); margin:14px 0">
+        <hr class="sep">
 
         <h2>طلباتي</h2>
         <div style="overflow:auto; margin-top:10px">
@@ -103,59 +140,102 @@
         </div>
       </div>
 
+      <!-- Right: Attendance + Schedule -->
       <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <div>
-            <h2 style="margin:0">جدولي</h2>
-            <div class="mini">مصدر العرض: collection <b>shifts</b> (employeeId = preset:email)</div>
+        <h2>الحضور اليوم</h2>
+
+        <div class="row" style="justify-content:space-between">
+          <div class="pill" id="attPill">...</div>
+          <div class="pill" id="shiftPill">...</div>
+        </div>
+
+        <div class="tiny" style="margin-top:8px">
+          • ✅ GPS إلزامي: لن يتم قبول Check-In/Out إلا داخل نطاق الفرع.<br>
+          • إذا الفرع ما عليه لوكيشن: الأدمن لازم يحدد lat/lng + radius.
+        </div>
+
+        <hr class="sep">
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tabBtn active" data-tab="tabAttend">✅ Check-In/Out</button>
+          <button class="tabBtn" data-tab="tabFix">🟡 طلب تصحيح</button>
+        </div>
+
+        <!-- Panel 1: Attend -->
+        <div class="tabPanel show" id="tabAttend" style="margin-top:12px">
+          <div class="row">
+            <button class="btn primary" id="btnIn">✅ Check-In</button>
+            <button class="btn danger" id="btnOutShift" disabled>⛔ Check-Out</button>
+            <button class="btn" id="btnTestGps">📍 فحص موقعي</button>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
-            <button class="btn" id="btnThisWeek">هذا الأسبوع</button>
-            <button class="btn" id="btnNextWeek">الأسبوع القادم</button>
+
+          <div id="msgAtt" class="msg"></div>
+
+          <div class="tiny" style="margin-top:10px">
+            • “فحص موقعي” بيقلك كم متر بعيد عن الفرع وهل أنت ضمن النطاق.
           </div>
+        </div>
+
+        <!-- Panel 2: Fix -->
+        <div class="tabPanel" id="tabFix" style="margin-top:12px">
+          <div class="row">
+            <button class="btn warn" id="btnFix">🟡 فتح طلب تصحيح</button>
+          </div>
+          <div class="tiny" style="margin-top:8px">
+            اكتب سبب الطلب (مثال: نسيت Check-Out)، والأدمن بيوافق.
+          </div>
+        </div>
+
+        <hr class="sep">
+
+        <h2>جدولي</h2>
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <button class="btn" id="btnThisWeek">هذا الأسبوع</button>
+          <button class="btn" id="btnNextWeek">الأسبوع القادم</button>
         </div>
 
         <div style="overflow:auto; margin-top:10px">
           <table>
-            <thead><tr><th>التاريخ</th><th>الفرع</th><th>الشفت</th><th class="timeCell">الوقت</th><th>ملاحظة</th></tr></thead>
+            <thead><tr><th>التاريخ</th><th>الفرع</th><th>الشفت</th><th>الوقت</th><th>ملاحظة</th></tr></thead>
             <tbody id="mySchedTbody"></tbody>
           </table>
         </div>
         <div id="msgSched" class="msg"></div>
+
+        <hr class="sep">
+
+        <h3>آخر 7 أيام (حضور/غياب)</h3>
+        <div style="overflow:auto; margin-top:10px">
+          <table>
+            <thead><tr><th>التاريخ</th><th>الفرع</th><th>الشفت</th><th>الحالة</th><th>الدخول</th><th>الخروج</th></tr></thead>
+            <tbody id="att7Tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div class="card" style="margin-top:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div>
-          <h2 style="margin:0">الحضور اليوم (GPS)</h2>
-          <div class="mini">
-            • لا يمكن عمل Check-in / Check-out إلا داخل نطاق الفرع (Geofence).<br>
-            • (اختياري) ربط الحساب بجهاز واحد — يظهر بالأدمن إذا تم الحظر.
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <span class="pill">جهازي: <span class="badge" id="devPill">...</span></span>
-          <button class="btn" id="btnAttReload">تحديث</button>
-        </div>
+  <!-- Fix Modal -->
+  <div class="modalOv" id="fixOv" aria-hidden="true">
+    <div class="modal">
+      <div class="topRow">
+        <b>🟡 طلب تصحيح دوام</b>
+        <button class="btn" id="fixClose">إغلاق</button>
       </div>
 
-      <div id="msgAtt" class="msg"></div>
-
-      <div style="overflow:auto;margin-top:10px">
-        <table>
-          <thead>
-            <tr>
-              <th>الفرع</th>
-              <th>الشفت</th>
-              <th class="timeCell">الوقت</th>
-              <th>الحالة</th>
-              <th>الإجراء</th>
-            </tr>
-          </thead>
-          <tbody id="attTodayTbody"></tbody>
-        </table>
+      <div class="tiny" style="margin-top:8px">
+        اكتب سبب الطلب. مثال: نسيت Check-Out أو كنت خارج الجهاز.
       </div>
+
+      <label>ملاحظة / سبب</label>
+      <input id="fixNote" type="text" placeholder="مثال: كنت خارج التغطية ونسيت الخروج...">
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="fixSend">إرسال الطلب</button>
+        <div class="pill" id="fixMeta" style="margin-inline-start:auto">...</div>
+      </div>
+      <div id="msgFix" class="msg"></div>
     </div>
   </div>
 
@@ -163,7 +243,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, setDoc,
+      getFirestore, doc, getDoc, setDoc, updateDoc,
       collection, addDoc, getDocs, query, where,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -183,22 +263,18 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
+
     const setMsg = (id, text, type="ok")=>{
       const el = $(id);
       el.className = "msg " + (type==="bad"?"bad":"ok");
       el.textContent = text;
       el.style.display = "block";
     };
-    const hideMsg = (id)=>{ const el=$(id); el.style.display="none"; };
 
-    const safeEmailDocId = (email)=> String(email||"").trim().toLowerCase().replace(/\./g,"(dot)");
-    const presetIdFromEmail = (email)=>{
-      const e = String(email||"").trim().toLowerCase();
-      if(!e) return null;
-      return "preset:" + safeEmailDocId(e);
-    };
-
-    function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+    function pill(el, text, kind=""){
+      el.className = "pill" + (kind ? " "+kind : "");
+      el.textContent = text;
+    }
 
     function ymd(d){
       const dt = new Date(d);
@@ -209,32 +285,53 @@
     }
     function startOfWeek(d){
       const x = new Date(d);
-      const day = (x.getDay()+6)%7; // Mon=0
-      x.setDate(x.getDate()-day);
       x.setHours(0,0,0,0);
+      const day = x.getDay();
+      const diff = (day===0 ? -6 : 1-day);
+      x.setDate(x.getDate()+diff);
       return x;
     }
-    function endOfWeek(d){
-      const s = startOfWeek(d);
-      const e = new Date(s);
-      e.setDate(e.getDate()+6);
-      e.setHours(0,0,0,0);
-      return e;
+    function timeToMin(t){
+      const s = String(t||"").trim();
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+      if(!m) return null;
+      const hh = Math.max(0, Math.min(23, Number(m[1])));
+      const mm = Math.max(0, Math.min(59, Number(m[2])));
+      return hh*60+mm;
     }
-    function dateRange(from, to){
-      const a = new Date(from), b = new Date(to);
-      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
-      const out=[];
-      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(ymd(d));
-      return out;
+    function nowMin(){
+      const d=new Date();
+      return d.getHours()*60 + d.getMinutes();
+    }
+    function safeId(s){
+      return String(s||"").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,240);
     }
 
-    // ========= ensure employee doc (optional) =========
+    // ===== Tabs UI =====
+    function initTabs(){
+      const btns = Array.from(document.querySelectorAll(".tabBtn"));
+      btns.forEach(b=>{
+        b.addEventListener("click", ()=>{
+          btns.forEach(x=>x.classList.remove("active"));
+          b.classList.add("active");
+          const id = b.getAttribute("data-tab");
+          document.querySelectorAll(".tabPanel").forEach(p=>p.classList.remove("show"));
+          const panel = document.getElementById(id);
+          if(panel) panel.classList.add("show");
+        });
+      });
+    }
+
+    // ===== employee preset logic =====
+    const safeEmailDocId = (email)=> String(email||"").trim().toLowerCase().replace(/\./g,"(dot)");
+    const presetIdFromEmail = (email)=> "preset:" + safeEmailDocId(email);
+
     async function readPresetByEmail(email){
       const ref = doc(db, "employees_email", safeEmailDocId(email));
       const snap = await getDoc(ref);
       return snap.exists() ? snap.data() : null;
     }
+
     async function ensureEmployeeDoc(user){
       const ref = doc(db, "employees", user.uid);
       const snap = await getDoc(ref);
@@ -258,350 +355,552 @@
       const data = preset ? { ...base, ...preset } : base;
       await setDoc(ref, data, { merge:true });
     }
+
     async function getMyRole(uid){
       const snap = await getDoc(doc(db,"employees",uid));
       return snap.exists() ? (snap.data()?.role || "staff") : "staff";
     }
 
-    // =========================
-    // GPS Geofence helpers
-    // =========================
-    function haversineMeters(lat1,lng1,lat2,lng2){
-      const toRad = (x)=> (x*Math.PI)/180;
-      const R = 6371000;
-      const dLat = toRad(lat2-lat1);
-      const dLng = toRad(lng2-lng1);
-      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
-      return 2*R*Math.asin(Math.sqrt(a));
+    // ===== shifts fetching from "shifts" =====
+    async function fetchMyShiftsInRange(from, to, currentUser){
+      const daysSet = new Set();
+      const a = new Date(from), b = new Date(to);
+      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) daysSet.add(ymd(d));
+
+      const email = currentUser?.email || "";
+      if(!email) return [];
+      const presetId = presetIdFromEmail(email);
+
+      const collected = [];
+      const seen = new Set();
+
+      async function tryQuery(field){
+        try{
+          const snap = await getDocs(query(collection(db,"shifts"), where(field, "==", presetId)));
+          snap.forEach(docu=>{
+            const x = docu.data() || {};
+            const date = x.date || x.day || x.shiftDate || "";
+            if(!daysSet.has(date)) return;
+            if(seen.has(docu.id)) return;
+            seen.add(docu.id);
+            collected.push({ id: docu.id, ...x });
+          });
+          return true;
+        }catch{
+          return false;
+        }
+      }
+
+      const ok1 = await tryQuery("assignedEmployeeId");
+      const ok2 = await tryQuery("employeeId");
+      const ok3 = await tryQuery("employee_id");
+
+      if(!ok1 && !ok2 && !ok3){
+        const snapAll = await getDocs(collection(db,"shifts"));
+        snapAll.forEach(docu=>{
+          const x = docu.data() || {};
+          const empId = String(x.assignedEmployeeId || x.employeeId || x.employee_id || x.assigned_employee_id || "");
+          if(empId !== presetId) return;
+
+          const date = x.date || x.day || x.shiftDate || "";
+          if(!daysSet.has(date)) return;
+
+          if(seen.has(docu.id)) return;
+          seen.add(docu.id);
+          collected.push({ id: docu.id, ...x });
+        });
+      }
+
+      return collected.map(x=>({
+        date: x.date || x.day || x.shiftDate || "",
+        branchId: x.branchId || x.branch || "",
+        branchName: x.branchName || x.branch || x.branchId || "",
+        shiftName: x.shiftName || x.name || x.shift || x.key || "Shift",
+        start: x.start || x.from || x.startTime || "",
+        end: x.end || x.to || x.endTime || "",
+        note: x.note || x.statusNote || x.coverNote || ""
+      }));
     }
-    function getGeo(){
-      return new Promise((resolve,reject)=>{
-        if(!("geolocation" in navigator)) return reject(new Error("الجهاز لا يدعم GPS"));
+
+    // ===== GPS: distance + branch geo =====
+    function haversineMeters(lat1, lon1, lat2, lon2){
+      const R = 6371000;
+      const toRad = (v)=> v * Math.PI / 180;
+      const dLat = toRad(lat2-lat1);
+      const dLon = toRad(lon2-lon1);
+      const a =
+        Math.sin(dLat/2)**2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    async function getGpsOnce(){
+      if(!navigator.geolocation){
+        throw new Error("المتصفح لا يدعم GPS.");
+      }
+      return await new Promise((resolve, reject)=>{
         navigator.geolocation.getCurrentPosition(
-          (pos)=> resolve(pos),
-          (err)=> reject(new Error(err?.message || "فشل الحصول على موقعك")),
-          { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+          (pos)=> resolve({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            acc: pos.coords.accuracy
+          }),
+          (err)=> reject(new Error("فشل جلب الموقع. فعّل GPS واسمح بالوصول للموقع.")),
+          { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
         );
       });
     }
-    function pickBranchGeo(branchData){
-      const d = branchData || {};
-      const lat = d.geoLat ?? d.lat ?? d.latitude ?? d.location?.lat ?? null;
-      const lng = d.geoLng ?? d.lng ?? d.longitude ?? d.location?.lng ?? null;
-      const radiusM = Number(d.geoRadiusM ?? d.radiusM ?? d.radius ?? 150);
-      if(lat==null || lng==null) return null;
-      return { lat:Number(lat), lng:Number(lng), radiusM: isFinite(radiusM)?radiusM:150 };
+
+    async function readBranchGeo(branchId){
+      if(!branchId) return null;
+      const snap = await getDoc(doc(db,"branches", branchId));
+      if(!snap.exists()) return null;
+      const b = snap.data() || {};
+      const g = b.geo || null; // expected: {lat,lng,radiusM}
+      if(!g || typeof g.lat!=="number" || typeof g.lng!=="number") return null;
+      const radiusM = (typeof g.radiusM==="number" && g.radiusM>0) ? g.radiusM : 80;
+      return { lat:g.lat, lng:g.lng, radiusM };
     }
 
-    // =========================
-    // Device binding (خفيف)
-    // =========================
-    function getOrCreateDeviceId(){
-      let id = localStorage.getItem("roma_device_id");
-      if(!id){
-        id = "dev_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-        localStorage.setItem("roma_device_id", id);
+    async function assertInsideBranch(branchId){
+      const geo = await readBranchGeo(branchId);
+      if(!geo){
+        throw new Error("هذا الفرع لا يملك لوكيشن بعد. اطلب من الأدمن تحديد موقع الفرع (lat/lng + radius).");
       }
-      return id;
-    }
-    const deviceId = getOrCreateDeviceId();
-    $("devPill").textContent = deviceId;
+      const gps = await getGpsOnce();
+      const dist = haversineMeters(gps.lat, gps.lng, geo.lat, geo.lng);
+      const ok = dist <= geo.radiusM;
 
-    async function enforceDeviceBinding(presetId){
-      // يمكن تعطيله لو ما بدك: فقط خليه يرجع true دائماً
-      const ref = doc(db, "attendance_devices", presetId);
-      const snap = await getDoc(ref);
-      if(!snap.exists()){
-        await setDoc(ref, { deviceId, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge:true });
-        return { ok:true, bound:true };
-      }
-      const saved = snap.data()?.deviceId || null;
-      if(!saved || saved===deviceId){
-        await setDoc(ref, { deviceId, updatedAt: serverTimestamp() }, { merge:true });
-        return { ok:true, bound:false };
-      }
-      return { ok:false, savedDeviceId:saved };
+      return {
+        ok,
+        distM: Math.round(dist),
+        radiusM: Math.round(geo.radiusM),
+        gps,
+        branchGeo: geo
+      };
     }
 
-    // =========================
-    // Schedule: read from shifts
-    // =========================
-    async function loadMySchedule(from, to){
-      hideMsg("msgSched");
-      const presetId = presetIdFromEmail(me?.email || "");
-      if(!presetId){
-        $("mySchedTbody").innerHTML = `<tr><td colspan="5" class="badge">لا يوجد Email بالحساب</td></tr>`;
-        return;
-      }
+    // ===== Attendance logic =====
+    const LATE_GRACE_MIN = 10;
 
-      const days = new Set(dateRange(from,to));
+    // ✅ (Fix redeclare) use unique vars
+    let currentUser = null;
+    let myProfile = null;
 
-      // لتجنب index مركّب: نجيب شفتات الموظف فقط ثم نفلتر محلياً على الفترة
-      const snap = await getDocs(query(collection(db,"shifts"), where("employeeId","==", presetId)));
-      const rows=[];
+    let todayShift = null;
+    let attendanceId = null;
+    let attendanceDoc = null;
+
+    async function getApprovedLeavesForMe(){
+      const snap = await getDocs(collection(db,"leaves"));
+      const out = [];
       snap.forEach(d=>{
-        const x=d.data()||{};
-        if(!x.date || !days.has(x.date)) return;
-        rows.push({ id:d.id, ...x });
+        const x = d.data() || {};
+        if(x.employeeId !== currentUser.uid) return;
+        if(String(x.status||"").toLowerCase() !== "approved") return;
+        if(!x.from || !x.to) return;
+        out.push({ from:x.from, to:x.to });
       });
-
-      rows.sort((a,b)=> (a.date||"").localeCompare(b.date||"") || (a.start||"").localeCompare(b.start||""));
-
-      const tb = $("mySchedTbody");
-      tb.innerHTML="";
-      if(!rows.length){
-        tb.innerHTML = `<tr><td colspan="5" class="badge">لا يوجد شفتات ضمن الفترة المختارة</td></tr>`;
-        return;
-      }
-      for(const r of rows){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${esc(r.date||"-")}</td>
-          <td>${esc(r.branchName||r.branchId||"-")}</td>
-          <td>${esc(r.shiftName||"-")}${r.shiftSlot>1?` <span class="badge">#${esc(r.shiftSlot)}</span>`:""}</td>
-          <td class="timeCell">${esc(r.start||"")} → ${esc(r.end||"")}</td>
-          <td>${r.note ? `<span class="badge">${esc(r.note)}</span>` : ""}</td>
-        `;
-        tb.appendChild(tr);
-      }
+      return out;
     }
 
-    async function loadMyScheduleThisWeek(){
-      const s = startOfWeek(new Date());
-      const e = endOfWeek(new Date());
-      await loadMySchedule(ymd(s), ymd(e));
-    }
-    async function loadMyScheduleNextWeek(){
-      const s = startOfWeek(new Date());
-      s.setDate(s.getDate()+7);
-      const e = new Date(s); e.setDate(e.getDate()+6);
-      await loadMySchedule(ymd(s), ymd(e));
+    function inLeaveRange(dateStr, ranges){
+      for(const r of ranges){
+        if(dateStr >= r.from && dateStr <= r.to) return true;
+      }
+      return false;
     }
 
-    $("btnThisWeek").addEventListener("click", loadMyScheduleThisWeek);
-    $("btnNextWeek").addEventListener("click", loadMyScheduleNextWeek);
+    async function loadTodayShift(){
+      const date = ymd(new Date());
+      const rows = await fetchMyShiftsInRange(date, date, currentUser);
 
-    // =========================
-    // Attendance (today) from shifts + attendance records
-    // =========================
-    async function loadTodayAttendance(){
-      hideMsg("msgAtt");
-      const today = ymd(new Date());
-      const presetId = presetIdFromEmail(me?.email || "");
-      if(!presetId){
-        $("attTodayTbody").innerHTML = `<tr><td colspan="5" class="badge">لا يوجد Email بالحساب</td></tr>`;
-        return;
+      rows.sort((a,b)=>{
+        const sa = timeToMin(a.start) ?? 99999;
+        const sb = timeToMin(b.start) ?? 99999;
+        return sa - sb;
+      });
+
+      todayShift = rows[0] || null;
+
+      if(!todayShift){
+        pill($("shiftPill"), `لا يوجد شفت اليوم (${date})`, "warn");
+        attendanceId = null;
+        return null;
       }
 
-      const shSnap = await getDocs(query(collection(db,"shifts"), where("date","==", today)));
-      const shifts=[];
-      shSnap.forEach(d=>{
-        const x=d.data()||{};
-        if(String(x.employeeId||"") === String(presetId)) shifts.push({ id:d.id, ...x });
-      });
-      shifts.sort((a,b)=> (a.start||"").localeCompare(b.start||""));
+      const key = `${currentUser.uid}__${todayShift.date||date}__${todayShift.branchId||""}__${todayShift.shiftName||""}__${todayShift.start||""}`;
+      attendanceId = safeId(key);
 
-      const atSnap = await getDocs(query(collection(db,"attendance"), where("date","==", today)));
-      const attByShift = new Map();
-      atSnap.forEach(d=>{
-        const x=d.data()||{};
-        if(String(x.employeeId||"") !== String(presetId)) return;
-        if(x.shiftId) attByShift.set(String(x.shiftId), { id:d.id, ...x });
-      });
+      const label = `${todayShift.branchName||todayShift.branchId||"فرع"} • ${todayShift.shiftName||"Shift"} • ${(todayShift.start&&todayShift.end)?(todayShift.start+"-"+todayShift.end):"—"}`;
+      pill($("shiftPill"), label, "");
+      return todayShift;
+    }
 
-      const tb = $("attTodayTbody");
-      tb.innerHTML = "";
-      if(!shifts.length){
-        tb.innerHTML = `<tr><td colspan="5" class="badge">لا يوجد شفتات لك اليوم</td></tr>`;
+    async function loadAttendanceDoc(){
+      if(!attendanceId){ attendanceDoc=null; return; }
+      const snap = await getDoc(doc(db,"attendance", attendanceId));
+      attendanceDoc = snap.exists() ? (snap.data()||null) : null;
+
+      if(!attendanceDoc){
+        pill($("attPill"), "اليوم: لم تسجل حضور بعد", "warn");
+        $("btnIn").disabled = false;
+        $("btnOutShift").disabled = true;
         return;
       }
 
-      for(const sh of shifts){
-        const rec = attByShift.get(String(sh.id)) || null;
-        const hasIn = !!rec?.checkInAt;
-        const hasOut = !!rec?.checkOutAt;
-        const blocked = rec?.blocked===true || rec?.status==="blocked";
-        const state = blocked ? "blocked" : (hasIn && hasOut ? "out" : hasIn ? "in" : "-");
+      const st = String(attendanceDoc.status||"").toLowerCase();
+      const hasIn  = !!attendanceDoc.checkInAtLocal;
+      const hasOut = !!attendanceDoc.checkOutAtLocal;
 
-        let actionHtml = "";
-        if(blocked){
-          actionHtml = `<button class="btn" data-act="in" data-shift="${esc(sh.id)}">إعادة محاولة</button>`;
-        }else if(!hasIn){
-          actionHtml = `<button class="btn primary" data-act="in" data-shift="${esc(sh.id)}">Check-in</button>`;
-        }else if(hasIn && !hasOut){
-          actionHtml = `<button class="btn danger" data-act="out" data-shift="${esc(sh.id)}">Check-out</button>`;
-        }else{
-          actionHtml = `<span class="badge">تم ✅</span>`;
-        }
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${esc(sh.branchName||sh.branchId||"-")}</td>
-          <td>${esc(sh.shiftName||"-")}${sh.shiftSlot>1?` <span class="badge">#${esc(sh.shiftSlot)}</span>`:""}</td>
-          <td class="timeCell">${esc(sh.start||"")} → ${esc(sh.end||"")}</td>
-          <td><span class="badge">${esc(state)}</span></td>
-          <td>${actionHtml}</td>
-        `;
-        tb.appendChild(tr);
+      if(st === "absent"){
+        pill($("attPill"), "اليوم: غياب ❌", "bad");
+        $("btnIn").disabled = true;
+        $("btnOutShift").disabled = true;
+      }else if(st === "leave"){
+        pill($("attPill"), "اليوم: إجازة ✅", "ok");
+        $("btnIn").disabled = true;
+        $("btnOutShift").disabled = true;
+      }else if(hasIn && !hasOut){
+        const late = Number(attendanceDoc.minutesLate||0);
+        pill($("attPill"), late>0 ? `حاضر (متأخر ${late}د) ⏰` : "حاضر ✅", late>0 ? "warn" : "ok");
+        $("btnIn").disabled = true;
+        $("btnOutShift").disabled = false;
+      }else if(hasIn && hasOut){
+        const late = Number(attendanceDoc.minutesLate||0);
+        const w = Number(attendanceDoc.workedMinutes||0);
+        pill($("attPill"), `مكتمل ✅ (${w}د)${late>0?` • تأخير ${late}د`:``}`, late>0 ? "warn" : "ok");
+        $("btnIn").disabled = true;
+        $("btnOutShift").disabled = true;
+      }else{
+        pill($("attPill"), "تم إنشاء سجل بدون دخول", "warn");
+        $("btnIn").disabled = false;
+        $("btnOutShift").disabled = true;
       }
-
-      tb.querySelectorAll("button[data-act]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          const act = btn.getAttribute("data-act");
-          const shiftId = btn.getAttribute("data-shift");
-          const sh = shifts.find(x=> String(x.id)===String(shiftId));
-          if(!sh) return;
-          await doAttendanceAction(act, sh);
-          await loadTodayAttendance();
-        });
-      });
     }
 
-    async function doAttendanceAction(action, sh){
-      const today = ymd(new Date());
-      const presetId = presetIdFromEmail(me?.email || "");
-      if(!presetId) return setMsg("msgAtt","لا يوجد Email بالحساب","bad");
+    function computeLate(shift){
+      const s = timeToMin(shift?.start);
+      if(s===null) return 0;
+      const diff = (nowMin() - s) - LATE_GRACE_MIN;
+      return Math.max(0, diff);
+    }
 
-      // GPS على المتصفح يحتاج HTTPS/localhost
-      if(location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1"){
-        return setMsg("msgAtt","الـ GPS يحتاج HTTPS. ارفع الموقع على Hosting أو افتحه عبر HTTPS.","bad");
+    async function checkLeaveBlock(dateStr){
+      const ranges = await getApprovedLeavesForMe();
+      const onLeave = inLeaveRange(dateStr, ranges);
+      return { onLeave, ranges };
+    }
+
+    async function doCheckIn(){
+      if(!todayShift) return setMsg("msgAtt","لا يوجد شفت اليوم لتسجيل الحضور.", "bad");
+
+      // ✅ GPS enforce (must be inside branch)
+      const inside = await assertInsideBranch(todayShift.branchId || "");
+      if(!inside.ok){
+        return setMsg("msgAtt", `❌ أنت خارج الفرع: بعيد ${inside.distM}m (المسموح ${inside.radiusM}m).`, "bad");
       }
 
-      // device binding
-      const bind = await enforceDeviceBinding(presetId);
-      if(!bind.ok){
-        // سجّل blocked للادمن
-        const docId = `${today}__${presetId}__${sh.id}`;
-        await setDoc(doc(db,"attendance", docId), {
-          date: today,
-          shiftId: sh.id,
-          branchId: sh.branchId || "",
-          branchName: sh.branchName || "",
-          shiftName: sh.shiftName || "",
-          employeeId: presetId,
-          employeeUid: me.uid,
-          employeeEmail: me.email || "",
-          status: "blocked",
-          blocked: true,
-          blockedReason: "device_mismatch",
-          deviceId,
-          expectedDeviceId: bind.savedDeviceId || null,
-          blockedAction: action,
-          blockedAt: serverTimestamp(),
+      const date = todayShift.date || ymd(new Date());
+      const leave = await checkLeaveBlock(date);
+      if(leave.onLeave){
+        setMsg("msgAtt","أنت بإجازة ✅ لا يمكنك عمل Check-In.", "bad");
+        await setDoc(doc(db,"attendance", attendanceId), {
+          employeeId: currentUser.uid,
+          employeeEmail: currentUser.email || "",
+          employeeName: myProfile?.name || (currentUser.email||"").split("@")[0] || "",
+          date,
+          branchId: todayShift.branchId || "",
+          branchName: todayShift.branchName || "",
+          shiftName: todayShift.shiftName || "",
+          start: todayShift.start || "",
+          end: todayShift.end || "",
+          status: "leave",
+          note: "On approved leave",
           updatedAt: serverTimestamp()
         }, { merge:true });
-        return setMsg("msgAtt","❌ هذا الحساب مربوط بجهاز آخر. اطلب من الأدمن يعمل Reset Device.","bad");
+        await loadAttendanceDoc();
+        return;
       }
 
-      setMsg("msgAtt","جاري تحديد موقعك...","ok");
+      const late = computeLate(todayShift);
 
-      // اقرأ GPS الفرع
-      const brSnap = await getDoc(doc(db,"branches", sh.branchId));
-      const brData = brSnap.exists() ? brSnap.data() : null;
-      const geo = pickBranchGeo(brData);
-      if(!geo){
-        return setMsg("msgAtt","هذا الفرع ليس لديه GPS (lat/lng) بعد. اطلب من الأدمن يحددها ضمن الفروع.","bad");
-      }
-
-      const pos = await getGeo();
-      const curLat = pos.coords.latitude;
-      const curLng = pos.coords.longitude;
-      const accuracyM = pos.coords.accuracy ?? null;
-
-      const distM = haversineMeters(curLat,curLng, geo.lat, geo.lng);
-      const allow = distM <= (geo.radiusM + Math.max(0, Number(accuracyM||0)));
-
-      const docId = `${today}__${presetId}__${sh.id}`;
-      const ref = doc(db,"attendance", docId);
-
-      const base = {
-        date: today,
-        shiftId: sh.id,
-        shiftName: sh.shiftName || "",
-        branchId: sh.branchId || "",
-        branchName: sh.branchName || "",
-        employeeId: presetId,
-        employeeUid: me.uid,
-        employeeEmail: me.email || "",
-        employeeName: (me.email||"").split("@")[0],
-        deviceId,
-        gps: {
-          lat: curLat,
-          lng: curLng,
-          accuracyM: accuracyM,
-          distanceM: distM,
-          radiusM: geo.radiusM,
-          within: allow
-        },
+      await setDoc(doc(db,"attendance", attendanceId), {
+        employeeId: currentUser.uid,
+        employeeEmail: currentUser.email || "",
+        employeeName: myProfile?.name || (currentUser.email||"").split("@")[0] || "",
+        date,
+        branchId: todayShift.branchId || "",
+        branchName: todayShift.branchName || "",
+        shiftName: todayShift.shiftName || "",
+        start: todayShift.start || "",
+        end: todayShift.end || "",
+        minutesLate: late,
+        status: "present",
+        checkInAt: serverTimestamp(),
+        checkInAtLocal: Date.now(),
+        gpsIn: inside.gps,
+        gpsInDistM: inside.distM,
+        gpsInRadiusM: inside.radiusM,
         updatedAt: serverTimestamp()
-      };
+      }, { merge:true });
 
-      if(!allow){
-        await setDoc(ref, {
-          ...base,
-          blocked: true,
-          status: "blocked",
-          blockedReason: "outside_geofence",
-          blockedAction: action,
-          blockedAt: serverTimestamp()
-        }, { merge:true });
-        return setMsg("msgAtt",`❌ خارج نطاق الفرع: تبعد تقريباً ${Math.round(distM)}m (المسموح ${Math.round(geo.radiusM)}m)`,"bad");
+      setMsg("msgAtt", late>0 ? `تم Check-In ✅ (داخل الفرع) • متأخر ${late} دقيقة` : "تم Check-In ✅ (داخل الفرع)", "ok");
+      await loadAttendanceDoc();
+      await loadAttLast7Days();
+    }
+
+    async function doCheckOut(){
+      if(!attendanceId) return;
+
+      // ✅ GPS enforce (must be inside branch)
+      if(todayShift?.branchId){
+        const inside = await assertInsideBranch(todayShift.branchId || "");
+        if(!inside.ok){
+          return setMsg("msgAtt", `❌ لا يمكن Check-Out خارج الفرع: بعيد ${inside.distM}m (المسموح ${inside.radiusM}m).`, "bad");
+        }
       }
 
-      if(action === "in"){
-        await setDoc(ref, { ...base, blocked:false, status:"in", checkInAt: serverTimestamp() }, { merge:true });
-        return setMsg("msgAtt","✅ تم Check-in بنجاح","ok");
-      }
+      const snap = await getDoc(doc(db,"attendance", attendanceId));
+      if(!snap.exists()) return setMsg("msgAtt","لا يوجد سجل حضور لعمل Check-Out.", "bad");
 
-      if(action === "out"){
-        await setDoc(ref, { ...base, blocked:false, status:"out", checkOutAt: serverTimestamp() }, { merge:true });
-        return setMsg("msgAtt","✅ تم Check-out بنجاح","ok");
+      const x = snap.data() || {};
+      if(!x.checkInAtLocal) return setMsg("msgAtt","لا يوجد Check-In مسجل.", "bad");
+      if(x.checkOutAtLocal) return setMsg("msgAtt","تم عمل Check-Out مسبقًا.", "bad");
+
+      const geo = await assertInsideBranch(todayShift.branchId || "");
+      const worked = Math.max(0, Math.round((Date.now() - Number(x.checkInAtLocal||Date.now()))/60000));
+
+      await updateDoc(doc(db,"attendance", attendanceId), {
+        status: "completed",
+        workedMinutes: worked,
+        checkOutAt: serverTimestamp(),
+        checkOutAtLocal: Date.now(),
+        gpsOut: geo.gps,
+        gpsOutDistM: geo.distM,
+        gpsOutRadiusM: geo.radiusM,
+        updatedAt: serverTimestamp()
+      });
+
+      setMsg("msgAtt", `تم Check-Out ✅ (داخل الفرع) • عملت ${worked} دقيقة`, "ok");
+      await loadAttendanceDoc();
+      await loadAttLast7Days();
+    }
+
+    async function loadAttLast7Days(){
+      const tb = $("att7Tbody");
+      tb.innerHTML = "";
+
+      const snap = await getDocs(collection(db,"attendance"));
+      const rows = [];
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.employeeId !== currentUser.uid) return;
+        if(!x.date) return;
+        rows.push({ id:d.id, ...x });
+      });
+      rows.sort((a,b)=> String(b.date).localeCompare(String(a.date)));
+
+      const last7 = rows.slice(0,7);
+      for(const r of last7){
+        const st = String(r.status||"").toLowerCase();
+        const stLabel =
+          st==="absent" ? "Absent ❌" :
+          st==="leave" ? "Leave ✅" :
+          st==="completed" ? "Completed ✅" :
+          st==="present" ? (Number(r.minutesLate||0)>0 ? `Late ⏰ (${r.minutesLate}د)` : "Present ✅") :
+          (r.status||"-");
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.date||"-"}</td>
+          <td>${r.branchName||r.branchId||"-"}</td>
+          <td>${r.shiftName||"-"}</td>
+          <td><span class="badge">${stLabel}</span></td>
+          <td>${r.checkInAtLocal ? new Date(r.checkInAtLocal).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : "-"}</td>
+          <td>${r.checkOutAtLocal ? new Date(r.checkOutAtLocal).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : "-"}</td>
+        `;
+        tb.appendChild(tr);
       }
     }
 
-    $("btnAttReload").addEventListener("click", loadTodayAttendance);
-
-    // =========================
-    // Leaves (request)
-    // =========================
+    // ===== Leaves =====
     async function loadMyLeaves(){
       const snap = await getDocs(collection(db,"leaves"));
       const rows = [];
       snap.forEach(d=>{
-        const x=d.data()||{};
-        if(x.employeeId===me.uid) rows.push(x);
+        const x=d.data();
+        if(x.employeeId===currentUser.uid) rows.push(x);
       });
       rows.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
       const tb = $("myLeavesTbody");
       tb.innerHTML = "";
-      if(!rows.length){
-        tb.innerHTML = `<tr><td colspan="3" class="badge">لا يوجد طلبات</td></tr>`;
-        return;
-      }
       for(const r of rows){
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${esc(r.from||"-")}</td>
-          <td>${esc(r.to||"-")}</td>
-          <td><span class="badge">${esc(r.status||"pending")}</span></td>
+          <td>${r.from||"-"}</td>
+          <td>${r.to||"-"}</td>
+          <td><span class="badge">${r.status||"pending"}</span></td>
         `;
         tb.appendChild(tr);
       }
     }
 
-    // =========================
-    // Init
-    // =========================
-    let me = null;
+    async function loadMySchedule(from, to){
+      try{
+        const rows = await fetchMyShiftsInRange(from, to, currentUser);
+        rows.sort((a,b)=>
+          (a.date||"").localeCompare(b.date||"") ||
+          ((timeToMin(a.start)??99999) - (timeToMin(b.start)??99999)) ||
+          (a.shiftName||"").localeCompare(b.shiftName||"")
+        );
 
+        const tb = $("mySchedTbody");
+        tb.innerHTML = "";
+        for(const r of rows){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${r.date||"-"}</td>
+            <td>${r.branchName||r.branchId||"-"}</td>
+            <td>${r.shiftName||"-"}</td>
+            <td>${(r.start||"") && (r.end||"") ? `${r.start} - ${r.end}` : "-"}</td>
+            <td>${r.note ? `<span class="badge">${r.note}</span>` : ""}</td>
+          `;
+          tb.appendChild(tr);
+        }
+        setMsg("msgSched",`تم تحميل الجدول ✅ (المصدر: shifts)`,"ok");
+      }catch(e){
+        setMsg("msgSched", e?.message || "خطأ بتحميل الجدول", "bad");
+      }
+    }
+
+    async function loadMyScheduleThisWeek(){
+      const start = startOfWeek(new Date());
+      const end = new Date(start); end.setDate(end.getDate()+6);
+      await loadMySchedule(ymd(start), ymd(end));
+    }
+    async function loadMyScheduleNextWeek(){
+      const start = startOfWeek(new Date());
+      start.setDate(start.getDate()+7);
+      const end = new Date(start); end.setDate(end.getDate()+6);
+      await loadMySchedule(ymd(start), ymd(end));
+    }
+
+    // ===== Fix modal =====
+    function openFix(){
+      const date = todayShift?.date || ymd(new Date());
+      const meta = `${date} • ${(todayShift?.branchName||todayShift?.branchId||"")} • ${(todayShift?.shiftName||"")}`;
+      pill($("fixMeta"), meta, "");
+      $("msgFix").className = "msg";
+      $("msgFix").textContent = "";
+      $("fixOv").classList.add("show");
+      $("fixOv").setAttribute("aria-hidden","false");
+      setTimeout(()=> $("fixNote").focus(), 50);
+    }
+    function closeFix(){
+      $("fixOv").classList.remove("show");
+      $("fixOv").setAttribute("aria-hidden","true");
+    }
+
+    // ===== events =====
+    initTabs();
+
+    $("btnLogout").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    $("btnLeave").addEventListener("click", async ()=>{
+      const from = $("lFrom").value;
+      const to = $("lTo").value;
+      if(!from || !to) return setMsg("msgLeave","اختر من/إلى","bad");
+      if(from > to) return setMsg("msgLeave","التاريخ (من) يجب أن يكون قبل (إلى)","bad");
+
+      await addDoc(collection(db,"leaves"), {
+        employeeId: currentUser.uid,
+        from, to,
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
+      setMsg("msgLeave","تم إرسال الطلب ✅","ok");
+      await loadMyLeaves();
+    });
+
+    $("btnThisWeek").addEventListener("click", loadMyScheduleThisWeek);
+    $("btnNextWeek").addEventListener("click", loadMyScheduleNextWeek);
+
+    $("btnIn").addEventListener("click", async ()=>{
+      try{ await doCheckIn(); }catch(e){ console.error(e); setMsg("msgAtt", e?.message || "خطأ", "bad"); }
+    });
+    $("btnOutShift").addEventListener("click", async ()=>{
+      try{ await doCheckOut(); }catch(e){ console.error(e); setMsg("msgAtt", e?.message || "خطأ", "bad"); }
+    });
+
+    $("btnFix").addEventListener("click", ()=>{
+      if(!todayShift) return setMsg("msgAtt","لا يوجد شفت اليوم لطلب التصحيح.", "bad");
+      openFix();
+    });
+    $("fixClose").addEventListener("click", closeFix);
+    $("fixOv").addEventListener("click", (e)=>{ if(e.target === $("fixOv")) closeFix(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeFix(); });
+
+    $("fixSend").addEventListener("click", async ()=>{
+      try{
+        const date = todayShift?.date || ymd(new Date());
+        const note = $("fixNote").value.trim();
+        if(!note) return setMsg("msgFix","اكتب سبب الطلب.", "bad");
+
+        await addDoc(collection(db,"attendance_corrections"), {
+          employeeId: currentUser.uid,
+          employeeEmail: currentUser.email || "",
+          employeeName: myProfile?.name || (currentUser.email||"").split("@")[0] || "",
+          attendanceId: attendanceId || "",
+          date,
+          branchId: todayShift?.branchId || "",
+          branchName: todayShift?.branchName || "",
+          shiftName: todayShift?.shiftName || "",
+          start: todayShift?.start || "",
+          end: todayShift?.end || "",
+          note,
+          status: "pending",
+          createdAt: serverTimestamp()
+        });
+
+        setMsg("msgFix","تم إرسال طلب التصحيح ✅ (Pending)", "ok");
+        $("fixNote").value = "";
+      }catch(e){
+        console.error(e);
+        setMsg("msgFix", e?.message || "خطأ", "bad");
+      }
+    });
+
+    $("btnTestGps").addEventListener("click", async ()=>{
+      try{
+        if(!todayShift?.branchId) return setMsg("msgAtt","لا يوجد branchId لهذا الشفت.", "bad");
+        const res = await assertInsideBranch(todayShift.branchId);
+        if(res.ok){
+          setMsg("msgAtt", `✅ أنت داخل الفرع: بعيد ${res.distM}m (المسموح ${res.radiusM}m).`, "ok");
+        }else{
+          setMsg("msgAtt", `❌ أنت خارج الفرع: بعيد ${res.distM}m (المسموح ${res.radiusM}m).`, "bad");
+        }
+      }catch(e){
+        setMsg("msgAtt", e?.message || "فشل فحص GPS", "bad");
+      }
+    });
+
+    // ===== Boot =====
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
-      me = user;
+      currentUser = user;
       $("mePill").textContent = user.email || user.uid;
 
       await ensureEmployeeDoc(user);
       const role = await getMyRole(user.uid);
       if(role==="admin") $("goAdmin").style.display="inline-flex";
+
+      try{
+        const p = await getDoc(doc(db,"employees", user.uid));
+        myProfile = p.exists() ? (p.data()||null) : null;
+      }catch{ myProfile=null; }
 
       const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
       const after = new Date(tomorrow); after.setDate(after.getDate()+1);
@@ -610,27 +909,10 @@
 
       await loadMyLeaves();
       await loadMyScheduleThisWeek();
-      await loadTodayAttendance();
-    });
 
-    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
-
-    $("btnLeave").addEventListener("click", async ()=>{
-      hideMsg("msgLeave");
-      const from = $("lFrom").value;
-      const to = $("lTo").value;
-      if(!from || !to) return setMsg("msgLeave","اختر من/إلى","bad");
-      if(from > to) return setMsg("msgLeave","التاريخ (من) يجب أن يكون قبل (إلى)","bad");
-
-      await addDoc(collection(db,"leaves"), {
-        employeeId: me.uid,
-        employeeName: (me.email||"").split("@")[0],
-        from, to,
-        status: "pending",
-        createdAt: serverTimestamp()
-      });
-      setMsg("msgLeave","تم إرسال الطلب ✅","ok");
-      await loadMyLeaves();
+      await loadTodayShift();
+      await loadAttendanceDoc();
+      await loadAttLast7Days();
     });
   </script>
 </body>
