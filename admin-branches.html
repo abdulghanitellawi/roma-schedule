@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -113,6 +114,24 @@
     .gpsRow > *{flex:1; min-width:180px}
     .gpsBadgeOk{border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12);color:#d1fae5}
     .gpsBadgeBad{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12);color:#fee2e2}
+
+    /* ===== Rotation UI (NEW) ===== */
+    .rotCard{
+      margin-top:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      border-radius:14px;
+      padding:10px;
+    }
+    .rotTop{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .rotToggle{
+      display:flex;align-items:center;gap:8px;color:var(--txt);font-weight:900;
+      user-select:none;
+    }
+    .rotToggle input{width:auto;margin:0;accent-color:var(--accent);transform:scale(1.1)}
+    .rotGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    @media (max-width:900px){.rotGrid{grid-template-columns:1fr}}
+    .rotHidden{display:none !important;}
   </style>
 </head>
 <body>
@@ -220,6 +239,52 @@
           <div class="mini" style="margin-top:8px">
             الحالة: <span class="badge" id="gpsStatus">غير مضبوط</span>
           </div>
+        </div>
+
+        <!-- ✅ Rotation Card (NEW) -->
+        <div class="rotCard">
+          <div class="rotTop">
+            <div style="flex:2;min-width:240px">
+              <b style="font-size:13px">روتيشن (تبديل الشفتات) لهذا الفرع</b>
+              <div class="mini">
+                يشتغل فقط للفروع اللي تفعلها ✅ — إذا فرع شفتاته ثابتة اتركه مطفّى.
+              </div>
+            </div>
+            <label class="rotToggle">
+              <input type="checkbox" id="rotEnabled">
+              تفعيل الروتيشن
+            </label>
+          </div>
+
+          <div class="rotGrid rotHidden" id="rotOptions">
+            <div>
+              <label>مدة الروتيشن</label>
+              <select id="rotPeriod">
+                <option value="1">كل يوم</option>
+                <option value="3">كل 3 أيام</option>
+                <option value="7">كل أسبوع</option>
+              </select>
+              <div class="mini">التبديل يتم تلقائياً حسب الخيار.</div>
+            </div>
+            <div>
+              <label>يوم بداية الروتيشن</label>
+              <select id="rotStartDay">
+                <option value="sun">الأحد</option>
+                <option value="mon">الإثنين</option>
+                <option value="tue">الثلاثاء</option>
+                <option value="wed">الأربعاء</option>
+                <option value="thu">الخميس</option>
+                <option value="fri">الجمعة</option>
+                <option value="sat">السبت</option>
+              </select>
+              <div class="mini">نقطة مرجعية ثابتة للتبديل.</div>
+            </div>
+          </div>
+
+          <div class="mini" style="margin-top:10px">
+            معاينة الروتيشن: <span class="badge" id="rotPreview">غير مفعل</span>
+          </div>
+          <div class="mini" id="rotHint" style="margin-top:6px"></div>
         </div>
 
         <label style="margin-top:6px">أوقات الفتح/الإغلاق حسب اليوم</label>
@@ -534,6 +599,104 @@
       return null;
     }
 
+    // ===== Rotation helpers (NEW) =====
+    function setRotUI(enabled){
+      $("rotOptions").classList.toggle("rotHidden", !enabled);
+      updateRotationPreview();
+    }
+    function getRotationFromForm(){
+      const enabled = !!$("rotEnabled").checked;
+      const periodDays = parseInt($("rotPeriod").value||"1", 10) || 1;
+      const startDay = ($("rotStartDay").value||"sun").trim();
+      return {
+        enabled,
+        periodDays: Math.max(1, Math.min(14, periodDays)),
+        startDay: DAY_LABEL[startDay] ? startDay : "sun"
+      };
+    }
+    function setRotationToForm(rot){
+      const r = rot || {};
+      $("rotEnabled").checked = !!r.enabled;
+      $("rotPeriod").value = String(r.periodDays || 1);
+      $("rotStartDay").value = r.startDay || "sun";
+      setRotUI(!!r.enabled);
+    }
+    function dateOnlyLocal(d){
+      const x = new Date(d);
+      x.setHours(0,0,0,0);
+      return x;
+    }
+    function dowKeyFromDate(d){
+      // JS: 0=Sun..6=Sat
+      const idx = d.getDay();
+      return ["sun","mon","tue","wed","thu","fri","sat"][idx];
+    }
+    function diffDays(a, b){
+      const A = dateOnlyLocal(a).getTime();
+      const B = dateOnlyLocal(b).getTime();
+      return Math.round((A - B) / 86400000);
+    }
+    function findAnchorDateForStartDay(startDayKey, baseDate){
+      // anchor = آخر تاريخ <= baseDate يوافق startDayKey
+      const base = dateOnlyLocal(baseDate);
+      let cur = new Date(base);
+      for(let i=0;i<14;i++){
+        if(dowKeyFromDate(cur) === startDayKey) return cur;
+        cur.setDate(cur.getDate() - 1);
+      }
+      return base; // fallback
+    }
+    function rotationStepForDate(rot, date){
+      if(!rot?.enabled) return 0;
+      const period = Math.max(1, parseInt(rot.periodDays||1,10) || 1);
+      const startDay = rot.startDay || "sun";
+      const anchor = findAnchorDateForStartDay(startDay, date);
+      const dd = diffDays(date, anchor);
+      const step = Math.floor(dd / period);
+      return step;
+    }
+    function nextSwitchDate(rot, fromDate){
+      if(!rot?.enabled) return null;
+      const period = Math.max(1, parseInt(rot.periodDays||1,10) || 1);
+      const startDay = rot.startDay || "sun";
+      const anchor = findAnchorDateForStartDay(startDay, fromDate);
+      const dd = diffDays(fromDate, anchor);
+      const k = Math.floor(dd / period);
+      const next = new Date(anchor);
+      next.setDate(next.getDate() + (k+1)*period);
+      return next;
+    }
+    function fmtDate(d){
+      if(!d) return "—";
+      const x = dateOnlyLocal(d);
+      const y = x.getFullYear();
+      const m = String(x.getMonth()+1).padStart(2,"0");
+      const da = String(x.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+    function updateRotationPreview(){
+      const rot = getRotationFromForm();
+      const badge = $("rotPreview");
+      const hint = $("rotHint");
+
+      if(!rot.enabled){
+        badge.textContent = "غير مفعل";
+        hint.textContent = "";
+        return;
+      }
+
+      const today = new Date();
+      const step = rotationStepForDate(rot, today);
+      const isSwap = (step % 2) === 1;
+
+      const pLabel = rot.periodDays===1 ? "كل يوم" : rot.periodDays===3 ? "كل 3 أيام" : "كل أسبوع";
+      const sLabel = DAY_LABEL[rot.startDay] || "الأحد";
+      const ns = nextSwitchDate(rot, today);
+
+      badge.textContent = `${pLabel} — يبدأ: ${sLabel} — الحالة اليوم: ${isSwap ? "مبدّل ✅" : "عادي"}`;
+      hint.textContent = `التبديل القادم: ${fmtDate(ns)} (حسب جهازك/التاريخ المحلي)`;
+    }
+
     function recomputePreviewTimes(){
       let hours;
       try{ hours = getHoursByDay(); }catch{ return; }
@@ -558,6 +721,9 @@
 
       $("p1").textContent = `${open} → ${s1End}`;
       $("p2").textContent = oneShiftOnly ? "—" : `${s2Start} → ${close}`;
+
+      // rotation preview updates too
+      updateRotationPreview();
     }
 
     // ===== Employees dropdown =====
@@ -662,6 +828,29 @@
           assignedEmployeeId: ($("emp3").value||"").trim() || null
         }
       };
+    }
+
+    // ✅ apply rotation to shift assignments (NEW)
+    function applyRotationToConfigIfNeeded(cfg, rot, dateForCalc){
+      try{
+        if(!rot?.enabled) return cfg;
+        const step = rotationStepForDate(rot, dateForCalc || new Date());
+        const swap = (step % 2) === 1;
+
+        const s1 = cfg?.shift1?.assignedEmployeeId || null;
+        const s2 = cfg?.shift2?.assignedEmployeeId || null;
+
+        // فقط إذا في موظفين على الشفتين (حتى يكون منطقي)
+        if(!swap) return cfg;
+        if(!s1 || !s2) return cfg;
+
+        const cloned = JSON.parse(JSON.stringify(cfg));
+        cloned.shift1.assignedEmployeeId = s2;
+        cloned.shift2.assignedEmployeeId = s1;
+        return cloned;
+      }catch{
+        return cfg;
+      }
     }
 
     function buildDayShifts(open, close, cfg){
@@ -899,6 +1088,9 @@
       setGpsToForm(null);
       setManualGps(false);
 
+      // Rotation reset (NEW)
+      setRotationToForm({ enabled:false, periodDays:1, startDay:"sun" });
+
       $("bm1").value=0;
       $("bm2").value=0;
 
@@ -990,6 +1182,7 @@
           <td>
             <b>${escapeHtml(r.name||"-")}</b>
             <div class="mini">ID: <span class="badge">${escapeHtml(r.id)}</span></div>
+            ${r.rotation?.enabled ? `<div class="mini">روتيشن: <span class="badge">✅ ${escapeHtml(r.rotation.periodDays===1?"يومي":r.rotation.periodDays===3?"كل 3 أيام":"أسبوعي")}</span></div>` : ``}
           </td>
           <td>${hoursBtn}</td>
           <td>${shiftBtn}</td>
@@ -1032,6 +1225,9 @@
           // ✅ load GPS from branch
           setGpsToForm(d.geo || null);
           setManualGps(false);
+
+          // ✅ load rotation from branch (NEW)
+          setRotationToForm(d.rotation || { enabled:false, periodDays:1, startDay:"sun" });
 
           await loadEmployeesForBranch(editingId);
 
@@ -1103,14 +1299,18 @@
       try{ hoursByDay = getHoursByDay(); }
       catch(err){ return setMsg(err?.message || "تأكد من أوقات الفتح/الإغلاق","bad"); }
 
-      const shiftConfig = packShiftConfig();
-      const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfig);
+      const rotation = getRotationFromForm(); // NEW
 
+      const shiftConfigRaw = packShiftConfig();
+      // ✅ apply rotation on sample/preview (NEW) - للمعاينة والتخزين العيني فقط
+      const shiftConfigAppliedForToday = applyRotationToConfigIfNeeded(shiftConfigRaw, rotation, new Date());
+
+      const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfigRaw); // نحفظ القاعدة الأساسية (بدون تبديل)، التوليد الحقيقي يطبق الروتيشن حسب التاريخ
       const anyActive = DAYS.some(d => (shiftsByDay[d.key]||[]).length > 0);
       if(!anyActive) return setMsg("فعّل شفت واحد على الأقل (minStaff > 0)","bad");
 
       const ref = getFirstOpenDay(hoursByDay);
-      const shiftsSample = ref ? buildDayShifts(ref.open, ref.close, shiftConfig) : [];
+      const shiftsSample = ref ? buildDayShifts(ref.open, ref.close, shiftConfigAppliedForToday) : [];
 
       // ✅ GPS pack
       const gps = getGpsFromForm();
@@ -1119,7 +1319,8 @@
       const payload = {
         name,
         hoursByDay,
-        shiftConfig,
+        rotation: rotation,        // ✅ saved here (NEW)
+        shiftConfig: shiftConfigRaw,
         shiftsByDay,
         shifts: shiftsSample,
         geo: geo,                 // ✅ saved here
@@ -1162,6 +1363,18 @@
       setTimeout(()=> $("bs3").focus(), 50);
     });
     $("btnRemoveShift").addEventListener("click", ()=> setShift3(false));
+
+    // ✅ Rotation events (NEW)
+    $("rotEnabled").addEventListener("change", ()=>{
+      setRotUI($("rotEnabled").checked);
+      recomputePreviewTimes();
+    });
+    $("rotPeriod").addEventListener("change", ()=>{
+      updateRotationPreview();
+    });
+    $("rotStartDay").addEventListener("change", ()=>{
+      updateRotationPreview();
+    });
 
     // ✅ GPS buttons (NEW)
     $("btnGetGps").addEventListener("click", async ()=>{
