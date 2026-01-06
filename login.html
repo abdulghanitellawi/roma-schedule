@@ -70,12 +70,11 @@
       </div>
       <h1>نظام الدوامات والإجازات والتغطيات</h1>
       <p>
-        • أدمن يضيف موظفين + موظفي تغطية<br/>
-        • لكل فرع أوقات دوام (شفتات 8 ساعات)<br/>
-        • توليد جدول تلقائي مع تعويض التغطية
+    <br/>
+  <br/>
+       
       </p>
       <p class="note">
-        أول مرة: اعمل Signup بحسابك، بعدين افتح admin-dashboard.html واضغط “اجعل Admin” (حسب نظامك الحالي).
       </p>
     </div>
 
@@ -94,20 +93,14 @@
       </div>
 
       <div id="msg" class="msg"></div>
-      <div class="tiny">سيتم تحويلك تلقائيًا إلى صفحة الأدمن أو الموظف حسب دورك.</div>
+      <div class="tiny"></div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getAuth, onAuthStateChanged,
-      signInWithEmailAndPassword, createUserWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import {
-      getFirestore, doc, getDoc, setDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
@@ -134,7 +127,6 @@
       $("btnSignup").disabled = on;
     };
 
-    // نفس المنطق المستخدم عندك
     const safeEmailDocId = (email)=> email.trim().toLowerCase().replace(/\./g,"(dot)");
 
     async function readPresetByEmail(email){
@@ -143,51 +135,19 @@
       return snap.exists() ? snap.data() : null;
     }
 
-    // ✅ NEW: ضمان وجود سجل employees_email أيضاً
-    async function ensureEmployeeEmailDoc(user){
-      const email = (user.email || "").trim().toLowerCase();
-      if(!email) return;
-
-      const emailId = safeEmailDocId(email);
-      const emailRef = doc(db, "employees_email", emailId);
-      const snap = await getDoc(emailRef);
-      if(snap.exists()) return;
-
-      // إذا في preset سابق بنفس الإيميل (نفس المرجع) لن نوصل له لأنه غير موجود
-      // هون ننشئ preset افتراضي
-      const base = {
-        name: (email || "user").split("@")[0],
-        email: email,
-        role: "staff",
-        type: "regular",      // regular | cover
-        department: "General",
-        branchId: "",
-        fixedBranch: true,
-        coverAllBranches: false,
-        coverBranchIds: [],
-        canCover: true,
-        active: true,
-        createdAt: serverTimestamp(),
-        createdByUid: user.uid
-      };
-
-      await setDoc(emailRef, base, { merge:true });
-    }
-
     async function ensureEmployeeDoc(user){
       const uidRef = doc(db, "employees", user.uid);
       const snap = await getDoc(uidRef);
       if(snap.exists()) return;
 
       const preset = await readPresetByEmail(user.email || "");
-
       const base = {
         name: (user.email || "user").split("@")[0],
-        email: (user.email || "").trim().toLowerCase(),
+        email: user.email || "",
         role: "staff",
         type: "regular",      // regular | cover
         department: "General",
-        branchId: "",
+        branchId: "",         // ثابت للـ regular
         fixedBranch: true,
         coverAllBranches: false,
         coverBranchIds: [],
@@ -200,18 +160,6 @@
       await setDoc(uidRef, data, { merge:true });
     }
 
-    // ✅ NEW: على الدخول/التسجيل: ضمّن السجلين معاً
-    async function ensureEmployeeBoth(user){
-      // 1) إذا في preset جاهز بالأيميل (أدمن أضافه) خلّي employees يعمل merge منه
-      // 2) وإذا ما في، أنشئ employees_email افتراضي + employees
-      // ملاحظة: create في employees_email قبل employees مفيد حتى employees يقرأ preset لو موجود
-      await ensureEmployeeEmailDoc(user);
-      await ensureEmployeeDoc(user);
-
-      // (اختياري قوي) توحيد/مزامنة بسيطة: إذا employees صار عنده بيانات أحدث ممكن تكتبها على employees_email
-      // بس خلّينا بسيطين: ما نطغى على إعدادات الأدمن.
-    }
-
     async function getRole(uid){
       const snap = await getDoc(doc(db, "employees", uid));
       return snap.exists() ? (snap.data()?.role || "staff") : "staff";
@@ -220,7 +168,7 @@
     async function routeByRole(user){
       setLoading(true);
       try{
-        await ensureEmployeeBoth(user);
+        await ensureEmployeeDoc(user);
       }catch(e){
         console.error(e);
         msg("تم تسجيل الدخول ✅ لكن Firestore غير جاهز أو Rules مانعة.", "bad");
@@ -260,10 +208,7 @@
       try{
         setLoading(true);
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-
-        // ✅ هنا صار: ينحفظ بـ employees و employees_email معاً
-        try{ await ensureEmployeeBoth(cred.user); }catch(e){ console.error(e); }
-
+        try{ await ensureEmployeeDoc(cred.user); }catch(e){ console.error(e); }
         msg("تم إنشاء الحساب…", "ok");
       }catch(e){
         setLoading(false);
