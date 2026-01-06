@@ -39,80 +39,78 @@
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
 
-    /* ===== Tabs ===== */
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .tabBtn{
-      cursor:pointer;border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);color:var(--txt);
-      padding:10px 12px;border-radius:999px;font-weight:900;font-size:13px;
-      display:inline-flex;gap:8px;align-items:center
-    }
+    .tabBtn{cursor:pointer;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:999px;font-weight:900;font-size:13px;display:inline-flex;gap:8px;align-items:center}
     .tabBtn:hover{background:rgba(255,255,255,.09)}
     .tabBtn.active{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
     .tabPanel{display:none;margin-top:10px}
     .tabPanel.show{display:block}
     .countPill{padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);color:var(--muted);font-size:12px}
 
-    /* ===== Search row ===== */
     .searchRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
     .searchRow .mini{margin:0}
     .searchBox{flex:2;min-width:240px}
     .searchBox input{width:100%}
 
-    /* ===== Modal ===== */
-    .modalOverlay{
-      position:fixed; inset:0; z-index:999;
-      background:rgba(0,0,0,.55);
-      display:none; align-items:center; justify-content:center;
-      padding:14px;
-    }
+    .modalOverlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:14px}
     .modalOverlay.show{display:flex}
-    .modal{
-      width:min(980px, 100%);
-      max-height:92vh;
-      overflow:auto;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(12,18,32,.92);
-      backdrop-filter: blur(10px);
-      border-radius:18px;
-      box-shadow: 0 24px 80px rgba(0,0,0,.55);
-    }
-    .modalHead{
-      position:sticky; top:0;
-      background:rgba(12,18,32,.95);
-      border-bottom:1px solid rgba(255,255,255,.10);
-      padding:12px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      z-index:2;
-    }
+    .modal{width:min(980px, 100%);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.14);background:rgba(12,18,32,.92);backdrop-filter: blur(10px);border-radius:18px;box-shadow: 0 24px 80px rgba(0,0,0,.55)}
+    .modalHead{position:sticky;top:0;background:rgba(12,18,32,.95);border-bottom:1px solid rgba(255,255,255,.10);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2}
     .modalBody{padding:12px}
-    .xbtn{border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--txt);
-      border-radius:12px; padding:10px 12px; font-weight:900; cursor:pointer}
+    .xbtn{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--txt);border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer}
     .xbtn:hover{background:rgba(255,255,255,.10)}
-    .modalTitle{display:flex; flex-direction:column; gap:2px}
+    .modalTitle{display:flex;flex-direction:column;gap:2px}
     .twoCol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     @media (max-width:900px){.twoCol{grid-template-columns:1fr}}
     .hint{color:var(--muted);font-size:12px;margin-top:6px}
     .warn{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);padding:10px 12px;border-radius:12px;color:#ffd3d3;margin-top:10px;font-size:12px;line-height:1.7}
-    select{
-      background: rgba(0,0,0,.45) !important;
-      color: var(--txt) !important;
-      border-color: var(--line) !important;
-      appearance: none;
-    }
+    select{background: rgba(0,0,0,.45) !important;color: var(--txt) !important;border-color: var(--line) !important;appearance: none}
     select:focus{ background: rgba(0,0,0,.55) !important; }
-    select option, select optgroup{
-      background-color: #0b1220 !important;
-      color: #e5e7eb !important;
-    }
-    select option:checked{
-      background-color: rgba(212,160,25,.25) !important;
-      color: #fff !important;
-    }
-    select option:disabled{ color: rgba(229,231,235,.45) !important; }
+    select option, select optgroup{background-color: #0b1220 !important;color: #e5e7eb !important}
+    select option:checked{background-color: rgba(212,160,25,.25) !important;color: #fff !important}
+    select option:disabled{color: rgba(229,231,235,.45) !important}
+
+    .top{ display:none !important; }
+    .wrap{ padding-top:14px !important; }
   </style>
 </head>
 <body>
+
+  <div id="navMount"></div>
+
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+          await loadScript("./nav.js?v=" + Date.now());
+
+          if(window.__romaUserText){
+            try{
+              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+            }catch{}
+          }
+
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(()=>{});
+    })();
+  </script>
+
   <div class="top">
     <div class="topin">
       <div class="brand">
@@ -140,8 +138,8 @@
         <div style="flex:2">
           <h2 style="margin:0">الموظفين</h2>
           <div class="mini">
-            <b>تبويب 1:</b> employees (مسجلين بحساب) — تعديل/حذف<br>
-            <b>تبويب 2:</b> employees_email (إيميل فقط) — إضافة/تعديل/حذف
+            <b></b> <br>
+            <b></b> 
           </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -150,7 +148,6 @@
         </div>
       </div>
 
-      <!-- Tabs -->
       <div class="tabs">
         <button class="tabBtn active" id="tabRegistered" type="button">
           الموظفين المسجلين <span class="countPill" id="countRegistered">0</span>
@@ -160,13 +157,12 @@
         </button>
       </div>
 
-      <!-- Panel 1: Registered -->
       <div class="tabPanel show" id="panelRegistered">
         <div class="searchRow">
           <div class="searchBox">
             <input id="searchRegistered" placeholder="بحث بالاسم أو الإيميل أو الفرع أو النوع...">
           </div>
-          <div class="mini">يبحث داخل employees فقط</div>
+          <div class="mini"></div>
         </div>
 
         <div style="overflow:auto">
@@ -187,7 +183,6 @@
         </div>
       </div>
 
-      <!-- Panel 2: Unregistered -->
       <div class="tabPanel" id="panelUnregistered">
         <div class="searchRow">
           <div class="searchBox">
@@ -216,7 +211,6 @@
     </div>
   </div>
 
-  <!-- ===== Modal (Edit/Add) ===== -->
   <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
@@ -256,7 +250,7 @@
               <option value="staff">staff</option>
               <option value="admin">admin</option>
             </select>
-            <div class="hint">⚠️ انتبه: إذا خليت موظف admin رح يقدر يفوت لوحة الأدمن.</div>
+            <div class="hint"> </div>
           </div>
         </div>
 
@@ -359,7 +353,6 @@
       return snap.exists() && snap.data()?.role === "admin";
     }
 
-    // ===== Tabs control =====
     function setTab(which){
       const isReg = which === "registered";
       $("tabRegistered").classList.toggle("active", isReg);
@@ -370,7 +363,6 @@
     $("tabRegistered").addEventListener("click", ()=> setTab("registered"));
     $("tabUnregistered").addEventListener("click", ()=> setTab("unregistered"));
 
-    // ===== Modal control =====
     const overlay = $("modalOverlay");
     function openModal(){
       overlay.classList.add("show");
@@ -388,7 +380,6 @@
     overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
     document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
 
-    // ===== UI logic (cover/regular) =====
     function syncCoverUi(){
       const isCover = ($("pType").value === "cover");
       const coverAll = ($("pCoverAll").value === "true");
@@ -397,7 +388,6 @@
       if(isCover) $("pBranch").value = "";
     }
 
-    // ===== branches select =====
     let branches = [];
     async function loadBranchesIntoSelect(){
       const snap = await getDocs(collection(db,"branches"));
@@ -416,15 +406,9 @@
       return b ? b.name : id;
     }
 
-    // ===== In-memory data =====
-    let allEmployees = []; // from employees
-    let allPresets = [];   // from employees_email
+    let allEmployees = [];
+    let allPresets = [];
 
-    // ===== Edit state =====
-    // mode:
-    // - add => employees_email only
-    // - edit_emp => employees/{uid}
-    // - edit_preset => employees_email/{docId}
     let editMode = "add";
     let editCol = "employees_email";
     let editId = null;
@@ -449,7 +433,6 @@
     }
 
     function fillFormFromRecord(r, colName){
-      // colName: "employees" or "employees_email"
       $("pEmail").value = r.email || "";
       $("pName").value = r.name || "";
       $("pDept").value = r.department || "";
@@ -463,14 +446,11 @@
       $("pCoverAll").value = (r.coverAllBranches === true) ? "true" : "false";
       $("pCoverBranches").value = Array.isArray(r.coverBranchIds) ? r.coverBranchIds.join(", ") : "";
 
-      // rules:
       if(colName === "employees_email"){
-        // الإيميل هو ID (عادةً)، نخليه غير قابل للتعديل لتجنب إنشاء وثيقة جديدة بالغلط
         $("pEmail").disabled = true;
         $("emailHint").textContent = "الإيميل هو مفتاح السجل (employees_email) لذلك لا يمكن تغييره أثناء التعديل.";
         $("authWarn").style.display = "none";
       } else {
-        // employees: نسمح يعدل كل شي، لكن نحذر إن الإيميل الحقيقي تبع Auth ما بيتغير
         $("pEmail").disabled = false;
         $("emailHint").textContent = "يمكن تعديل الإيميل هنا، لكن هذا يغيّر Firestore فقط.";
         $("authWarn").style.display = "block";
@@ -486,8 +466,8 @@
 
       clearForm();
       $("modalTitle").textContent = "إضافة موظف (غير مسجل)";
-      $("modalSub").textContent = "سيتم الحفظ في employees_email";
-      $("modalInfo").innerHTML = `سيتم إنشاء/تعديل سجل في <b>employees_email</b>. لما الموظف يعمل Signup بنفس الإيميل، يمكن نسخ البيانات لحسابه.`;
+      $("modalSub").textContent = "";
+      $("modalInfo").innerHTML = "";
       openModal();
       setTab("unregistered");
     }
@@ -558,7 +538,6 @@
       tbR.innerHTML = "";
       tbU.innerHTML = "";
 
-      // Registered: employees (editable now)
       for(const r of reg){
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -576,7 +555,6 @@
         tbR.appendChild(tr);
       }
 
-      // Unregistered: employees_email (editable)
       for(const r of un){
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -594,7 +572,6 @@
         tbU.appendChild(tr);
       }
 
-      // attach actions
       tbR.querySelectorAll("[data-edit-emp]").forEach(btn=>{
         btn.addEventListener("click", ()=> openEditEmployee(btn.getAttribute("data-edit-emp")));
       });
@@ -658,7 +635,6 @@
       if(type==="regular" && !branchId) return setMsg("اختر فرع ثابت للـ Regular","bad");
       if(type==="cover" && !coverAllBranches && coverBranchIds.length===0) return setMsg("اكتب IDs فروع التغطية أو اختر (يغطي الكل)","bad");
 
-      // payload
       const payload = {
         email, name, department, role, type,
         active, canCover, notes,
@@ -723,7 +699,6 @@
       renderTables();
     }
 
-    // events
     $("pType").addEventListener("change", syncCoverUi);
     $("pCoverAll").addEventListener("change", syncCoverUi);
 
@@ -733,16 +708,31 @@
 
     $("btnReload").addEventListener("click", async ()=>{ await loadAll(); });
 
-    $("btnOut").addEventListener("click", async ()=>{
-      await signOut(auth);
-      location.href="./login.html";
-    });
+    function bindLogoutIfExists(){
+      const btn = document.getElementById("btnOut");
+      if(btn && !btn.__bound){
+        btn.__bound = true;
+        btn.addEventListener("click", async ()=>{
+          await signOut(auth);
+          location.href="./login.html";
+        });
+      }
+    }
+    bindLogoutIfExists();
+    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
 
     bindSearch();
 
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
-      $("mePill").textContent = user.email || user.uid;
+
+      const mePill = document.getElementById("mePill");
+      if(mePill) mePill.textContent = user.email || user.uid;
+
+      try{
+        window.__romaUserText = (user.email || user.uid);
+        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: (user.email || user.uid) } }));
+      }catch{}
 
       const ok = await requireAdmin(user);
       if(!ok){

@@ -58,6 +58,13 @@
       color: #fff !important;
     }
     select option:disabled{ color: rgba(229,231,235,.45) !important; }
+
+    /* ===========================
+       ✅ NAV INJECTION MODE
+       نخفي top القديمة بدون حذف
+       =========================== */
+    .top{ display:none !important; }
+    .wrap{ padding-top:14px !important; }
   </style>
 
   <!-- ✅ Excel with styles -->
@@ -65,6 +72,49 @@
 </head>
 
 <body>
+
+  <!-- ✅ NEW: mount nav.html -->
+  <div id="navMount"></div>
+
+  <!-- ✅ NEW: load nav.html then nav.js AFTER injection -->
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+
+          // ✅ لازم nav.js يشتغل بعد حقن nav.html
+          await loadScript("./nav.js?v=" + Date.now());
+
+          // ✅ ابعت المستخدم للناف (إذا كان جاهز)
+          if(window.__romaUserText){
+            try{
+              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+            }catch{}
+          }
+
+          // ✅ خلّي nav.js يعمل layout/active state
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(err=> console.warn("Failed to load nav.html/nav.js", err));
+    })();
+  </script>
+
+  <!-- (قديم) Topbar مخفي بالـ CSS بدون حذف -->
   <div class="top">
     <div class="topin">
       <div class="brand">
@@ -90,12 +140,11 @@
     <div class="card">
       <h2>توليد جدول تلقائي حسب الفرع (من branches + إجازات leaves)</h2>
       <div class="mini">
-        • ✅ يقرأ الشفتات من <b>branches</b> عبر <b>shiftsByDay</b> حسب اليوم (Fallback إلى shifts القديم إن وُجد)<br>
-        • يقرأ الإجازات من <b>leaves</b> (approved) ويدعم range/scattered<br>
-        • إذا الموظف بإجازة → يغطيه Cover (الأولوية لتغطية محددة داخل leave إن وجدت)<br>
-        • مصدر الموظفين: <b>employees_email</b><br>
-        • ✅ يمنع أي موظف (خصوصاً cover) يكون على شفت بنفس الوقت بفرع آخر (يفحص shifts)<br>
-        • إذا ما في تغطية كافية → يظهر إشعار نقص تغطية
+
+
+
+
+  
       </div>
 
       <div class="row">
@@ -221,13 +270,24 @@
       return snap.exists() && snap.data()?.role === "admin";
     }
 
+    // ✅ IMPORTANT: زر الخروج غالباً جوّا nav.html
+    function bindLogoutIfExists(){
+      const btn = document.getElementById("btnOut");
+      if(btn && !btn.__bound){
+        btn.__bound = true;
+        btn.addEventListener("click", async ()=>{
+          await signOut(auth);
+          location.href="./login.html";
+        });
+      }
+    }
+    bindLogoutIfExists();
+    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
+
     // ✅ check existing schedule WITHOUT needing composite index
-    // - نقرأ كل shifts (سريع بالعادة) ونفلتر محلياً.
-    // - لتخفيف: نوقف القراءة بعد ما نلاقي أول تطابق.
     async function checkExistingSchedule(branchId, from, to){
       if(!branchId || !from || !to) return false;
 
-      // جلب shifts بدون where/range = بدون index
       const snap = await getDocs(collection(db,"shifts"));
       for(const d of snap.docs){
         const x = d.data() || {};
@@ -317,6 +377,99 @@
       return DAY_KEYS[dt.getDay()];
     }
 
+    // =========================
+    // ✅ ROTATION HELPERS (FIXED)
+    // =========================
+    function parsePeriodDays(v){
+      const n = Number(v);
+      if(n === 1 || n === 3 || n === 7) return n;
+      return null;
+    }
+    function diffDays(aYmd, bYmd){
+      const a = new Date(aYmd + "T12:00:00").getTime();
+      const b = new Date(bYmd + "T12:00:00").getTime();
+      return Math.floor((a - b) / 86400000);
+    }
+    function normalizeRotation(rot){
+      const r = rot || {};
+      const enabled = !!(r.enabled ?? r.isEnabled ?? r.active ?? false);
+      const periodDays = parsePeriodDays(r.periodDays ?? r.period ?? r.everyDays ?? r.intervalDays ?? null);
+      const startDay = String(r.startDay ?? r.anchorDay ?? r.startWeekday ?? "").trim().toLowerCase();
+      const startDate = (typeof r.startDate === "string" ? r.startDate : null);
+      return { enabled, periodDays, startDay, startDate };
+    }
+    function getAnchorByStartDay(fromYmd, startDay){
+      const sd = String(startDay||"").toLowerCase();
+      const target = DAY_KEYS.indexOf(sd);
+      if(target === -1) return fromYmd;
+
+      const fromDt = new Date(fromYmd + "T12:00:00");
+      const fromDow = fromDt.getDay();
+      const back = (fromDow - target + 7) % 7;
+      const anchor = new Date(fromDt);
+      anchor.setDate(anchor.getDate() - back);
+      return ymd(anchor);
+    }
+    function isRotationSwappedForDay(rotationNorm, dayYmd, fromFallback){
+      if(!rotationNorm?.enabled) return { swapped:false, meta:"" };
+      const pd = rotationNorm.periodDays;
+      if(!pd) return { swapped:false, meta:"" };
+
+      let anchor = null;
+      if(rotationNorm.startDate && /^\d{4}-\d{2}-\d{2}$/.test(rotationNorm.startDate)){
+        anchor = rotationNorm.startDate;
+      }else{
+        anchor = getAnchorByStartDay(fromFallback, rotationNorm.startDay || "sun");
+      }
+
+      if(!anchor || !/^\d{4}-\d{2}-\d{2}$/.test(anchor)) return { swapped:false, meta:"" };
+
+      const delta = diffDays(dayYmd, anchor);
+      const block = Math.floor(Math.max(0, delta) / pd);
+      const swapped = (block % 2) === 1;
+
+      const meta = `rot:${pd}d@${rotationNorm.startDay||"?"} anchor:${anchor} block:${block} swap:${swapped?"yes":"no"}`;
+      return { swapped, meta };
+    }
+
+    function getShiftConfigAssigned(branch, swapped){
+      const sc = branch?.shiftConfig || null;
+      if(!sc || sc.mode !== "smart_by_day") return null;
+
+      const s1 = sc.shift1 || {};
+      const s2 = sc.shift2 || {};
+
+      let a1 = s1.assignedEmployeeId || null;
+      let a2 = s2.assignedEmployeeId || null;
+
+      if(swapped){
+        const tmp = a1; a1 = a2; a2 = tmp;
+      }
+
+      return { shift1: a1, shift2: a2 };
+    }
+
+    function injectAssignedIntoDayShifts(dayShifts, assignedMap){
+      if(!assignedMap) return { shifts: dayShifts, applied:false };
+
+      const arr = (Array.isArray(dayShifts) ? dayShifts : []).map(s => ({...(s||{})}));
+      let hit1=false, hit2=false;
+
+      for(const sh of arr){
+        const label = String(sh.name||sh.key||"").toLowerCase();
+        if(label.includes("shift 1")){
+          sh.assignedEmployeeId = assignedMap.shift1 || sh.assignedEmployeeId || null;
+          hit1 = true;
+        }
+        if(label.includes("shift 2")){
+          sh.assignedEmployeeId = assignedMap.shift2 || sh.assignedEmployeeId || null;
+          hit2 = true;
+        }
+      }
+
+      return { shifts: arr, applied: (hit1 || hit2) };
+    }
+
     // ===== Branches =====
     async function loadBranchSelect(){
       const snap = await getDocs(collection(db,"branches"));
@@ -342,12 +495,16 @@
         return am - bm;
       });
 
+      const rotation = normalizeRotation(d.rotation || null);
+
       return {
         id: branchId,
         name: d.name || branchId,
         hoursByDay,
         shiftsByDay,
-        shiftsFallback: shifts
+        shiftsFallback: shifts,
+        rotation,
+        shiftConfig: d.shiftConfig || null
       };
     }
 
@@ -525,8 +682,16 @@
         const hv = branch.hoursByDay?.[dk];
         if(hv && hv.closed === true) continue;
 
+        const rotRes = isRotationSwappedForDay(branch.rotation, day, from);
+        const swapped = rotRes.swapped;
+
         const dayShiftsAll = getShiftsForDay(branch, dk);
-        const dayShifts = (Array.isArray(dayShiftsAll)? dayShiftsAll : []).filter(s=>Number(s.minStaff||0)>0);
+
+        const assignedMap = getShiftConfigAssigned(branch, swapped);
+        const injRes = injectAssignedIntoDayShifts(dayShiftsAll, assignedMap);
+        const dayShiftsAllFinal = injRes.shifts;
+
+        const dayShifts = (Array.isArray(dayShiftsAllFinal)? dayShiftsAllFinal : []).filter(s=>Number(s.minStaff||0)>0);
         if(!dayShifts.length) continue;
 
         const excluded = leaveMap.get(day) || new Set();
@@ -545,9 +710,16 @@
 
             const assignedId = (slot===1) ? (sh.assignedEmployeeId || null) : null;
 
+            if(branch.rotation?.enabled){
+              const base = swapped ? "Rotation 🔄 (SWAP)" : "Rotation ✅";
+              note = note ? (note + " + " + base) : base;
+            }
+
             if(assignedId){
               const assignedBusy = busyHas(busyMap, assignedId, day, shStart, shEnd);
-              if(assignedBusy) note = "⚠️ الموظف المحدد مشغول بفرع آخر";
+              if(assignedBusy){
+                note = note ? (note + " + ⚠️ المحدد مشغول بفرع آخر") : "⚠️ الموظف المحدد مشغول بفرع آخر";
+              }
 
               if(!excluded.has(assignedId) && !assignedBusy){
                 emp = pickSpecific(assignedId, allById, excluded, usedToday, day, shStart, shEnd, busyMap);
@@ -559,7 +731,7 @@
                   emp = pickForcedCover(forced, excluded, usedToday, allById, day, shStart, shEnd, busyMap);
                   if(emp){
                     empType="cover"; empSrc=emp.src;
-                    note = "تغطية محددة ✅";
+                    note = note ? (note + " + تغطية محددة ✅") : "تغطية محددة ✅";
                   }
                 }
 
@@ -731,7 +903,6 @@
         { wch: 30 },
       ];
 
-      // header style
       for(let c=0; c<headers.length; c++){
         const addr = XLSX.utils.encode_cell({ r:0, c });
         if(ws[addr]){
@@ -749,10 +920,9 @@
         }
       }
 
-      // color employee name: regular=green, cover=red
       for(let i=0; i<lastPreview.length; i++){
         const r = lastPreview[i];
-        const cellAddr = XLSX.utils.encode_cell({ r:i+1, c:5 }); // employee col
+        const cellAddr = XLSX.utils.encode_cell({ r:i+1, c:5 });
         if(!ws[cellAddr]) continue;
 
         const isCover = String(r.employeeType||"").toLowerCase() === "cover";
@@ -867,12 +1037,21 @@
       }
     });
 
-    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
-
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
       me = user;
-      $("mePill").textContent = user.email || user.uid;
+
+      // ✅ خلّي المستخدم متوفر للناف
+      window.__romaUserText = (user.email || user.uid);
+
+      // (قديم) mePill موجود ضمن top المخفي
+      const mePill = document.getElementById("mePill");
+      if(mePill) mePill.textContent = window.__romaUserText;
+
+      // ✅ ابعت للناف إذا كان محقون
+      try{
+        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+      }catch{}
 
       const ok = await requireAdmin(user);
       if(!ok){

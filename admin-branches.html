@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -43,7 +42,6 @@
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
 
-    /* ===== Modal (edit/add) ===== */
     .modalOverlay{position:fixed; inset:0; z-index:999; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:14px;}
     .modalOverlay.show{display:flex}
     .modal{width:min(980px, 100%); max-height:92vh; overflow:auto; border:1px solid rgba(255,255,255,.14); background:rgba(12,18,32,.92); backdrop-filter: blur(10px); border-radius:18px; box-shadow: 0 24px 80px rgba(0,0,0,.55);}
@@ -53,7 +51,6 @@
     .xbtn:hover{background:rgba(255,255,255,.10)}
     .modalTitle{display:flex; flex-direction:column; gap:2px}
 
-    /* ===== Days cards ===== */
     .daysGrid{display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-top:8px;}
     .dayCard{min-width:0;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;}
     .dayTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -68,73 +65,75 @@
     .shiftButtons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
     .shiftHidden{display:none !important;}
 
-    /* ===== Preview Modals ===== */
-    .previewGrid{
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap:10px;
-    }
-    .pDay{
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.05);
-      border-radius:14px;
-      padding:10px;
-      min-width:0;
-    }
+    .previewGrid{display:grid;grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));gap:10px;}
+    .pDay{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;min-width:0;}
     .pTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .pName{font-weight:900;font-size:13px}
     .pHours{color:var(--muted);font-size:12px}
-    .pItem{
-      margin-top:8px;
-      padding:8px 10px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.16);
-      border-radius:12px;
-      font-size:12px;
-      line-height:1.6;
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
+    .pItem{margin-top:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.16);border-radius:12px;font-size:12px;line-height:1.6;display:flex;flex-direction:column;gap:2px;}
     .pItem b{font-size:12px}
     .mut{color:var(--muted)}
     .hr{height:1px;background:rgba(255,255,255,.08);margin:10px 0}
     .miniBtnRow{display:flex;gap:8px;flex-wrap:wrap}
     .tiny{font-size:12px;padding:8px 10px;border-radius:12px}
 
-    /* ===== GPS UI additions ===== */
-    .gpsCard{
-      margin-top:12px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.05);
-      border-radius:14px;
-      padding:10px;
-    }
+    .gpsCard{margin-top:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;}
     .gpsRow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
     .gpsRow > *{flex:1; min-width:180px}
     .gpsBadgeOk{border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12);color:#d1fae5}
     .gpsBadgeBad{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12);color:#fee2e2}
 
-    /* ===== Rotation UI (NEW) ===== */
-    .rotCard{
-      margin-top:12px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.05);
-      border-radius:14px;
-      padding:10px;
-    }
+    .rotCard{margin-top:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px;}
     .rotTop{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .rotToggle{
-      display:flex;align-items:center;gap:8px;color:var(--txt);font-weight:900;
-      user-select:none;
-    }
+    .rotToggle{display:flex;align-items:center;gap:8px;color:var(--txt);font-weight:900;user-select:none;}
     .rotToggle input{width:auto;margin:0;accent-color:var(--accent);transform:scale(1.1)}
     .rotGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     @media (max-width:900px){.rotGrid{grid-template-columns:1fr}}
     .rotHidden{display:none !important;}
+
+    .top{ display:none !important; }
+    .wrap{ padding-top:14px !important; }
   </style>
 </head>
 <body>
+
+  <div id="navMount"></div>
+
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+          await loadScript("./nav.js?v=" + Date.now());
+
+          if(window.__romaUserText){
+            try{
+              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+            }catch{}
+          }
+
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(err=>{
+          console.warn("Failed to load nav.html/nav.js", err);
+        });
+    })();
+  </script>
+
   <div class="top">
     <div class="topin">
       <div class="brand">
@@ -161,7 +160,7 @@
       <div class="row" style="align-items:center">
         <div style="flex:2">
           <h2 style="margin:0">قائمة الفروع</h2>
-          <div class="mini">أوقات العمل + الشفتات صاروا بزر واحد يفتح مودال ✅</div>
+          <div class="mini"></div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn primary" id="btnAdd">إضافة فرع</button>
@@ -178,13 +177,12 @@
     </div>
   </div>
 
-  <!-- ===== Modal (add/edit) ===== -->
   <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
         <div class="modalTitle">
           <b id="modalTitle">إضافة فرع</b>
-          <div class="mini" id="modalSub">أدخل البيانات ثم احفظ</div>
+          <div class="mini" id="modalSub"></div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn primary" id="btnSave">حفظ</button>
@@ -193,11 +191,7 @@
       </div>
 
       <div class="modalBody">
-        <div class="mini">
-          • حساب الشفتات حسب كل يوم ✅<br>
-          • إذا شفت واحد → Full Day (فتح→تسكير)<br>
-          • إذا شفتين → شفت1 (فتح→فتح+8) و شفت2 (تسكير-8→تسكير)
-        </div>
+        <div class="mini"></div>
 
         <div class="row">
           <div>
@@ -206,12 +200,11 @@
           </div>
         </div>
 
-        <!-- ✅ GPS Card -->
         <div class="gpsCard">
           <div class="row" style="align-items:center">
             <div style="flex:2">
               <b style="font-size:13px">GPS للفرع</b>
-              <div class="mini">حدد موقع الفرع (Lat/Lng) + نصف قطر سماح بالمتر</div>
+              <div class="mini"></div>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
               <button class="btn" id="btnGetGps">📍 أخذ موقعي الآن</button>
@@ -241,14 +234,11 @@
           </div>
         </div>
 
-        <!-- ✅ Rotation Card (NEW) -->
         <div class="rotCard">
           <div class="rotTop">
             <div style="flex:2;min-width:240px">
               <b style="font-size:13px">روتيشن (تبديل الشفتات) لهذا الفرع</b>
-              <div class="mini">
-                يشتغل فقط للفروع اللي تفعلها ✅ — إذا فرع شفتاته ثابتة اتركه مطفّى.
-              </div>
+              <div class="mini"></div>
             </div>
             <label class="rotToggle">
               <input type="checkbox" id="rotEnabled">
@@ -264,7 +254,7 @@
                 <option value="3">كل 3 أيام</option>
                 <option value="7">كل أسبوع</option>
               </select>
-              <div class="mini">التبديل يتم تلقائياً حسب الخيار.</div>
+              <div class="mini"></div>
             </div>
             <div>
               <label>يوم بداية الروتيشن</label>
@@ -277,12 +267,12 @@
                 <option value="fri">الجمعة</option>
                 <option value="sat">السبت</option>
               </select>
-              <div class="mini">نقطة مرجعية ثابتة للتبديل.</div>
+              <div class="mini"></div>
             </div>
           </div>
 
           <div class="mini" style="margin-top:10px">
-            معاينة الروتيشن: <span class="badge" id="rotPreview">غير مفعل</span>
+            <span class="badge" id="rotPreview">غير مفعل</span>
           </div>
           <div class="mini" id="rotHint" style="margin-top:6px"></div>
         </div>
@@ -293,7 +283,7 @@
         <div class="shiftHeadRow">
           <div>
             <b style="font-size:13px">الشفتات</b>
-            <div class="mini">شفت 1 + شفت 2 (سمارت). يمكن إضافة شفت 3 يدويًا (اختياري)</div>
+            <div class="mini"></div>
           </div>
           <div class="shiftButtons">
             <button class="btn" id="btnAddShift">إضافة شفت 3</button>
@@ -308,7 +298,7 @@
             <select id="emp1"><option value="">— اختر موظف —</option></select>
             <label>minStaff</label>
             <input id="bm1" type="number" min="0" value="0">
-            <div class="mini">معاينة (أول يوم مفتوح): <span class="badge" id="p1">--:--</span></div>
+            <div class="mini"> <span class="badge" id="p1">--:--</span></div>
           </div>
 
           <div class="card" style="margin:0">
@@ -317,23 +307,22 @@
             <select id="emp2"><option value="">— اختر موظف —</option></select>
             <label>minStaff</label>
             <input id="bm2" type="number" min="0" value="0">
-            <div class="mini">معاينة (أول يوم مفتوح): <span class="badge" id="p2">--:--</span></div>
+            <div class="mini"> <span class="badge" id="p2">--:--</span></div>
           </div>
 
           <div class="card shiftHidden" id="shift3Card" style="margin:0">
-            <h2 style="font-size:14px;margin:0 0 8px">شفت 3 (يدوي)</h2>
+            <h2 style="font-size:14px;margin:0 0 8px">شفت 3</h2>
             <label>الموظف</label>
             <select id="emp3"><option value="">— اختر موظف —</option></select>
             <label>بداية</label>
             <input id="bs3" type="time" step="60" value="00:00">
             <label>minStaff</label>
             <input id="bm3" type="number" min="0" value="0">
-            <div class="mini">النهاية: <span class="badge" id="p3">--:--</span></div>
+            <div class="mini"><span class="badge" id="p3">--:--</span></div>
           </div>
 
           <div class="card" style="margin:0">
             <h2 style="font-size:14px;margin:0 0 8px">ملاحظات</h2>
-            <div class="mini">• minStaff=0 يعني الشفت غير مفعل</div>
             <div class="mini" id="empHint" style="margin-top:8px"></div>
           </div>
         </div>
@@ -343,7 +332,6 @@
     </div>
   </div>
 
-  <!-- ===== Preview Modal: Shifts ===== -->
   <div class="modalOverlay" id="previewShiftOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewShiftTitle">
       <div class="modalHead">
@@ -365,7 +353,6 @@
     </div>
   </div>
 
-  <!-- ===== Preview Modal: Hours (NEW) ===== -->
   <div class="modalOverlay" id="previewHoursOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewHoursTitle">
       <div class="modalHead">
@@ -421,7 +408,6 @@
       return snap.exists() && snap.data()?.role === "admin";
     }
 
-    // ===== time helpers =====
     function timeToMin(t){
       if(!t) return null;
       const m = String(t).trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -442,7 +428,6 @@
       return ((b - a) + 1440) % 1440;
     }
 
-    // ===== GPS helpers (NEW) =====
     function setGpsStatus(has){
       const badge = $("gpsStatus");
       badge.className = "badge " + (has ? "gpsBadgeOk" : "gpsBadgeBad");
@@ -492,16 +477,13 @@
       window.open(url, "_blank");
     }
 
-    // ✅ Manual GPS toggle (NEW)
     let manualGpsEnabled = false;
     function setManualGps(enabled){
       manualGpsEnabled = !!enabled;
 
-      // لا نحذف readonly من HTML، فقط نغير الخاصية بالـ JS
       $("bLat").readOnly = !manualGpsEnabled;
       $("bLng").readOnly = !manualGpsEnabled;
 
-      // تحسين تجربة المستخدم بصرياً
       $("bLat").style.cursor = manualGpsEnabled ? "text" : "not-allowed";
       $("bLng").style.cursor = manualGpsEnabled ? "text" : "not-allowed";
       $("bLat").style.opacity = manualGpsEnabled ? "1" : ".75";
@@ -510,7 +492,6 @@
       $("btnManualGps").textContent = manualGpsEnabled ? "🔒 إغلاق الإدخال اليدوي" : "✍️ إدخال يدوي";
     }
 
-    // ======= days =======
     const DAYS = [
       { key:"sun", label:"الأحد" },
       { key:"mon", label:"الإثنين" },
@@ -599,7 +580,6 @@
       return null;
     }
 
-    // ===== Rotation helpers (NEW) =====
     function setRotUI(enabled){
       $("rotOptions").classList.toggle("rotHidden", !enabled);
       updateRotationPreview();
@@ -627,7 +607,6 @@
       return x;
     }
     function dowKeyFromDate(d){
-      // JS: 0=Sun..6=Sat
       const idx = d.getDay();
       return ["sun","mon","tue","wed","thu","fri","sat"][idx];
     }
@@ -637,14 +616,13 @@
       return Math.round((A - B) / 86400000);
     }
     function findAnchorDateForStartDay(startDayKey, baseDate){
-      // anchor = آخر تاريخ <= baseDate يوافق startDayKey
       const base = dateOnlyLocal(baseDate);
       let cur = new Date(base);
       for(let i=0;i<14;i++){
         if(dowKeyFromDate(cur) === startDayKey) return cur;
         cur.setDate(cur.getDate() - 1);
       }
-      return base; // fallback
+      return base;
     }
     function rotationStepForDate(rot, date){
       if(!rot?.enabled) return 0;
@@ -705,7 +683,6 @@
       const ms2 = Number($("bm2").value||0);
       const oneShiftOnly = ms1>0 && ms2<=0;
 
-      // preview shift3
       const bs3 = $("bs3").value;
       const m3 = timeToMin(bs3);
       $("p3").textContent = (m3===null) ? "--:--" : minToTime(m3+480);
@@ -722,11 +699,9 @@
       $("p1").textContent = `${open} → ${s1End}`;
       $("p2").textContent = oneShiftOnly ? "—" : `${s2Start} → ${close}`;
 
-      // rotation preview updates too
       updateRotationPreview();
     }
 
-    // ===== Employees dropdown =====
     let cachedEmployees = [];
 
     function employeeLabel(emp){
@@ -761,7 +736,7 @@
       cachedEmployees = [];
 
       if(!branchId){
-        $("empHint").textContent = "لإظهار موظفين الفرع: احفظ الفرع أولاً ثم اربط الموظفين به.";
+        $("empHint").textContent = "";
         fillEmployeeSelect($("emp1"), "");
         fillEmployeeSelect($("emp2"), "");
         fillEmployeeSelect($("emp3"), "");
@@ -788,9 +763,7 @@
 
       cachedEmployees = [...emps, ...presets].sort((a,b)=> employeeLabel(a).localeCompare(employeeLabel(b)));
 
-      $("empHint").textContent = cachedEmployees.length
-        ? `الموظفين ضمن هذا الفرع: ${cachedEmployees.length}`
-        : "لا يوجد موظفين مرتبطين بهذا الفرع بعد (employees / employees_email).";
+      $("empHint").textContent = cachedEmployees.length ? `الموظفين ضمن هذا الفرع: ${cachedEmployees.length}` : "";
 
       fillEmployeeSelect($("emp1"), $("emp1").value);
       fillEmployeeSelect($("emp2"), $("emp2").value);
@@ -801,7 +774,6 @@
       return cachedEmployees.find(e=>e.id === empId) || null;
     }
 
-    // ===== Shift3 toggle =====
     let shift3Enabled = false;
     function setShift3(enabled){
       shift3Enabled = !!enabled;
@@ -815,7 +787,6 @@
       recomputePreviewTimes();
     }
 
-    // ===== Shift config + build per day =====
     function packShiftConfig(){
       return {
         mode: "smart_by_day",
@@ -830,7 +801,6 @@
       };
     }
 
-    // ✅ apply rotation to shift assignments (NEW)
     function applyRotationToConfigIfNeeded(cfg, rot, dateForCalc){
       try{
         if(!rot?.enabled) return cfg;
@@ -840,7 +810,6 @@
         const s1 = cfg?.shift1?.assignedEmployeeId || null;
         const s2 = cfg?.shift2?.assignedEmployeeId || null;
 
-        // فقط إذا في موظفين على الشفتين (حتى يكون منطقي)
         if(!swap) return cfg;
         if(!s1 || !s2) return cfg;
 
@@ -912,7 +881,6 @@
       return map;
     }
 
-    // ===== add/edit modal =====
     const overlay = $("modalOverlay");
     function openModal(mode){
       overlay.classList.add("show");
@@ -923,10 +891,10 @@
 
       if(mode==="edit"){
         $("modalTitle").textContent = "تعديل فرع";
-        $("modalSub").textContent = "عدّل البيانات ثم احفظ";
+        $("modalSub").textContent = "";
       }else{
         $("modalTitle").textContent = "إضافة فرع";
-        $("modalSub").textContent = "أدخل البيانات ثم احفظ";
+        $("modalSub").textContent = "";
       }
       setTimeout(()=> $("bName").focus(), 50);
     }
@@ -939,7 +907,6 @@
     overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
     document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
 
-    // ===== Preview Shifts Modal =====
     const shiftOv = $("previewShiftOverlay");
     function openShiftsModal(branch){
       $("previewShiftTitle").textContent = `الشفتات — ${branch.name || "-"}`;
@@ -968,7 +935,6 @@
         const hv = hoursByDay?.[key];
         const closed = hv ? !!hv.closed : false;
         const hoursText = hv ? (closed ? "مغلق" : `${hv.openTime} → ${hv.closeTime}`) : "—";
-
         const arr = shiftsByDay ? (Array.isArray(shiftsByDay[key]) ? shiftsByDay[key] : []) : [];
 
         const card = document.createElement("div");
@@ -985,13 +951,13 @@
 
         const body = card.querySelector(".pBody");
 
-        if(!hoursByDay){ body.innerHTML = `<div class="mut">لا يوجد ساعات دوام</div>`; continue; }
+        if(!hoursByDay){ body.innerHTML = `<div class="mut">—</div>`; continue; }
         if(closed){ body.innerHTML = `<div class="mut">مغلق</div>`; continue; }
-        if(!arr.length){ body.innerHTML = `<div class="mut">لا يوجد شفتات (minStaff=0)</div>`; continue; }
+        if(!arr.length){ body.innerHTML = `<div class="mut">—</div>`; continue; }
 
         for(const s of arr){
           const emp = s.assignedEmployeeName ? s.assignedEmployeeName : (s.assignedEmployeeEmail || "");
-          const empLine = emp ? `<span class="mut">${escapeHtml(emp)}</span>` : `<span class="mut">— بدون موظف</span>`;
+          const empLine = emp ? `<span class="mut">${escapeHtml(emp)}</span>` : `<span class="mut">—</span>`;
           const item = document.createElement("div");
           item.className = "pItem";
           item.innerHTML = `
@@ -1015,7 +981,6 @@
     $("previewShiftClose").addEventListener("click", closeShiftsModal);
     shiftOv.addEventListener("click", (e)=>{ if(e.target === shiftOv) closeShiftsModal(); });
 
-    // ===== Preview Hours Modal (NEW) =====
     const hoursOv = $("previewHoursOverlay");
     function openHoursModal(branch){
       $("previewHoursTitle").textContent = `أوقات العمل — ${branch.name || "-"}`;
@@ -1049,7 +1014,7 @@
           </div>
           <div class="hr"></div>
           <div class="pBody">
-            ${v ? (closed ? `<div class="mut">مغلق</div>` : `<div class="pItem"><b>الدوام</b><div>${escapeHtml(v.openTime)} → ${escapeHtml(v.closeTime)}</div></div>`) : `<div class="mut">غير محدد</div>`}
+            ${v ? (closed ? `<div class="mut">مغلق</div>` : `<div class="pItem"><b>الدوام</b><div>${escapeHtml(v.openTime)} → ${escapeHtml(v.closeTime)}</div></div>`) : `<div class="mut">—</div>`}
           </div>
         `;
         grid.appendChild(card);
@@ -1067,7 +1032,6 @@
     $("previewHoursClose").addEventListener("click", closeHoursModal);
     hoursOv.addEventListener("click", (e)=>{ if(e.target === hoursOv) closeHoursModal(); });
 
-    // ESC closes whichever modal is open
     document.addEventListener("keydown", (e)=>{
       if(e.key!=="Escape") return;
       if(overlay.classList.contains("show")) closeModal();
@@ -1075,7 +1039,6 @@
       if(hoursOv.classList.contains("show")) closeHoursModal();
     });
 
-    // ===== Branch state =====
     let editingId = null;
     const branchesCache = new Map();
 
@@ -1084,11 +1047,9 @@
       $("bName").value = "";
       setHoursByDay(null);
 
-      // GPS reset
       setGpsToForm(null);
       setManualGps(false);
 
-      // Rotation reset (NEW)
       setRotationToForm({ enabled:false, periodDays:1, startDay:"sun" });
 
       $("bm1").value=0;
@@ -1108,7 +1069,7 @@
       fillEmployeeSelect($("emp3"), "");
 
       hideMsg();
-      $("empHint").textContent = "لإظهار موظفين الفرع: احفظ الفرع أولاً ثم اربط الموظفين به.";
+      $("empHint").textContent = "";
       recomputePreviewTimes();
     }
 
@@ -1140,7 +1101,6 @@
       return `${c}/7`;
     }
 
-    // GPS tiny summary for table
     function summarizeGpsTiny(branch){
       const g = branch.geo || null;
       const ok = g && Number.isFinite(g.lat) && Number.isFinite(g.lng);
@@ -1182,7 +1142,7 @@
           <td>
             <b>${escapeHtml(r.name||"-")}</b>
             <div class="mini">ID: <span class="badge">${escapeHtml(r.id)}</span></div>
-            ${r.rotation?.enabled ? `<div class="mini">روتيشن: <span class="badge">✅ ${escapeHtml(r.rotation.periodDays===1?"يومي":r.rotation.periodDays===3?"كل 3 أيام":"أسبوعي")}</span></div>` : ``}
+            ${r.rotation?.enabled ? `<div class="mini"><span class="badge">✅ ${escapeHtml(r.rotation.periodDays===1?"يومي":r.rotation.periodDays===3?"كل 3 أيام":"أسبوعي")}</span></div>` : ``}
           </td>
           <td>${hoursBtn}</td>
           <td>${shiftBtn}</td>
@@ -1222,11 +1182,9 @@
           $("bName").value = d.name || "";
           setHoursByDay(d.hoursByDay || null);
 
-          // ✅ load GPS from branch
           setGpsToForm(d.geo || null);
           setManualGps(false);
 
-          // ✅ load rotation from branch (NEW)
           setRotationToForm(d.rotation || { enabled:false, periodDays:1, startDay:"sun" });
 
           await loadEmployeesForBranch(editingId);
@@ -1299,31 +1257,29 @@
       try{ hoursByDay = getHoursByDay(); }
       catch(err){ return setMsg(err?.message || "تأكد من أوقات الفتح/الإغلاق","bad"); }
 
-      const rotation = getRotationFromForm(); // NEW
+      const rotation = getRotationFromForm();
 
       const shiftConfigRaw = packShiftConfig();
-      // ✅ apply rotation on sample/preview (NEW) - للمعاينة والتخزين العيني فقط
       const shiftConfigAppliedForToday = applyRotationToConfigIfNeeded(shiftConfigRaw, rotation, new Date());
 
-      const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfigRaw); // نحفظ القاعدة الأساسية (بدون تبديل)، التوليد الحقيقي يطبق الروتيشن حسب التاريخ
+      const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfigRaw);
       const anyActive = DAYS.some(d => (shiftsByDay[d.key]||[]).length > 0);
       if(!anyActive) return setMsg("فعّل شفت واحد على الأقل (minStaff > 0)","bad");
 
       const ref = getFirstOpenDay(hoursByDay);
       const shiftsSample = ref ? buildDayShifts(ref.open, ref.close, shiftConfigAppliedForToday) : [];
 
-      // ✅ GPS pack
       const gps = getGpsFromForm();
       const geo = gps ? { ...gps, updatedAt: serverTimestamp() } : null;
 
       const payload = {
         name,
         hoursByDay,
-        rotation: rotation,        // ✅ saved here (NEW)
+        rotation: rotation,
         shiftConfig: shiftConfigRaw,
         shiftsByDay,
         shifts: shiftsSample,
-        geo: geo,                 // ✅ saved here
+        geo: geo,
         updatedAt: serverTimestamp()
       };
 
@@ -1341,14 +1297,25 @@
       resetForm();
     }
 
-    // ===== events =====
     $("bm1").addEventListener("input", recomputePreviewTimes);
     $("bm2").addEventListener("input", recomputePreviewTimes);
     $("bs3").addEventListener("input", recomputePreviewTimes);
 
     $("btnSave").addEventListener("click", save);
     $("btnClose").addEventListener("click", closeModal);
-    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+
+    function bindLogoutIfExists(){
+      const btn = document.getElementById("btnOut");
+      if(btn && !btn.__bound){
+        btn.__bound = true;
+        btn.addEventListener("click", async ()=>{
+          await signOut(auth);
+          location.href="./login.html";
+        });
+      }
+    }
+    bindLogoutIfExists();
+    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
 
     $("btnAdd").addEventListener("click", async ()=>{
       resetForm();
@@ -1364,7 +1331,6 @@
     });
     $("btnRemoveShift").addEventListener("click", ()=> setShift3(false));
 
-    // ✅ Rotation events (NEW)
     $("rotEnabled").addEventListener("change", ()=>{
       setRotUI($("rotEnabled").checked);
       recomputePreviewTimes();
@@ -1376,7 +1342,6 @@
       updateRotationPreview();
     });
 
-    // ✅ GPS buttons (NEW)
     $("btnGetGps").addEventListener("click", async ()=>{
       try{
         hideMsg();
@@ -1414,19 +1379,16 @@
       setMsg("تم مسح GPS من النموذج (لا ينعكس إلا بعد الحفظ).","ok");
     });
 
-    // ✅ Manual button
     $("btnManualGps").addEventListener("click", ()=>{
       setManualGps(!manualGpsEnabled);
       if(manualGpsEnabled) setTimeout(()=> $("bLat").focus(), 50);
     });
 
-    // radius change updates status if lat/lng exists
     $("bRadius").addEventListener("input", ()=>{
       const g = getGpsFromForm();
       setGpsStatus(!!g);
     });
 
-    // typing lat/lng updates status (manual)
     $("bLat").addEventListener("input", ()=> setGpsStatus(!!getGpsFromForm()));
     $("bLng").addEventListener("input", ()=> setGpsStatus(!!getGpsFromForm()));
 
@@ -1435,7 +1397,13 @@
 
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
-      $("mePill").textContent = user.email || user.uid;
+
+      const mePill = document.getElementById("mePill");
+      if(mePill) mePill.textContent = user.email || user.uid;
+
+      try{
+        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: (user.email || user.uid) } }));
+      }catch{}
 
       const ok = await requireAdmin(user);
       if(!ok){

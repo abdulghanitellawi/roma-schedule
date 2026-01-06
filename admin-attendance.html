@@ -1,0 +1,847 @@
+<!-- admin-attendance.html -->
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - Attendance</title>
+  <link rel="icon" href="./assets/logo.webp">
+
+  <!-- Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.04);
+      --line:rgba(255,255,255,.14);
+      --line2:rgba(255,255,255,.10);
+      --txt:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#d4a019;
+      --shadow:0 18px 60px rgba(0,0,0,.35);
+      --ok:#16a34a;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;min-height:100vh;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),
+        var(--bg);
+      color:var(--txt);
+      font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif
+    }
+
+    /* (قديم) Topbar مخفي بدون حذف */
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+
+    a.btn,button.btn{
+      cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);
+      padding:10px 12px;border-radius:12px;font-weight:900;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      text-decoration:none; transition:.15s ease;
+    }
+    .btn:hover{background:rgba(255,255,255,.10); transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.22)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.18)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+
+    /* ✅ أوسع عرض */
+    .wrap{max-width:1600px;margin:0 auto;padding:14px}
+
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+      border-radius:18px;padding:12px;
+      box-shadow:var(--shadow);
+      margin-bottom:12px
+    }
+
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label.mini{display:inline-flex;align-items:center;gap:6px}
+
+    input,select{
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.20);
+      color:var(--txt);
+      padding:11px 12px;border-radius:12px;outline:none;
+      transition:.15s ease;
+    }
+    input:focus,select:focus{border-color:rgba(212,160,25,.70);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    select{min-width:220px}
+    input[type="date"]{min-width:180px}
+
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
+    .box{
+      border:1px solid var(--line2);
+      background:rgba(255,255,255,.05);
+      border-radius:16px;
+      padding:12px;
+    }
+    .box b{font-size:24px; letter-spacing:.5px}
+    .box .mini{margin-top:4px}
+
+    .sep{border:none;border-top:1px solid rgba(255,255,255,.12);margin:14px 0}
+
+    /* ✅ Table upgrade */
+    .tableWrap{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      overflow:auto;
+      background:rgba(0,0,0,.12);
+    }
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1050px}
+    thead th{
+      position:sticky; top:0; z-index:2;
+      background:rgba(12,18,32,.92);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      font-weight:900;
+    }
+    th,td{padding:12px 12px; text-align:right; font-size:13px; vertical-align:top}
+    tbody tr:nth-child(odd) td{background:rgba(255,255,255,.03)}
+    tbody tr:hover td{background:rgba(212,160,25,.06)}
+    tbody td{border-bottom:1px solid rgba(255,255,255,.06)}
+    .timeCell{direction:ltr;unicode-bidi:embed;text-align:left}
+    .muted{color:var(--muted)}
+    .nameCell{font-weight:900}
+    .sub{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:7px 10px;border:1px solid var(--line);
+      border-radius:999px;color:var(--muted);font-size:12px;white-space:nowrap
+    }
+    .badge.ok{border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12);color:#d1fae5}
+    .badge.bad{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12);color:#fee2e2}
+    .badge.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10);color:#ffedd5}
+
+    /* ✅ نفس السامبل: نخفي التوب ونترك nav.html */
+    .top{display:none!important}
+
+    /* ✅ padding مع سايدبار */
+    @media (min-width:980px){
+      .wrap{padding-right:330px;padding-left:14px}
+      html[dir="ltr"] .wrap{padding-left:330px;padding-right:14px}
+    }
+    @media (max-width:979.98px){.wrap{padding-top:10px}}
+    @media (min-width:980px){.wrap{padding-right:14px!important;padding-left:14px!important}}
+    .wrap{padding-top:14px!important}
+
+    /* ✅ Toolbar nicer */
+    .toolbar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      padding:10px; border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04); border-radius:16px;
+    }
+    .toolbar .left, .toolbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+
+<body>
+
+  <!-- ✅ nav.html mount -->
+  <div id="navMount"></div>
+
+  <!-- ✅ load nav.html then nav.js -->
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+          await loadScript("./nav.js?v=" + Date.now());
+
+          if(window.__romaUserText){
+            try{
+              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+            }catch{}
+          }
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(()=>{});
+    })();
+  </script>
+
+  <!-- (قديم) topbar مخفي بدون حذف -->
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <a class="btn" href="./admin-hours.html">ساعات الدوام</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div style="min-width:240px">
+          <h2 style="margin:0">الحضور والغياب</h2>
+          <div class="mini"></div>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn" id="btnReloadAll">تحديث</button>
+          <button class="btn danger" id="btnOutTop">خروج</button>
+        </div>
+      </div>
+      <div id="msgTop" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <div class="left">
+          <label class="mini">📅 التاريخ</label>
+          <input type="date" id="fDate">
+
+          <label class="mini">🏢 الفرع</label>
+          <select id="fBranch"></select>
+
+          <button class="btn" id="btnReloadAtt">تحديث</button>
+        </div>
+
+        <div class="right">
+          <button class="btn primary" id="btnExportExcel">تصدير Excel</button>
+          <button class="btn" id="btnExportPdf">تصدير PDF</button>
+        </div>
+      </div>
+
+      <div class="kpi" style="margin-top:10px">
+        <div class="box"><div class="mini">👤 حضر</div><b id="kPresent">0</b></div>
+        <div class="box"><div class="mini">⏰ متأخر</div><b id="kLate">0</b></div>
+        <div class="box"><div class="mini">❌ غايب</div><b id="kAbsent">0</b></div>
+        <div class="box"><div class="mini">✅ إجازة</div><b id="kLeaveDay">0</b></div>
+      </div>
+
+      <div id="msgAtt" class="msg"></div>
+
+      <hr class="sep">
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الموظف</th>
+              <th>الفرع</th>
+              <th>الشفت</th>
+              <th>الحالة</th>
+              <th class="timeCell">Check-In</th>
+              <th class="timeCell">Check-Out</th>
+              <th>Late</th>
+              <th>Worked</th>
+              <th>ملاحظة</th>
+            </tr>
+          </thead>
+          <tbody id="attTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc,
+      collection, getDocs, query, where,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const setMsg = (id, text, type="ok")=>{
+      const el = $(id);
+      if(!el) return;
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    };
+    const hideMsg = (id)=>{ const el=$(id); if(el) el.style.display="none"; };
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    function ymd(d){
+      const dt = new Date(d);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,"0");
+      const da = String(dt.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function timeToMin(t){
+      const s = String(t||"").trim();
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+      if(!m) return null;
+      const hh = Math.max(0, Math.min(23, Number(m[1])));
+      const mm = Math.max(0, Math.min(59, Number(m[2])));
+      return hh*60+mm;
+    }
+
+    function safeId(s){
+      return String(s||"").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,240);
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"]/g, (c)=>({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        "\"":"&quot;"
+      }[c]));
+    }
+
+    function fmtTime(ms){
+      if(!ms) return "-";
+      try{
+        return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      }catch{ return "-"; }
+    }
+
+    function normalizeEmailToPresetId(email){
+      const e = String(email||"").trim().toLowerCase();
+      if(!e) return null;
+      return "preset:" + e.replace(/\./g,"(dot)");
+    }
+
+    function employeeKeyFromAny(employeeId, employeeEmail){
+      const id = String(employeeId||"");
+      if(id.startsWith("preset:")) return id;
+      const byEmail = normalizeEmailToPresetId(employeeEmail);
+      return byEmail || (id || "");
+    }
+
+    async function loadBranchSelect(){
+      const snap = await getDocs(collection(db,"branches"));
+      const rows = [];
+      snap.forEach(d=> rows.push({ id:d.id, ...(d.data()||{}) }));
+      rows.sort((a,b)=> (a.name||a.id||"").localeCompare(b.name||b.id||""));
+
+      const sel = $("fBranch");
+      sel.innerHTML =
+        `<option value="">— كل الفروع —</option>` +
+        rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
+
+      return rows;
+    }
+
+    async function loadEmployees(){
+      const snap = await getDocs(collection(db,"employees"));
+      const out=[];
+      snap.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
+      return out;
+    }
+
+    async function loadLeavesApproved(){
+      const snap = await getDocs(collection(db,"leaves"));
+      const out=[];
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        if(String(x.status||"").toLowerCase() !== "approved") return;
+        if(!x.employeeId) return;
+        out.push({ __id:d.id, ...x });
+      });
+      return out;
+    }
+
+    function leaveDaysSet(leave){
+      const mode = leave.leaveMode || "range";
+      const set = new Set();
+      if(mode==="scattered" && Array.isArray(leave.dates)){
+        leave.dates.forEach(d=>{
+          if(typeof d==="string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) set.add(d);
+        });
+        return set;
+      }
+      if(leave.from && leave.to){
+        const a=new Date(leave.from+"T12:00:00"), b=new Date(leave.to+"T12:00:00");
+        for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)){
+          set.add(ymd(d));
+        }
+      }
+      return set;
+    }
+
+    function isOnLeave(leaves, employeeId, dateStr){
+      for(const l of leaves){
+        if(String(l.employeeId) !== String(employeeId)) continue;
+        const days = leaveDaysSet(l);
+        if(days.has(dateStr)) return true;
+      }
+      return false;
+    }
+
+    function nowMin(){
+      const d=new Date();
+      return d.getHours()*60 + d.getMinutes();
+    }
+
+    // ✅ تسجيل الغياب/الإجازة تلقائي بعد نهاية الشفت
+    async function markAutoAbsencesForDate(dateStr){
+      const shiftsSnap = await getDocs(collection(db,"shifts"));
+      const shifts = [];
+      shiftsSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(!x.employeeId) return;
+        shifts.push({ id:d.id, ...x });
+      });
+
+      const leaves = await loadLeavesApproved();
+
+      const attSnap = await getDocs(collection(db,"attendance"));
+      const attByKey = new Map();
+
+      attSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+
+        const empKey = employeeKeyFromAny(x.employeeId, x.employeeEmail);
+        if(!empKey) return;
+
+        const k = `${empKey}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        attByKey.set(k, { id:d.id, ...x });
+      });
+
+      let checked = 0;
+      let marked = 0;
+
+      for(const s of shifts){
+        checked++;
+
+        const endMin = timeToMin(s.end);
+        const ended = (endMin===null) ? false : (nowMin() >= endMin);
+        if(!ended) continue;
+
+        const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
+        const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const hasAttendance = attByKey.has(k);
+
+        const onLeave = isOnLeave(leaves, empKey, dateStr);
+        const attId = safeId(k);
+
+        if(onLeave){
+          if(!hasAttendance){
+            await setDoc(doc(db,"attendance", attId), {
+              employeeId: empKey,
+              employeeName: s.employeeName || "",
+              employeeEmail: s.employeeEmail || "",
+              date: s.date,
+              branchId: s.branchId || "",
+              branchName: s.branchName || "",
+              shiftName: s.shiftName || "",
+              start: s.start || "",
+              end: s.end || "",
+              status: "leave",
+              note: "On approved leave",
+              updatedAt: serverTimestamp()
+            }, { merge:true });
+            marked++;
+          }
+          continue;
+        }
+
+        if(!hasAttendance){
+          await setDoc(doc(db,"attendance", attId), {
+            employeeId: empKey,
+            employeeName: s.employeeName || "",
+            employeeEmail: s.employeeEmail || "",
+            date: s.date,
+            branchId: s.branchId || "",
+            branchName: s.branchName || "",
+            shiftName: s.shiftName || "",
+            start: s.start || "",
+            end: s.end || "",
+            status: "absent",
+            minutesLate: null,
+            note: "Auto absent (shift ended, no check-in)",
+            updatedAt: serverTimestamp()
+          }, { merge:true });
+          marked++;
+        }
+      }
+
+      return { checked, marked };
+    }
+
+    async function loadAttendanceForDate(dateStr, branchId=""){
+      const [attSnap, shiftsSnap, emps, leaves] = await Promise.all([
+        getDocs(collection(db,"attendance")),
+        getDocs(collection(db,"shifts")),
+        loadEmployees(),
+        loadLeavesApproved()
+      ]);
+
+      const attMap = new Map();
+      attSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(branchId && String(x.branchId||"") !== String(branchId)) return;
+
+        const empKey = employeeKeyFromAny(x.employeeId, x.employeeEmail);
+        if(!empKey) return;
+
+        const k = `${empKey}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        attMap.set(k, { __id: d.id, ...x, __empKey: empKey });
+      });
+
+      const shifts = [];
+      shiftsSnap.forEach(d=>{
+        const x = d.data() || {};
+        if(x.date !== dateStr) return;
+        if(branchId && String(x.branchId||"") !== String(branchId)) return;
+        if(!x.employeeId) return;
+        shifts.push({ __id: d.id, ...x });
+      });
+
+      const rows = [];
+
+      for(const s of shifts){
+        const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
+        const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const a = attMap.get(k);
+
+        if(a){
+          rows.push({ ...a });
+        }else{
+          const onLeave = isOnLeave(leaves, empKey, dateStr);
+          const empNameFallback =
+            s.employeeName ||
+            (emps.find(e=> String(e.id)===String(s.employeeId))?.name || "");
+
+          rows.push({
+            employeeId: empKey,
+            employeeName: empNameFallback || s.employeeName || "",
+            employeeEmail: s.employeeEmail || "",
+            date: s.date,
+            branchId: s.branchId || "",
+            branchName: s.branchName || "",
+            shiftName: s.shiftName || "",
+            start: s.start || "",
+            end: s.end || "",
+            status: onLeave ? "leave" : "absent",
+            note: onLeave ? "Leave (no attendance record)" : "Absent (no attendance record)"
+          });
+        }
+      }
+
+      rows.sort((a,b)=>{
+        const an = (a.branchName||a.branchId||"");
+        const bn = (b.branchName||b.branchId||"");
+        if(an!==bn) return an.localeCompare(bn);
+        const ae = (a.employeeName||a.employeeEmail||"");
+        const be = (b.employeeName||b.employeeEmail||"");
+        return ae.localeCompare(be);
+      });
+
+      let present=0, late=0, absent=0, leaveDay=0;
+      for(const r of rows){
+        const st = String(r.status||"").toLowerCase();
+        if(st==="leave"){ leaveDay++; continue; }
+        if(st==="absent"){ absent++; continue; }
+        if(st==="completed" || st==="present"){
+          present++;
+          if(Number(r.minutesLate||0)>0) late++;
+        }
+      }
+
+      $("kPresent").textContent = present;
+      $("kLate").textContent = late;
+      $("kAbsent").textContent = absent;
+      $("kLeaveDay").textContent = leaveDay;
+
+      const tb = $("attTbody");
+      tb.innerHTML = "";
+
+      for(const r of rows){
+        const st = String(r.status||"").toLowerCase();
+
+        const badge =
+          st==="leave" ? `<span class="badge ok">✅ Leave</span>` :
+          st==="absent" ? `<span class="badge bad">❌ Absent</span>` :
+          (Number(r.minutesLate||0)>0 ? `<span class="badge warn">⏰ Late</span>` : `<span class="badge ok">👤 Completed</span>`);
+
+        const shiftLine = (r.start && r.end) ? (r.start + " - " + r.end) : "";
+        const shiftBadge = shiftLine ? `<span class="badge">${escapeHtml(shiftLine)}</span>` : "";
+
+        const name = r.employeeName || r.employeeEmail || r.employeeId || "-";
+        const emailLine = r.employeeEmail ? `<span class="sub">${escapeHtml(r.employeeEmail)}</span>` : "";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="nameCell">${escapeHtml(name)}${emailLine}</td>
+          <td>${escapeHtml(r.branchName || r.branchId || "-")}</td>
+          <td>${escapeHtml(r.shiftName || "-")} ${shiftBadge}</td>
+          <td>${badge}</td>
+          <td class="timeCell">${fmtTime(r.checkInAtLocal)}</td>
+          <td class="timeCell">${fmtTime(r.checkOutAtLocal)}</td>
+          <td>${r.minutesLate!=null ? `${escapeHtml(r.minutesLate)}<span class="muted"> د</span>` : "-"}</td>
+          <td>${r.workedMinutes!=null ? `${escapeHtml(r.workedMinutes)}<span class="muted"> د</span>` : "-"}</td>
+          <td class="muted">${escapeHtml(r.note || "-")}</td>
+        `;
+        tb.appendChild(tr);
+      }
+
+      window.__attRows = rows;
+      window.__attDate = dateStr;
+      window.__attBranchId = branchId || "";
+    }
+
+    async function exportAttendanceExcel(){
+      const rows = window.__attRows || [];
+      if(!rows.length) return setMsg("msgAtt","لا يوجد بيانات للتصدير.","bad");
+      const XLSX = window.XLSX;
+      if(!XLSX) return setMsg("msgAtt","مكتبة Excel غير محمّلة.","bad");
+
+      const headers = ["التاريخ","الموظف","الإيميل","الفرع","الشفت","البداية","النهاية","الحالة","CheckIn(ms)","CheckOut(ms)","Late(min)","Worked(min)","ملاحظة"];
+      const data = rows.map(r=>[
+        r.date || "",
+        r.employeeName || "",
+        r.employeeEmail || "",
+        r.branchName || r.branchId || "",
+        r.shiftName || "",
+        r.start || "",
+        r.end || "",
+        (r.status || ""),
+        r.checkInAtLocal || "",
+        r.checkOutAtLocal || "",
+        r.minutesLate || "",
+        r.workedMinutes || "",
+        r.note || ""
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+      for(let c=0; c<headers.length; c++){
+        const addr = XLSX.utils.encode_cell({ r:0, c });
+        if(ws[addr]) ws[addr].s = {
+          font: { bold:true, color:{ rgb:"FFFFFFFF" } },
+          fill: { patternType:"solid", fgColor:{ rgb:"FF111827" } },
+          alignment: { horizontal:"center", vertical:"center" },
+          border: {
+            top:{style:"thin",color:{rgb:"FF374151"}},
+            bottom:{style:"thin",color:{rgb:"FF374151"}},
+            left:{style:"thin",color:{rgb:"FF374151"}},
+            right:{style:"thin",color:{rgb:"FF374151"}},
+          }
+        };
+      }
+
+      ws["!cols"] = headers.map(()=>({ wch: 18 }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+
+      const date = window.__attDate || "date";
+      const br = window.__attBranchId || "all";
+      XLSX.writeFile(wb, `attendance_${br}_${date}.xlsx`);
+      setMsg("msgAtt","تم تصدير Excel ✅","ok");
+    }
+
+    function exportAttendancePdf(){
+      const rows = window.__attRows || [];
+      if(!rows.length) return setMsg("msgAtt","لا يوجد بيانات للتصدير.","bad");
+
+      const date = window.__attDate || "";
+      const br = window.__attBranchId || "";
+      const title = "Attendance Report — " + date + (br ? " (" + br + ")" : "");
+
+      const html = `
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="utf-8"/>
+          <title>${title}</title>
+          <style>
+            body{font-family:system-ui, Tahoma, Arial; padding:16px}
+            h1{margin:0 0 12px; font-size:18px}
+            table{width:100%; border-collapse:collapse}
+            th,td{border:1px solid #ddd; padding:8px; font-size:12px; text-align:right}
+            th{background:#f5f5f5}
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>الموظف</th><th>الفرع</th><th>الشفت</th><th>الحالة</th><th>دخول</th><th>خروج</th><th>Late</th><th>Worked</th><th>ملاحظة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>${escapeHtml(r.employeeName||r.employeeEmail||r.employeeId||'')}</td>
+                  <td>${escapeHtml(r.branchName||r.branchId||'')}</td>
+                  <td>${escapeHtml(r.shiftName||'')} ${escapeHtml((r.start && r.end) ? ("(" + r.start + "-" + r.end + ")") : "")}</td>
+                  <td>${escapeHtml(r.status||'')}</td>
+                  <td>${escapeHtml(fmtTime(r.checkInAtLocal))}</td>
+                  <td>${escapeHtml(fmtTime(r.checkOutAtLocal))}</td>
+                  <td>${escapeHtml(r.minutesLate ?? '')}</td>
+                  <td>${escapeHtml(r.workedMinutes ?? '')}</td>
+                  <td>${escapeHtml(r.note ?? '')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const w = window.open('', '_blank');
+      if(!w) return setMsg("msgAtt","المتصفح منع فتح نافذة جديدة.","bad");
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      setMsg("msgAtt","تم فتح PDF للطباعة ✅ (اختر Save as PDF)","ok");
+    }
+
+    // ===== Logout binding (لو زر الخروج داخل nav.html) =====
+    function bindLogoutIfExists(){
+      const btn1 = document.getElementById("btnOut");
+      const btn2 = document.getElementById("btnOutTop");
+      const handler = async ()=>{
+        await signOut(auth);
+        location.href="./login.html";
+      };
+      [btn1, btn2].forEach(btn=>{
+        if(btn && !btn.__bound){
+          btn.__bound = true;
+          btn.addEventListener("click", handler);
+        }
+      });
+    }
+    bindLogoutIfExists();
+    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
+
+    // ===== UI events =====
+    $("btnReloadAtt").addEventListener("click", async ()=>{
+      try{
+        hideMsg("msgAtt");
+        const date = $("fDate").value;
+        const br = $("fBranch").value || "";
+        await loadAttendanceForDate(date, br);
+        setMsg("msgAtt","تم التحديث ✅","ok");
+      }catch(e){
+        setMsg("msgAtt", e?.message || "خطأ", "bad");
+      }
+    });
+
+    $("btnExportExcel").addEventListener("click", exportAttendanceExcel);
+    $("btnExportPdf").addEventListener("click", exportAttendancePdf);
+
+    $("btnReloadAll").addEventListener("click", async ()=>{
+      try{
+        hideMsg("msgTop");
+        const date = $("fDate").value;
+        const br = $("fBranch").value || "";
+
+        try{
+          const res = await markAutoAbsencesForDate(date);
+          if(res?.marked){
+            setMsg("msgTop", `تم تسجيل غياب/إجازة تلقائي: ${res.marked} (من أصل ${res.checked}) ✅`, "ok");
+          }
+        }catch{}
+
+        await loadAttendanceForDate(date, br);
+        setMsg("msgTop","تم تحديث الكل ✅","ok");
+      }catch(e){
+        setMsg("msgTop", e?.message || "خطأ", "bad");
+      }
+    });
+
+    // ===== Auth =====
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+
+      window.__romaUserText = (user.email || user.uid);
+      const mePill = document.getElementById("mePill");
+      if(mePill) mePill.textContent = window.__romaUserText;
+
+      try{
+        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+      }catch{}
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+        setMsg("msgTop","لا يوجد Admin بعد. عيّن أول أدمن من صفحة Dashboard (اجعل Admin).","bad");
+      }
+
+      await loadBranchSelect();
+      $("fDate").value = ymd(new Date());
+
+      try{
+        const date = $("fDate").value;
+        const res = await markAutoAbsencesForDate(date);
+        if(res?.marked){
+          setMsg("msgAtt", `تم تسجيل غياب/إجازة تلقائي: ${res.marked} (من أصل ${res.checked}) ✅`, "ok");
+        }
+      }catch{}
+
+      await loadAttendanceForDate($("fDate").value, "");
+    });
+  </script>
+</body>
+</html>

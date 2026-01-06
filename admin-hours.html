@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Roma Schedule - ساعات الدوام اليومية</title>
+  <link rel="icon" href="./assets/logo.webp">
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+  <style>
+    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;--warn:#f59e0b;}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),
+      radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),
+      var(--bg);
+      color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif
+    }
+    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
+    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:10px;align-items:center}
+    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .wrap{max-width:1200px;margin:0 auto;padding:14px}
+    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    h2{margin:0 0 10px;font-size:18px}
+    .mini{color:var(--muted);font-size:12px;line-height:1.7}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+    input,select{
+      width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);
+      background:rgba(0,0,0,.18);color:var(--txt);outline:none
+    }
+    input:focus,select:focus{border-color:rgba(212,160,25,.65);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1}
+    table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:14px}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:right;font-size:13px;vertical-align:top}
+    th{color:var(--muted);font-weight:900;background:rgba(255,255,255,.04);position:sticky;top:0}
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
+    .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
+    .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .badge.ok{border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12);color:#d1fae5}
+    .badge.bad{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12);color:#fee2e2}
+    .badge.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10);color:#ffedd5}
+    .timeCell{direction:ltr; unicode-bidi:embed; text-align:left;}
+
+    select{ background: rgba(0,0,0,.45) !important; color: var(--txt) !important; border-color: var(--line) !important; appearance:none; }
+    select option{ background:#0b1220 !important; color:#e5e7eb !important; }
+
+    .top{ display:none !important; }
+    .wrap{ padding-top:14px !important; }
+  </style>
+</head>
+
+<body>
+  <div id="navMount"></div>
+
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+          await loadScript("./nav.js?v=" + Date.now());
+
+          if(window.__romaUserText){
+            try{
+              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+            }catch{}
+          }
+
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(()=>{});
+    })();
+  </script>
+
+  <div class="top">
+    <div class="topin">
+      <div class="brand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div>
+          <b>Roma Schedule</b>
+          <div class="pill" id="mePill">...</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
+        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
+        <a class="btn" href="./admin-employees.html">الموظفين</a>
+        <a class="btn" href="./admin-leaves.html">الإجازات</a>
+        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
+        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <a class="btn primary" href="./admin-hours.html">ساعات الدوام</a>
+        <button class="btn danger" id="btnOut">خروج</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <h2>حساب ساعات الدوام لكل موظف بكل يوم</h2>
+      <div class="mini">
+       <b></b> <br>
+       <br>
+      </div>
+
+      <div class="row">
+        <div><label>من تاريخ</label><input id="fFrom" type="date"></div>
+        <div><label>إلى تاريخ</label><input id="fTo" type="date"></div>
+        <div><label>الفرع</label><select id="fBranch"></select></div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>بحث (اسم/إيميل)</label>
+          <input id="fQ" placeholder="مثال: abdulghani أو gmail">
+        </div>
+        <div>
+          <label>عرض</label>
+          <select id="fMode">
+            <option value="daily">تفصيل يومي</option>
+            <option value="summary">ملخص (مجموع الفترة)</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:end;gap:10px;flex:0.7">
+          <button class="btn primary" id="btnCalc">حساب</button>
+          <button class="btn" id="btnExport">Excel</button>
+        </div>
+      </div>
+
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="tblTitle">النتائج</h2>
+      <div style="overflow:auto; max-height:70vh;">
+        <table>
+          <thead id="thead">
+            <tr>
+              <th>التاريخ</th>
+              <th>الموظف</th>
+              <th>الإيميل</th>
+              <th>الفرع</th>
+              <th>الشفت</th>
+              <th>الحالة</th>
+              <th>Check-In</th>
+              <th>Check-Out</th>
+              <th>Worked</th>
+              <th>ملاحظة</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc,
+      collection, getDocs, query, where
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
+      authDomain: "roma-schedule.firebaseapp.com",
+      projectId: "roma-schedule",
+      storageBucket: "roma-schedule.firebasestorage.app",
+      messagingSenderId: "685810932602",
+      appId: "1:685810932602:web:f1ec506ea6ff5e919d94c3",
+      measurementId: "G-5FY5S5TZLJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+
+    const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    const setMsg = (text, type="ok")=>{
+      const el = $("msg");
+      el.className = "msg " + (type==="bad"?"bad":"ok");
+      el.textContent = text;
+      el.style.display = "block";
+    };
+
+    function bindLogoutIfExists(){
+      const btn = document.getElementById("btnOut");
+      if(btn && !btn.__bound){
+        btn.__bound = true;
+        btn.addEventListener("click", async ()=>{
+          await signOut(auth);
+          location.href="./login.html";
+        });
+      }
+    }
+    bindLogoutIfExists();
+    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
+
+    function ymd(d){
+      const dt = new Date(d);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,"0");
+      const da = String(dt.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+    function dateRange(from, to){
+      const a = new Date(from), b = new Date(to);
+      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+      const out=[];
+      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)) out.push(ymd(d));
+      return out;
+    }
+
+    function fmtTimeFromMs(ms){
+      if(!ms) return "-";
+      try{ return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
+      catch{ return "-"; }
+    }
+
+    function minutesToHhmm(min){
+      const m = Number(min||0);
+      const h = Math.floor(m/60);
+      const r = m%60;
+      return `${h}:${String(r).padStart(2,"0")}`;
+    }
+
+    async function requireAdmin(user){
+      const snap = await getDoc(doc(db,"employees",user.uid));
+      return snap.exists() && snap.data()?.role === "admin";
+    }
+
+    async function loadBranchSelect(){
+      const snap = await getDocs(collection(db,"branches"));
+      const rows=[];
+      snap.forEach(d=> rows.push({ id:d.id, ...(d.data()||{}) }));
+      rows.sort((a,b)=> (a.name||a.id||"").localeCompare(b.name||b.id||""));
+
+      $("fBranch").innerHTML =
+        `<option value="">— كل الفروع —</option>` +
+        rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
+    }
+
+    let lastRows = [];
+    let lastMode = "daily";
+
+    function statusBadge(st, minutesLate){
+      const s = String(st||"").toLowerCase();
+      if(s==="leave") return `<span class="badge ok">Leave</span>`;
+      if(s==="absent") return `<span class="badge bad">Absent</span>`;
+      if(s==="completed" || s==="present"){
+        if(Number(minutesLate||0)>0) return `<span class="badge warn">Late</span>`;
+        return `<span class="badge ok">Present</span>`;
+      }
+      if(s==="pending") return `<span class="badge warn">Pending</span>`;
+      return `<span class="badge">${escapeHtml(st||"-")}</span>`;
+    }
+
+    function computeWorkedMinutes(a){
+      if(a && a.workedMinutes != null && a.workedMinutes !== ""){
+        const w = Number(a.workedMinutes);
+        if(Number.isFinite(w) && w >= 0) return Math.round(w);
+      }
+      const ci = Number(a?.checkInAtLocal || 0);
+      const co = Number(a?.checkOutAtLocal || 0);
+      if(ci && co && co > ci){
+        return Math.round((co - ci) / 60000);
+      }
+      return 0;
+    }
+
+    function buildDailyRows(attList, from, to, branchId, q){
+      const daysSet = new Set(dateRange(from,to));
+      const out = [];
+
+      for(const a of attList){
+        const date = a.date || "";
+        if(!daysSet.has(date)) continue;
+        if(branchId && String(a.branchId||"") !== String(branchId)) continue;
+
+        const empName = a.employeeName || a.employeeEmail || a.employeeId || "-";
+        const empEmail = a.employeeEmail || "";
+        const qq = (q||"").trim().toLowerCase();
+        if(qq){
+          const hay = (empName + " " + empEmail + " " + (a.employeeId||"")).toLowerCase();
+          if(!hay.includes(qq)) continue;
+        }
+
+        const workedMin = computeWorkedMinutes(a);
+
+        out.push({
+          date,
+          employeeId: a.employeeId || "",
+          employeeName: empName,
+          employeeEmail: empEmail,
+          branchId: a.branchId || "",
+          branchName: a.branchName || a.branchId || "",
+          shiftName: a.shiftName || "",
+          start: a.start || "",
+          end: a.end || "",
+          status: a.status || "",
+          minutesLate: a.minutesLate || 0,
+          checkInAtLocal: a.checkInAtLocal || null,
+          checkOutAtLocal: a.checkOutAtLocal || null,
+          workedMinutes: workedMin,
+          note: a.note || ""
+        });
+      }
+
+      out.sort((x,y)=>{
+        if(x.date !== y.date) return x.date.localeCompare(y.date);
+        if(x.branchName !== y.branchName) return String(x.branchName).localeCompare(String(y.branchName));
+        return String(x.employeeName).localeCompare(String(y.employeeName));
+      });
+
+      return out;
+    }
+
+    function buildSummaryRows(dailyRows){
+      const map = new Map();
+      for(const r of dailyRows){
+        const k = r.employeeId || r.employeeEmail || r.employeeName;
+        if(!map.has(k)){
+          map.set(k, {
+            employeeId: r.employeeId || "",
+            employeeName: r.employeeName || "-",
+            employeeEmail: r.employeeEmail || "",
+            days: 0,
+            presentDays: 0,
+            absentDays: 0,
+            leaveDays: 0,
+            lateDays: 0,
+            workedMinutes: 0
+          });
+        }
+        const g = map.get(k);
+        g.days++;
+
+        const st = String(r.status||"").toLowerCase();
+        if(st==="leave") g.leaveDays++;
+        else if(st==="absent") g.absentDays++;
+        else if(st==="completed" || st==="present"){
+          g.presentDays++;
+          if(Number(r.minutesLate||0)>0) g.lateDays++;
+        }
+
+        g.workedMinutes += Number(r.workedMinutes||0);
+      }
+
+      const out = Array.from(map.values());
+      out.sort((a,b)=> String(a.employeeName).localeCompare(String(b.employeeName)));
+      return out;
+    }
+
+    function render(mode, rows){
+      lastMode = mode;
+      lastRows = rows;
+
+      const tb = $("tbody");
+      const th = $("thead");
+      tb.innerHTML = "";
+
+      if(mode === "summary"){
+        $("tblTitle").textContent = "ملخص ساعات الدوام (مجموع الفترة)";
+        th.innerHTML = `
+          <tr>
+            <th>الموظف</th>
+            <th>الإيميل</th>
+            <th>أيام ضمن الفترة</th>
+            <th>Present</th>
+            <th>Late</th>
+            <th>Absent</th>
+            <th>Leave</th>
+            <th>إجمالي Worked</th>
+          </tr>
+        `;
+
+        for(const r of rows){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${escapeHtml(r.employeeName)}</td>
+            <td>${escapeHtml(r.employeeEmail || "")}</td>
+            <td>${escapeHtml(r.days)}</td>
+            <td><span class="badge ok">${escapeHtml(r.presentDays)}</span></td>
+            <td><span class="badge warn">${escapeHtml(r.lateDays)}</span></td>
+            <td><span class="badge bad">${escapeHtml(r.absentDays)}</span></td>
+            <td><span class="badge ok">${escapeHtml(r.leaveDays)}</span></td>
+            <td class="timeCell"><b>${escapeHtml(minutesToHhmm(r.workedMinutes))}</b></td>
+          `;
+          tb.appendChild(tr);
+        }
+        return;
+      }
+
+      $("tblTitle").textContent = "تفصيل يومي (لكل موظف بكل يوم)";
+      th.innerHTML = `
+        <tr>
+          <th>التاريخ</th>
+          <th>الموظف</th>
+          <th>الإيميل</th>
+          <th>الفرع</th>
+          <th>الشفت</th>
+          <th>الحالة</th>
+          <th>Check-In</th>
+          <th>Check-Out</th>
+          <th>Worked</th>
+          <th>ملاحظة</th>
+        </tr>
+      `;
+
+      for(const r of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(r.date)}</td>
+          <td>${escapeHtml(r.employeeName)}</td>
+          <td>${escapeHtml(r.employeeEmail || "")}</td>
+          <td>${escapeHtml(r.branchName || r.branchId || "")}</td>
+          <td>${escapeHtml(r.shiftName || "")} <span class="badge">${escapeHtml((r.start&&r.end)?(r.start+"-"+r.end):"")}</span></td>
+          <td>${statusBadge(r.status, r.minutesLate)}</td>
+          <td class="timeCell">${escapeHtml(fmtTimeFromMs(r.checkInAtLocal))}</td>
+          <td class="timeCell">${escapeHtml(fmtTimeFromMs(r.checkOutAtLocal))}</td>
+          <td class="timeCell"><b>${escapeHtml(minutesToHhmm(r.workedMinutes))}</b></td>
+          <td>${escapeHtml(r.note || "")}</td>
+        `;
+        tb.appendChild(tr);
+      }
+    }
+
+    function exportExcel(){
+      const XLSX = window.XLSX;
+      if(!XLSX) return setMsg("مكتبة Excel غير محمّلة.", "bad");
+      if(!lastRows.length) return setMsg("لا يوجد بيانات للتصدير. احسب أولاً ✅", "bad");
+
+      let headers = [];
+      let data = [];
+
+      if(lastMode === "summary"){
+        headers = ["الموظف","الإيميل","أيام","Present","Late","Absent","Leave","إجمالي Worked (HH:MM)"];
+        data = lastRows.map(r=>[
+          r.employeeName || "",
+          r.employeeEmail || "",
+          r.days || 0,
+          r.presentDays || 0,
+          r.lateDays || 0,
+          r.absentDays || 0,
+          r.leaveDays || 0,
+          minutesToHhmm(r.workedMinutes || 0)
+        ]);
+      }else{
+        headers = ["التاريخ","الموظف","الإيميل","الفرع","الشفت","الحالة","CheckIn","CheckOut","Worked (HH:MM)","ملاحظة"];
+        data = lastRows.map(r=>[
+          r.date || "",
+          r.employeeName || "",
+          r.employeeEmail || "",
+          r.branchName || r.branchId || "",
+          r.shiftName || "",
+          r.status || "",
+          r.checkInAtLocal ? new Date(r.checkInAtLocal).toISOString() : "",
+          r.checkOutAtLocal ? new Date(r.checkOutAtLocal).toISOString() : "",
+          minutesToHhmm(r.workedMinutes || 0),
+          r.note || ""
+        ]);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+      for(let c=0; c<headers.length; c++){
+        const addr = XLSX.utils.encode_cell({ r:0, c });
+        if(ws[addr]){
+          ws[addr].s = {
+            font: { bold:true, color:{ rgb:"FFFFFFFF" } },
+            fill: { patternType:"solid", fgColor:{ rgb:"FF111827" } },
+            alignment: { horizontal:"center", vertical:"center" },
+            border: {
+              top:{style:"thin",color:{rgb:"FF374151"}},
+              bottom:{style:"thin",color:{rgb:"FF374151"}},
+              left:{style:"thin",color:{rgb:"FF374151"}},
+              right:{style:"thin",color:{rgb:"FF374151"}},
+            }
+          };
+        }
+      }
+
+      ws["!cols"] = headers.map(()=>({ wch: 18 }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, lastMode === "summary" ? "Summary" : "Daily");
+
+      const f = $("fFrom").value || "from";
+      const t = $("fTo").value || "to";
+      const b = $("fBranch").value || "all";
+      XLSX.writeFile(wb, `hours_${lastMode}_${b}_${f}_${t}.xlsx`);
+      setMsg("تم تصدير Excel ✅", "ok");
+    }
+
+    async function calc(){
+      try{
+        const from = $("fFrom").value;
+        const to   = $("fTo").value;
+        const branchId = $("fBranch").value || "";
+        const q = $("fQ").value || "";
+        const mode = $("fMode").value || "daily";
+
+        if(!from || !to) return setMsg("اختر من/إلى", "bad");
+        if(from > to) return setMsg("من لازم قبل إلى", "bad");
+
+        setMsg("... جارِ الحساب", "ok");
+
+        const attSnap = await getDocs(collection(db,"attendance"));
+        const attList = [];
+        attSnap.forEach(d=> attList.push({ __id:d.id, ...(d.data()||{}) }));
+
+        const daily = buildDailyRows(attList, from, to, branchId, q);
+
+        if(!daily.length){
+          render("daily", []);
+          return setMsg("لا يوجد سجلات attendance ضمن الفلترة.", "bad");
+        }
+
+        if(mode === "summary"){
+          const summary = buildSummaryRows(daily);
+          render("summary", summary);
+          setMsg(`تم الحساب ✅ (موظفين: ${summary.length})`, "ok");
+        }else{
+          render("daily", daily);
+          setMsg(`تم الحساب ✅ (سجلات: ${daily.length})`, "ok");
+        }
+      }catch(e){
+        console.error(e);
+        setMsg(e?.message || "خطأ", "bad");
+      }
+    }
+
+    $("btnCalc").addEventListener("click", calc);
+    $("btnExport").addEventListener("click", exportExcel);
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="./login.html"; return; }
+
+      const mePill = document.getElementById("mePill");
+      if(mePill) mePill.textContent = user.email || user.uid;
+
+      window.__romaUserText = (user.email || user.uid);
+      try{
+        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+      }catch{}
+
+      const ok = await requireAdmin(user);
+      if(!ok){
+        const admins = await getDocs(query(collection(db,"employees"), where("role","==","admin")));
+        if(admins.size>0){ location.href="./staff.html"; return; }
+      }
+
+      await loadBranchSelect();
+
+      const today = new Date();
+      const to = new Date(today);
+      const from = new Date(today); from.setDate(from.getDate()-6);
+
+      $("fFrom").value = ymd(from);
+      $("fTo").value = ymd(to);
+
+      setMsg("جاهز ✅ اختر فلترة واضغط (حساب)", "ok");
+    });
+  </script>
+</body>
+</html>

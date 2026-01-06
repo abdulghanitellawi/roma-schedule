@@ -5,123 +5,369 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Roma Schedule - Admin Dashboard</title>
   <link rel="icon" href="./assets/logo.webp">
-  <!-- Excel export (same as admin-schedule / admin-saved-shifts) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
   <style>
-    :root{--bg:#0b1220;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.14);--txt:#e5e7eb;--muted:#9ca3af;--accent:#d4a019;--shadow:0 18px 60px rgba(0,0,0,.35);--ok:#16a34a;--bad:#ef4444;--warn:#f59e0b;}
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.04);
+      --line:rgba(255,255,255,.14);
+      --line2:rgba(255,255,255,.10);
+      --txt:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#d4a019;
+      --shadow:0 18px 60px rgba(0,0,0,.35);
+      --ok:#16a34a;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+      --info:#60a5fa;
+      --ease:cubic-bezier(.22,.61,.36,1);
+    }
+
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif}
-    .top{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(10,16,28,.55);border-bottom:1px solid var(--line)}
-    .topin{max-width:1200px;margin:0 auto;padding:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
-    .brand{display:flex;gap:10px;align-items:center}
-    .brand img{width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
-    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
-    a.btn,button.btn{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
-    .btn:hover{background:rgba(255,255,255,.09)}
+    body{
+      margin:0;min-height:100vh;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(212,160,25,.16), transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, rgba(59,130,246,.14), transparent 55%),
+        var(--bg);
+      color:var(--txt);
+      font-family:system-ui,"Noto Sans Arabic",Tahoma,Arial,sans-serif
+    }
+
+    a.btn,button.btn{
+      cursor:pointer;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:900;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      text-decoration:none;
+      transition: transform .12s var(--ease), background .12s var(--ease), border-color .12s var(--ease);
+      user-select:none;
+      min-height:42px;
+      white-space:nowrap;
+    }
+    .btn:hover{background:rgba(255,255,255,.10); transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
     .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
-    .btn.primary:hover{background:rgba(212,160,25,.20)}
+    .btn.primary:hover{background:rgba(212,160,25,.22)}
     .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
-    .btn.danger:hover{background:rgba(239,68,68,.16)}
+    .btn.danger:hover{background:rgba(239,68,68,.18)}
     .btn.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10)}
-    .btn.warn:hover{background:rgba(245,158,11,.15)}
+    .btn.warn:hover{background:rgba(245,158,11,.16)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+
     .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
-    .wrap{max-width:1200px;margin:0 auto;padding:14px}
-    .card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:12px;box-shadow:var(--shadow)}
+
+    .wrap{
+      max-width:1600px;
+      margin:0 auto;
+      padding:14px;
+      padding-top:14px!important;
+    }
+
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+      border-radius:18px;
+      padding:12px;
+      box-shadow:var(--shadow);
+    }
+
     h2{margin:0 0 10px;font-size:18px}
-    h3{margin:12px 0 8px;font-size:15px}
     .mini{color:var(--muted);font-size:12px;line-height:1.7}
-    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none}
+
+    .msg{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);display:none;white-space:pre-line}
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+
     .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
-    .box{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:16px;padding:12px}
-    .box b{font-size:22px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    @media (max-width:980px){.grid{grid-template-columns:1fr}}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    input,select{
-      border:1px solid var(--line); background:rgba(0,0,0,.18); color:var(--txt);
-      padding:10px 12px; border-radius:12px; outline:none;
+    .box{
+      border:1px solid var(--line2);
+      background:rgba(255,255,255,.05);
+      border-radius:16px;
+      padding:12px;
+      min-width:0;
     }
-    table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px}
-    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08); text-align:right; font-size:13px}
-    th{color:var(--muted); font-weight:900; background:rgba(255,255,255,.04)}
-    .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
-    .badge.ok{border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12); color:#d1fae5}
-    .badge.bad{border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:#fee2e2}
-    .badge.warn{border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.10); color:#ffedd5}
-    .actions{display:flex; gap:8px; flex-wrap:wrap}
-    .sep{border:none;border-top:1px solid rgba(255,255,255,.12); margin:14px 0}
+    .box b{font-size:22px}
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .split{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+
+    .toolbar{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+      padding:10px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);border-radius:16px;
+      margin-top:8px;
+      min-width:0;
+    }
+    .toolbar .left,.toolbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+    input,select,textarea{
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.20);
+      color:var(--txt);
+      padding:11px 12px;
+      border-radius:12px;
+      outline:none;
+      min-height:42px;
+      transition:.15s var(--ease);
+      min-width:0;
+      max-width:100%;
+    }
+    textarea{min-height:90px; resize:vertical}
+    input:focus,select:focus,textarea:focus{border-color:rgba(212,160,25,.70);box-shadow:0 0 0 4px rgba(212,160,25,.14)}
+    input[type="date"]{min-width:180px}
+    select{min-width:220px}
+
+    /* ✅ time picker look + LTR */
+    input[type="time"]{
+      direction:ltr;
+      unicode-bidi:embed;
+      text-align:left;
+      min-width:180px;
+    }
+
+    .tableWrap{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      background:rgba(0,0,0,.12);
+      max-width:100%;
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      min-width:100%;
+    }
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:rgba(12,18,32,.92);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      font-weight:900;
+      text-align:right;
+    }
+    th,td{
+      padding:12px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      text-align:right;
+      font-size:13px;
+      vertical-align:middle;
+      white-space:nowrap;
+    }
+    tbody tr:nth-child(odd) td{background:rgba(255,255,255,.03)}
+    tbody tr:hover td{background:rgba(212,160,25,.06)}
+    .timeCell{direction:ltr;unicode-bidi:embed;text-align:left}
+
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:7px 10px;border:1px solid var(--line);
+      border-radius:999px;color:var(--muted);font-size:12px;white-space:nowrap;
+      background:rgba(255,255,255,.03);
+    }
+    .badge.ok{border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12);color:#d1fae5}
+    .badge.bad{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12);color:#fee2e2}
+    .badge.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10);color:#ffedd5}
+    .badge.info{border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.10);color:#dbeafe}
+
+    /* Actions */
+    td.actions{white-space:normal!important; width:170px}
+    .actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important;align-items:center!important;justify-content:flex-start!important}
+    .actions .btn{flex:1 1 160px!important}
+
+    tr.isPending td{
+      background: linear-gradient(90deg, rgba(245,158,11,.12), rgba(212,160,25,.06)) !important;
+      border-bottom-color: rgba(245,158,11,.20);
+    }
+
+    .top{display:none!important}
+    @media (min-width:980px){
+      .wrap{padding-right:330px;padding-left:14px}
+      html[dir="ltr"] .wrap{padding-left:330px;padding-right:14px}
+    }
+    @media (max-width:979.98px){.wrap{padding-top:10px}}
+    @media (min-width:980px){.wrap{padding-right:14px!important;padding-left:14px!important}}
+
+    /* ===== Modal ===== */
+    .modalBackdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+      z-index:9999;
+    }
+    .modal{
+      width:min(920px, 100%);
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(12,18,32,.92);
+      backdrop-filter: blur(12px);
+      border-radius:18px;
+      box-shadow:0 26px 90px rgba(0,0,0,.55);
+      overflow:hidden;
+      max-height:90vh;
+      overflow-y:auto;
+    }
+    .modalHead{
+      padding:12px 12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:5;
+      background:rgba(12,18,32,.92);
+      backdrop-filter: blur(12px);
+    }
+    .modalBody{padding:12px}
+    .modalGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width:800px){ .modalGrid{grid-template-columns:1fr} }
+    .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+    .modalFoot{
+      padding:12px;
+      border-top:1px solid rgba(255,255,255,.10);
+      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+      position:sticky; bottom:0; z-index:5;
+      background:rgba(12,18,32,.92);
+      backdrop-filter: blur(12px);
+    }
+    .hint{font-size:12px;color:var(--muted)}
+    .chip{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:8px 10px;border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;background:rgba(255,255,255,.04); color:var(--txt);
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .chip b{color:var(--txt)}
+    .chipsLine{display:flex;flex-wrap:wrap;gap:8px}
+
+    @media (max-width:768px){
+      th,td{font-size:12px;padding:8px}
+      .actions .btn{flex:1 1 100%!important}
+      input[type="date"]{min-width:150px}
+      select{min-width:160px}
+      input[type="time"]{min-width:150px}
+    }
   </style>
 </head>
+
 <body>
-  <div class="top">
-    <div class="topin">
-      <div class="brand">
-        <img src="./assets/logo.webp" alt="Roma">
-        <div>
-          <b>Roma Schedule</b>
-          <div class="pill" id="mePill">...</div>
-        </div>
-      </div>
-      <div class="nav">
-        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
-        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
-        <a class="btn" href="./admin-employees.html">الموظفين</a>
-        <a class="btn" href="./admin-leaves.html">الإجازات</a>
-        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
-        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
-        <button class="btn primary" id="btnMakeAdmin" title="مرة واحدة فقط">اجعل Admin</button>
-        <button class="btn danger" id="btnOut">خروج</button>
-      </div>
-    </div>
-  </div>
+
+  <div id="navMount"></div>
+
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+          await loadScript("./nav.js?v=" + Date.now());
+          if(window.__romaUserText){
+            try{ window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } })); }catch{}
+          }
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(()=>{});
+    })();
+  </script>
 
   <div class="wrap">
+
     <div class="card">
-      <h2>نظرة عامة</h2>
-      <div class="kpi">
+      <div class="split">
+        <div>
+          <h2 style="margin:0 0 6px">لوحة الإدارة</h2>
+          <div class="mini"></div>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn primary" id="btnMakeAdmin2" title="مرة واحدة فقط">اجعل Admin</button>
+          <button class="btn danger" id="btnOut2">خروج</button>
+        </div>
+      </div>
+
+      <div class="kpi" style="margin-top:10px">
         <div class="box"><div class="mini">الفروع</div><b id="kBranches">0</b></div>
         <div class="box"><div class="mini">الموظفين (employees)</div><b id="kEmployees">0</b></div>
         <div class="box"><div class="mini">الموظفين (employees_email)</div><b id="kPresets">0</b></div>
-        <div class="box"><div class="mini">طلبات Pending</div><b id="kLeaves">0</b></div>
+        <div class="box"><div class="mini">طلبات إجازة Pending</div><b id="kLeaves">0</b></div>
       </div>
+
       <div id="msgDash" class="msg"></div>
-      <div class="mini" style="margin-top:10px">
-        • كل فرع له شفتات 8 ساعات (end يُحسب تلقائيًا)<br>
-        • Regular له branchId ثابت<br>
-        • Cover يغطي الكل أو فروع محددة<br>
-        • الجداول تنحفظ داخل: employees/{uid}/schedules لتجنب مشاكل الـ Index
-      </div>
     </div>
 
-    <div class="grid" style="margin-top:14px">
-      <div class="card">
-        <h2>Dashboard الحضور</h2>
-        <div class="row">
-          <label class="mini">التاريخ</label>
-          <input type="date" id="fDate">
-          <label class="mini">الفرع</label>
-          <select id="fBranch"></select>
+    <div class="grid">
 
-          <button class="btn" id="btnReloadAtt">تحديث</button>
-          <button class="btn primary" id="btnExportExcel">تصدير Excel</button>
-          <button class="btn" id="btnExportPdf">تصدير PDF</button>
+      <!-- Attendance -->
+      <div class="card">
+        <div class="split">
+          <div>
+            <h2 style="margin:0 0 6px">الحضور والغياب</h2>
+            <div class="mini"></div>
+          </div>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn" id="btnReloadAtt">تحديث</button>
+            <button class="btn primary" id="btnExportExcel">تصدير Excel</button>
+            <button class="btn" id="btnExportPdf">تصدير PDF</button>
+          </div>
         </div>
 
-        <div class="kpi" style="margin-top:10px">
-          <div class="box"><div class="mini">👤 حضر</div><b id="kPresent">0</b></div>
-          <div class="box"><div class="mini">⏰ متأخر</div><b id="kLate">0</b></div>
-          <div class="box"><div class="mini">❌ غايب</div><b id="kAbsent">0</b></div>
-          <div class="box"><div class="mini">✅ إجازة</div><b id="kLeaveDay">0</b></div>
+        <div class="toolbar">
+          <div class="left">
+            <label class="mini">التاريخ</label>
+            <input type="date" id="fDate">
+            <label class="mini">الفرع</label>
+            <select id="fBranch"></select>
+          </div>
+          <div class="right">
+            <span class="badge ok">👤 حضر: <b id="kPresent" style="margin-inline-start:6px">0</b></span>
+            <span class="badge warn">⏰ متأخر: <b id="kLate" style="margin-inline-start:6px">0</b></span>
+            <span class="badge bad">❌ غايب: <b id="kAbsent" style="margin-inline-start:6px">0</b></span>
+            <span class="badge ok">✅ إجازة: <b id="kLeaveDay" style="margin-inline-start:6px">0</b></span>
+          </div>
         </div>
 
         <div id="msgAtt" class="msg"></div>
 
-        <hr class="sep">
-
-        <div style="overflow:auto">
+        <div class="tableWrap" style="margin-top:12px">
           <table>
             <thead>
               <tr>
@@ -129,8 +375,8 @@
                 <th>الفرع</th>
                 <th>الشفت</th>
                 <th>الحالة</th>
-                <th>Check-In</th>
-                <th>Check-Out</th>
+                <th class="timeCell">Check-In</th>
+                <th class="timeCell">Check-Out</th>
                 <th>Late</th>
                 <th>Worked</th>
               </tr>
@@ -138,41 +384,133 @@
             <tbody id="attTbody"></tbody>
           </table>
         </div>
-
-        <div class="mini" style="margin-top:10px">
-          • الغياب التلقائي يتم تسجيله عندما يكون الشفت انتهى ولم يوجد Check-In.<br>
-          • إذا الموظف بإجازة Approved: نسجّل الحالة Leave ونمنع Check-In.
-        </div>
       </div>
 
+      <!-- Corrections -->
       <div class="card">
-        <h2>طلبات تصحيح الدوام</h2>
-        <div class="row">
-          <button class="btn" id="btnReloadFix">تحديث</button>
+        <div class="split">
+          <div>
+            <h2 style="margin:0 0 6px">طلبات تصحيح الحضور</h2>
+            <div class="mini"></div>
+          </div>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn" id="btnReloadFix">تحديث</button>
+          </div>
         </div>
 
-        <div style="overflow:auto; margin-top:10px">
+        <div class="toolbar">
+          <div class="left">
+            <span class="chip">
+              <input id="onlyPending" type="checkbox" style="min-height:auto; width:18px; height:18px; margin:0">
+              <label for="onlyPending" style="cursor:pointer">عرض فقط الطلبات الجديدة (Pending)</label>
+            </span>
+
+            <label class="mini">حجم الصفحة</label>
+            <select id="pageSizeSel">
+              <option value="15">15</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+            </select>
+
+            <span class="badge info" id="pageInfo">صفحة: 1</span>
+          </div>
+
+          <div class="right">
+            <button class="btn" id="btnPrev">السابق</button>
+            <button class="btn primary" id="btnNext">التالي</button>
+          </div>
+        </div>
+
+        <div class="kpi" style="margin-top:10px">
+          <div class="box"><div class="mini">ضمن هذه الصفحة: Pending</div><b id="kPagePending">0</b></div>
+          <div class="box"><div class="mini">ضمن هذه الصفحة: Approved</div><b id="kPageApplied">0</b></div>
+          <div class="box"><div class="mini">ضمن هذه الصفحة: Rejected</div><b id="kPageRejected">0</b></div>
+          <div class="box"><div class="mini">Top فرع (آخر 500)</div><b id="kTopBranch">-</b></div>
+        </div>
+
+        <div id="branchesStats" class="mini" style="margin-top:10px"></div>
+        <div id="msgFix" class="msg"></div>
+
+        <div class="tableWrap" style="margin-top:12px">
           <table>
             <thead>
               <tr>
                 <th>التاريخ</th>
                 <th>الموظف</th>
                 <th>الفرع</th>
-                <th>الشفت</th>
-                <th>السبب</th>
+                <th class="timeCell">المطلوب</th>
                 <th>الحالة</th>
-                <th>إجراء</th>
+                <th style="width:170px">إجراء</th>
               </tr>
             </thead>
             <tbody id="fixTbody"></tbody>
           </table>
         </div>
-        <div id="msgFix" class="msg"></div>
+      </div>
 
-        <div class="mini" style="margin-top:10px">
-          • عند الموافقة: يتم وضع علامة Approved على الطلب فقط (تقدر توسّعها لاحقاً لتعديل الوقت فعلياً).<br>
-          • هذه الصفحة جاهزة لتطوير “تعديل دخول/خروج” حسب ما بدك.
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalBackdrop" id="editModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modalHead">
+        <div>
+          <b id="editTitle">تعديل طلب تصحيح الحضور</b>
+          <div class="hint" id="editSub">—</div>
         </div>
+        <button class="btn" id="btnCloseModal">إغلاق</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="chipsLine" id="mSummary" style="margin-bottom:12px"></div>
+
+        <div class="modalGrid">
+          <div class="field">
+            <label>قرار الأدمن: الحالة</label>
+            <select id="mStatus">
+              <option value="pending">Pending (جديد)</option>
+              <option value="approved">Approved (موافقة)</option>
+              <option value="rejected">Rejected (مرفوض)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>تاريخ الطلب</label>
+            <input id="mDate" placeholder="YYYY-MM-DD">
+          </div>
+
+          <div class="field">
+            <label>وقت دخول جديد</label>
+            <input id="mNewInHM" type="time" step="60">
+            <div class="hint"></div>
+          </div>
+
+          <div class="field">
+            <label>وقت خروج جديد</label>
+            <input id="mNewOutHM" type="time" step="60">
+            <div class="hint"></div>
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <label>ملاحظة الموظف (سبب التصحيح)</label>
+            <textarea id="mEmployeeNote" placeholder="ملاحظة الطلب/سبب التصحيح..."></textarea>
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <label>ملاحظة الأدمن (اختياري)</label>
+            <textarea id="mAdminNote" placeholder="اكتب ملاحظة داخلية للأدمن..."></textarea>
+            <div class="hint"></div>
+          </div>
+        </div>
+
+        <div class="hint" id="mHint" style="margin-top:10px"></div>
+      </div>
+
+      <div class="modalFoot">
+        <button class="btn danger" id="btnRejectQuick">رفض</button>
+        <button class="btn" id="btnSaveDraft">حفظ</button>
+        <button class="btn primary" id="btnSaveApply">موافقة + تطبيق على سجل الحضور</button>
       </div>
     </div>
   </div>
@@ -182,8 +520,8 @@
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore, doc, getDoc, setDoc, updateDoc,
-      collection, getDocs,
-      query, where,
+      collection, getDocs, query, where,
+      orderBy, limit, startAfter, endBefore, limitToLast,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -204,8 +542,10 @@
     const $ = (id)=>document.getElementById(id);
     const setMsg = (id, text, type="ok")=>{
       const el = $(id);
+      if(!el) return;
       el.className = "msg " + (type==="bad"?"bad":"ok");
       el.textContent = text;
+      el.style.display = "block";
     };
 
     async function requireAdmin(user){
@@ -220,6 +560,7 @@
       const da = String(dt.getDate()).padStart(2,"0");
       return `${y}-${m}-${da}`;
     }
+
     function timeToMin(t){
       const s = String(t||"").trim();
       const m = /^(\d{1,2}):(\d{2})$/.exec(s);
@@ -228,19 +569,11 @@
       const mm = Math.max(0, Math.min(59, Number(m[2])));
       return hh*60+mm;
     }
-    function nowMin(){
-      const d=new Date();
-      return d.getHours()*60 + d.getMinutes();
-    }
+
     function safeId(s){
       return String(s||"").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,240);
     }
-    function fmtTime(ms){
-      if(!ms) return "-";
-      try{
-        return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      }catch{ return "-"; }
-    }
+
     function escapeHtml(s){
       return String(s ?? "").replace(/[&<>"]/g, (c)=>({
         "&":"&amp;",
@@ -248,6 +581,26 @@
         ">":"&gt;",
         "\"":"&quot;"
       }[c]));
+    }
+
+    function fmtTime(ms){
+      if(!ms) return "-";
+      try{
+        return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      }catch{ return "-"; }
+    }
+
+    function normalizeEmailToPresetId(email){
+      const e = String(email||"").trim().toLowerCase();
+      if(!e) return null;
+      return "preset:" + e.replace(/\./g,"(dot)");
+    }
+
+    function employeeKeyFromAny(employeeId, employeeEmail){
+      const id = String(employeeId||"");
+      if(id.startsWith("preset:")) return id;
+      const byEmail = normalizeEmailToPresetId(employeeEmail);
+      return byEmail || (id || "");
     }
 
     async function loadBranchSelect(){
@@ -277,18 +630,42 @@
       snap.forEach(d=>{
         const x = d.data() || {};
         if(String(x.status||"").toLowerCase() !== "approved") return;
-        if(!x.employeeId || !x.from || !x.to) return;
-        out.push({ ...x });
+        if(!x.employeeId) return;
+        out.push({ __id:d.id, ...x });
       });
       return out;
     }
 
+    function leaveDaysSet(leave){
+      const mode = leave.leaveMode || "range";
+      const set = new Set();
+      if(mode==="scattered" && Array.isArray(leave.dates)){
+        leave.dates.forEach(d=>{
+          if(typeof d==="string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) set.add(d);
+        });
+        return set;
+      }
+      if(leave.from && leave.to){
+        const a=new Date(leave.from+"T12:00:00"), b=new Date(leave.to+"T12:00:00");
+        for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)){
+          set.add(ymd(d));
+        }
+      }
+      return set;
+    }
+
     function isOnLeave(leaves, employeeId, dateStr){
       for(const l of leaves){
-        if(l.employeeId !== employeeId) continue;
-        if(dateStr >= l.from && dateStr <= l.to) return true;
+        if(String(l.employeeId) !== String(employeeId)) continue;
+        const days = leaveDaysSet(l);
+        if(days.has(dateStr)) return true;
       }
       return false;
+    }
+
+    function nowMin(){
+      const d=new Date();
+      return d.getHours()*60 + d.getMinutes();
     }
 
     async function markAutoAbsencesForDate(dateStr){
@@ -305,11 +682,15 @@
 
       const attSnap = await getDocs(collection(db,"attendance"));
       const attByKey = new Map();
+
       attSnap.forEach(d=>{
         const x = d.data() || {};
         if(x.date !== dateStr) return;
-        if(!x.employeeId) return;
-        const k = `${x.employeeId}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+
+        const empKey = employeeKeyFromAny(x.employeeId, x.employeeEmail);
+        if(!empKey) return;
+
+        const k = `${empKey}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
         attByKey.set(k, { id:d.id, ...x });
       });
 
@@ -323,16 +704,17 @@
         const ended = (endMin===null) ? false : (nowMin() >= endMin);
         if(!ended) continue;
 
-        const k = `${s.employeeId}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
+        const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
         const hasAttendance = attByKey.has(k);
 
-        const onLeave = isOnLeave(leaves, s.employeeId, dateStr);
+        const onLeave = isOnLeave(leaves, empKey, dateStr);
         const attId = safeId(k);
 
         if(onLeave){
           if(!hasAttendance){
             await setDoc(doc(db,"attendance", attId), {
-              employeeId: s.employeeId,
+              employeeId: empKey,
               employeeName: s.employeeName || "",
               employeeEmail: s.employeeEmail || "",
               date: s.date,
@@ -352,7 +734,7 @@
 
         if(!hasAttendance){
           await setDoc(doc(db,"attendance", attId), {
-            employeeId: s.employeeId,
+            employeeId: empKey,
             employeeName: s.employeeName || "",
             employeeEmail: s.employeeEmail || "",
             date: s.date,
@@ -381,15 +763,17 @@
         loadLeavesApproved()
       ]);
 
-      const rows = [];
       const attMap = new Map();
-
       attSnap.forEach(d=>{
         const x = d.data() || {};
         if(x.date !== dateStr) return;
         if(branchId && String(x.branchId||"") !== String(branchId)) return;
-        const k = `${x.employeeId}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
-        attMap.set(k, { __id: d.id, ...x });
+
+        const empKey = employeeKeyFromAny(x.employeeId, x.employeeEmail);
+        if(!empKey) return;
+
+        const k = `${empKey}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        attMap.set(k, { __id: d.id, ...x, __empKey: empKey });
       });
 
       const shifts = [];
@@ -401,18 +785,25 @@
         shifts.push({ __id: d.id, ...x });
       });
 
+      const rows = [];
+
       for(const s of shifts){
-        const k = `${s.employeeId}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
+        const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
         const a = attMap.get(k);
 
         if(a){
           rows.push({ ...a });
         }else{
-          const onLeave = isOnLeave(leaves, s.employeeId, dateStr);
+          const onLeave = isOnLeave(leaves, empKey, dateStr);
+          const empNameFallback =
+            s.employeeName ||
+            (emps.find(e=> String(e.id)===String(s.employeeId))?.name || "");
+
           rows.push({
-            employeeId: s.employeeId,
-            employeeName: s.employeeName || (emps.find(e=>e.id===s.employeeId)?.name || ""),
-            employeeEmail: s.employeeEmail || (emps.find(e=>e.id===s.employeeId)?.email || ""),
+            employeeId: empKey,
+            employeeName: empNameFallback || s.employeeName || "",
+            employeeEmail: s.employeeEmail || "",
             date: s.date,
             branchId: s.branchId || "",
             branchName: s.branchName || "",
@@ -452,12 +843,13 @@
 
       const tb = $("attTbody");
       tb.innerHTML = "";
+
       for(const r of rows){
         const st = String(r.status||"").toLowerCase();
         const badge =
-          st==="leave" ? `<span class="badge ok">Leave</span>` :
-          st==="absent" ? `<span class="badge bad">Absent</span>` :
-          (Number(r.minutesLate||0)>0 ? `<span class="badge warn">Late</span>` : `<span class="badge ok">Present</span>`);
+          st==="leave" ? `<span class="badge ok">✅ إجازة</span>` :
+          st==="absent" ? `<span class="badge bad">❌ غياب</span>` :
+          (Number(r.minutesLate||0)>0 ? `<span class="badge warn">⏰ متأخر</span>` : `<span class="badge ok">👤 حضر</span>`);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -465,10 +857,10 @@
           <td>${escapeHtml(r.branchName || r.branchId || "-")}</td>
           <td>${escapeHtml(r.shiftName || "-")} <span class="badge">${escapeHtml((r.start&&r.end)?(r.start+"-"+r.end):"")}</span></td>
           <td>${badge}</td>
-          <td>${fmtTime(r.checkInAtLocal)}</td>
-          <td>${fmtTime(r.checkOutAtLocal)}</td>
-          <td>${r.minutesLate ? `${escapeHtml(r.minutesLate)}د` : "-"}</td>
-          <td>${r.workedMinutes ? `${escapeHtml(r.workedMinutes)}د` : "-"}</td>
+          <td class="timeCell">${fmtTime(r.checkInAtLocal)}</td>
+          <td class="timeCell">${fmtTime(r.checkOutAtLocal)}</td>
+          <td>${r.minutesLate!=null ? `${escapeHtml(r.minutesLate)}د` : "-"}</td>
+          <td>${r.workedMinutes!=null ? `${escapeHtml(r.workedMinutes)}د` : "-"}</td>
         `;
         tb.appendChild(tr);
       }
@@ -484,7 +876,7 @@
       const XLSX = window.XLSX;
       if(!XLSX) return setMsg("msgAtt","مكتبة Excel غير محمّلة.","bad");
 
-      const headers = ["التاريخ","الموظف","الإيميل","الفرع","الشفت","البداية","النهاية","الحالة","CheckIn","CheckOut","Late(min)","Worked(min)","ملاحظة"];
+      const headers = ["التاريخ","الموظف","الإيميل","الفرع","الشفت","البداية","النهاية","الحالة","CheckIn(ms)","CheckOut(ms)","Late(min)","Worked(min)","ملاحظة"];
       const data = rows.map(r=>[
         r.date || "",
         r.employeeName || "",
@@ -494,8 +886,8 @@
         r.start || "",
         r.end || "",
         (r.status || ""),
-        r.checkInAtLocal ? new Date(r.checkInAtLocal).toISOString() : "",
-        r.checkOutAtLocal ? new Date(r.checkOutAtLocal).toISOString() : "",
+        r.checkInAtLocal || "",
+        r.checkOutAtLocal || "",
         r.minutesLate || "",
         r.workedMinutes || "",
         r.note || ""
@@ -535,9 +927,7 @@
 
       const date = window.__attDate || "";
       const br = window.__attBranchId || "";
-
-      /* ✅ FIXED: no nested template literals */
-      const title = "Attendance Report — " + date + (br ? " (" + br + ")" : "");
+      const title = "تقرير الحضور — " + date + (br ? " (" + br + ")" : "");
 
       const html = `
         <html lang="ar" dir="rtl">
@@ -569,13 +959,12 @@
                   <td>${escapeHtml(r.status||'')}</td>
                   <td>${escapeHtml(fmtTime(r.checkInAtLocal))}</td>
                   <td>${escapeHtml(fmtTime(r.checkOutAtLocal))}</td>
-                  <td>${escapeHtml(r.minutesLate||'')}</td>
-                  <td>${escapeHtml(r.workedMinutes||'')}</td>
+                  <td>${escapeHtml(r.minutesLate ?? '')}</td>
+                  <td>${escapeHtml(r.workedMinutes ?? '')}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-       
         </body>
         </html>
       `;
@@ -585,64 +974,538 @@
       w.document.open();
       w.document.write(html);
       w.document.close();
-      setMsg("msgAtt","تم فتح PDF للطباعة ✅ (اختر Save as PDF)","ok");
+      setMsg("msgAtt","تم فتح صفحة الطباعة ✅ (اختر Save as PDF)","ok");
     }
 
-    async function loadCorrections(){
-      const snap = await getDocs(collection(db,"attendance_corrections"));
-      const rows=[];
+    function buildAttendanceDocIdFromCorrection(c){
+      const empKey = employeeKeyFromAny(c.employeeId, c.employeeEmail);
+      const date = c.date || c.shiftDate || "";
+      const branchId = c.branchId || "";
+      const shiftName = c.shiftName || c.shift || "";
+      const start = c.start || c.shiftStart || "";
+      if(!empKey || !date || !branchId || !shiftName || !start) return null;
+      return safeId(`${empKey}__${date}__${branchId}__${shiftName}__${start}`);
+    }
+
+    function calcMinutesLateAndWorked(startStr, checkInMs, checkOutMs){
+      const startMin = timeToMin(startStr);
+      let minutesLate = null;
+      if(startMin!=null && checkInMs){
+        const d = new Date(checkInMs);
+        const inMin = d.getHours()*60 + d.getMinutes();
+        minutesLate = Math.max(0, inMin - startMin);
+      }
+      let workedMinutes = null;
+      if(checkInMs && checkOutMs && Number(checkOutMs) > Number(checkInMs)){
+        workedMinutes = Math.floor((Number(checkOutMs)-Number(checkInMs))/60000);
+      }
+      return { minutesLate, workedMinutes };
+    }
+
+    /* =========================================================
+       ✅ FIX: find the REAL attendance docId (even if auto-id)
+       ========================================================= */
+    async function findAttendanceDocIdSmart({ empKey, date, branchId, shiftName, start }){
+      const snap = await getDocs(collection(db,"attendance"));
+      let foundId = null;
+
       snap.forEach(d=>{
-        const x=d.data()||{};
-        rows.push({ __id:d.id, ...x });
+        const x = d.data() || {};
+        if(String(x.date||"") !== String(date||"")) return;
+
+        const kEmp = employeeKeyFromAny(x.employeeId, x.employeeEmail);
+        if(String(kEmp||"") !== String(empKey||"")) return;
+
+        if(String(x.branchId||"") !== String(branchId||"")) return;
+        if(String(x.shiftName||"") !== String(shiftName||"")) return;
+        if(String(x.start||"") !== String(start||"")) return;
+
+        if(!foundId) foundId = d.id;
       });
-      rows.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
 
-      const tb = $("fixTbody");
-      tb.innerHTML = "";
-      for(const r of rows.slice(0,100)){
-        const st = String(r.status||"pending").toLowerCase();
-        const badge =
-          st==="approved" ? `<span class="badge ok">Approved</span>` :
-          st==="rejected" ? `<span class="badge bad">Rejected</span>` :
-          `<span class="badge warn">Pending</span>`;
+      return foundId;
+    }
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(r.date||"-")}</td>
-          <td>${escapeHtml(r.employeeName||r.employeeEmail||r.employeeId||"-")}</td>
-          <td>${escapeHtml(r.branchName||r.branchId||"-")}</td>
-          <td>${escapeHtml(r.shiftName||"-")}</td>
-          <td>${escapeHtml(r.note||"")}</td>
-          <td>${badge}</td>
-          <td class="actions">
-            <button class="btn primary" data-approve="${escapeHtml(r.__id)}">موافقة</button>
-            <button class="btn danger" data-reject="${escapeHtml(r.__id)}">رفض</button>
-          </td>
-        `;
-        tb.appendChild(tr);
+    // ✅ تطبيق التصحيح (مُصلح: يعدّل نفس سجل الحضور الحقيقي)
+    async function applyCorrection(correctionId, mode){
+      const cRef = doc(db,"attendance_corrections", correctionId);
+      const cSnap = await getDoc(cRef);
+      if(!cSnap.exists()) throw new Error("طلب التصحيح غير موجود.");
+      const c = { __id: correctionId, ...(cSnap.data()||{}) };
+
+      const empKey = employeeKeyFromAny(c.employeeId, c.employeeEmail);
+      const date = c.date || c.shiftDate || "";
+      const branchId = c.branchId || "";
+      const shiftName = c.shiftName || c.shift || "";
+      const start = c.start || c.shiftStart || "";
+      const end = c.end || "";
+
+      if(!empKey || !date || !branchId || !shiftName || !start){
+        throw new Error("بيانات طلب التصحيح ناقصة (employee/date/branch/shift/start).");
       }
 
-      tb.querySelectorAll("button[data-approve]").forEach(b=>{
-        b.addEventListener("click", async ()=>{
-          const id = b.getAttribute("data-approve");
-          await updateDoc(doc(db,"attendance_corrections", id), { status:"approved", updatedAt: serverTimestamp() });
-          setMsg("msgFix","تمت الموافقة ✅","ok");
-          await loadCorrections();
+      if(mode === "rollback"){
+        const rb = c.rollbackData || null;
+        if(!rb) throw new Error("لا يوجد بيانات Rollback مخزّنة (لم يتم تطبيقه سابقاً).");
+
+        const existingId = await findAttendanceDocIdSmart({ empKey, date, branchId, shiftName, start });
+        const attId = existingId || safeId(`${empKey}__${date}__${branchId}__${shiftName}__${start}`);
+        const aRef = doc(db,"attendance", attId);
+
+        await setDoc(aRef, { ...rb, updatedAt: serverTimestamp() }, { merge:true });
+
+        await updateDoc(cRef, {
+          status: "approved",
+          rolledBackAt: serverTimestamp(),
+          rolledBackBy: auth.currentUser?.uid || null,
+          appliedAttendanceId: attId
         });
-      });
-      tb.querySelectorAll("button[data-reject]").forEach(b=>{
-        b.addEventListener("click", async ()=>{
-          const id = b.getAttribute("data-reject");
-          await updateDoc(doc(db,"attendance_corrections", id), { status:"rejected", updatedAt: serverTimestamp() });
-          setMsg("msgFix","تم الرفض ✅","ok");
-          await loadCorrections();
+        return "تم التراجع (Rollback) ✅";
+      }
+
+      const newIn  = c.newCheckInAtLocal ?? c.newCheckIn ?? c.checkInAtLocalNew ?? null;
+      const newOut = c.newCheckOutAtLocal ?? c.newCheckOut ?? c.checkOutAtLocalNew ?? null;
+
+      if(!newIn && !newOut){
+        throw new Error("الطلب لا يحتوي وقت دخول/خروج جديد.");
+      }
+
+      const existingId = await findAttendanceDocIdSmart({ empKey, date, branchId, shiftName, start });
+      const attId = existingId || safeId(`${empKey}__${date}__${branchId}__${shiftName}__${start}`);
+      const aRef = doc(db,"attendance", attId);
+
+      const aSnap = await getDoc(aRef);
+      const old = aSnap.exists() ? (aSnap.data()||{}) : {};
+
+      const alreadySnap = !!c.rollbackData;
+      if(!alreadySnap){
+        await updateDoc(cRef, {
+          rollbackData: {
+            checkInAtLocal: old.checkInAtLocal ?? null,
+            checkOutAtLocal: old.checkOutAtLocal ?? null,
+            minutesLate: old.minutesLate ?? null,
+            workedMinutes: old.workedMinutes ?? null,
+            status: old.status ?? null,
+            note: old.note ?? null
+          }
         });
+      }
+
+      const inMs  = newIn  ?? old.checkInAtLocal  ?? null;
+      const outMs = newOut ?? old.checkOutAtLocal ?? null;
+
+      const { minutesLate, workedMinutes } = calcMinutesLateAndWorked(start || old.start || "", inMs, outMs);
+      const status = (outMs ? "completed" : (inMs ? "present" : (old.status || "pending")));
+
+      await setDoc(aRef, {
+        employeeId: empKey,
+        employeeName: c.employeeName || old.employeeName || "",
+        employeeEmail: c.employeeEmail || old.employeeEmail || "",
+        date,
+        branchId,
+        branchName: c.branchName || old.branchName || "",
+        shiftName,
+        start,
+        end: end || old.end || "",
+        checkInAtLocal:  (newIn!=null ? Number(newIn) : old.checkInAtLocal ?? null),
+        checkOutAtLocal: (newOut!=null ? Number(newOut) : old.checkOutAtLocal ?? null),
+        minutesLate,
+        workedMinutes,
+        status,
+        note: c.note || old.note || "",
+        updatedAt: serverTimestamp()
+      }, { merge:true });
+
+      await updateDoc(cRef, {
+        appliedAt: serverTimestamp(),
+        appliedBy: auth.currentUser?.uid || null,
+        status: "approved",
+        appliedAttendanceId: attId
       });
+
+      return "تمت الموافقة + التطبيق ✅";
     }
 
-    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
+    const FIX = {
+      page: 1,
+      size: 25,
+      onlyPending: false,
+      lastDoc: null,
+      firstDoc: null,
+      rows: [],
+      busy: false,
+    };
 
-    $("btnMakeAdmin").addEventListener("click", async ()=>{
+    function badgeForStatus(row){
+      const st = String(row?.status || "pending").toLowerCase();
+      const isApplied = !!row?.appliedAt;
+
+      if(st==="approved"){
+        return isApplied
+          ? `<span class="badge ok">🟩 Approved • تم التطبيق</span>`
+          : `<span class="badge ok">✅ Approved</span>`;
+      }
+      if(st==="rejected") return `<span class="badge bad">🟥 Rejected</span>`;
+      return `<span class="badge warn">🟧 Pending</span>`;
+    }
+
+    function updatePageInfo(){
+      $("pageInfo").textContent = `صفحة: ${FIX.page} — ${FIX.size} / صفحة`;
+      $("btnPrev").disabled = (FIX.page<=1 || FIX.busy);
+      $("btnNext").disabled = FIX.busy;
+    }
+
+    async function loadBranchStatsLast500(){
+      try{
+        const q0 = query(collection(db,"attendance_corrections"), orderBy("createdAt","desc"), limit(500));
+        const snap = await getDocs(q0);
+        const counts = new Map();
+        snap.forEach(d=>{
+          const x = d.data() || {};
+          const key = String(x.branchName || x.branchId || "غير محدد");
+          counts.set(key, (counts.get(key)||0) + 1);
+        });
+
+        const arr = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
+        if(!arr.length){
+          $("kTopBranch").textContent = "-";
+          $("branchesStats").textContent = "لا توجد بيانات كافية لإحصائيات الفروع.";
+          return;
+        }
+
+        $("kTopBranch").textContent = `${arr[0][0]} (${arr[0][1]})`;
+
+        const line = arr.map(([k,v],i)=> `${i+1}) ${k}: ${v}`).join("  •  ");
+        $("branchesStats").textContent = "أكثر الفروع طلباً للتصحيح (آخر 500): " + line;
+      }catch(e){
+        $("kTopBranch").textContent = "-";
+        $("branchesStats").textContent = "تعذّر تحميل إحصائيات الفروع حالياً.";
+      }
+    }
+
+    function countPageKpis(rows){
+      let pending=0, approved=0, rejected=0;
+      for(const r of rows){
+        const st = String(r.status||"pending").toLowerCase();
+        if(st==="pending") pending++;
+        else if(st==="approved") approved++;
+        else if(st==="rejected") rejected++;
+      }
+      $("kPagePending").textContent = pending;
+      $("kPageApplied").textContent = approved;
+      $("kPageRejected").textContent = rejected;
+    }
+
+    function closeModal(){
+      $("editModal").style.display = "none";
+      window.__editingCorrection = null;
+    }
+    function openModal(){
+      $("editModal").style.display = "flex";
+      $("mHint").textContent = "";
+    }
+
+    function hmToMs(dateStr, hm){
+      const m = /^(\d{1,2}):(\d{2})$/.exec(String(hm||"").trim());
+      if(!m) return null;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr||""))) return null;
+      const hh = Math.max(0, Math.min(23, Number(m[1])));
+      const mm = Math.max(0, Math.min(59, Number(m[2])));
+      const dt = new Date(`${dateStr}T00:00:00`);
+      dt.setHours(hh, mm, 0, 0);
+      return dt.getTime();
+    }
+
+    function msToHM(ms){
+      if(!ms) return "";
+      try{
+        const d=new Date(ms);
+        const hh=String(d.getHours()).padStart(2,"0");
+        const mm=String(d.getMinutes()).padStart(2,"0");
+        return `${hh}:${mm}`;
+      }catch{return "";}
+    }
+
+    function fillModal(r){
+      window.__editingCorrection = r;
+
+      const date = r.date || r.shiftDate || "-";
+      const emp = r.employeeName || r.employeeEmail || r.employeeId || "-";
+      const br  = r.branchName || r.branchId || "-";
+      const sh  = r.shiftName || r.shift || "-";
+      const st  = (r.start || r.shiftStart || "");
+      const en  = (r.end || "");
+      const timeRange = (st && en) ? `${st}-${en}` : (st ? st : "-");
+
+      $("editSub").textContent = `ID: ${r.__id}`;
+
+      const rawStatus = String(r.status||"pending").toLowerCase();
+      const uiStatus = (rawStatus==="applied" || rawStatus==="rolled_back") ? "approved" : rawStatus;
+      $("mStatus").value = (uiStatus==="approved" || uiStatus==="rejected" || uiStatus==="pending") ? uiStatus : "pending";
+
+      $("mDate").value = (r.date || r.shiftDate || "");
+
+      const inMs  = (r.newCheckInAtLocal ?? r.newCheckIn ?? null);
+      const outMs = (r.newCheckOutAtLocal ?? r.newCheckOut ?? null);
+
+      $("mNewInHM").value = inMs ? msToHM(inMs) : "";
+      $("mNewOutHM").value = outMs ? msToHM(outMs) : "";
+
+      $("mEmployeeNote").value = r.note || "";
+      $("mAdminNote").value = r.adminNote || "";
+
+      const summary = $("mSummary");
+      summary.innerHTML = `
+        <span class="chip"><span class="mini">التاريخ:</span> <b>${escapeHtml(date)}</b></span>
+        <span class="chip"><span class="mini">الموظف:</span> <b>${escapeHtml(emp)}</b></span>
+        <span class="chip"><span class="mini">الفرع:</span> <b>${escapeHtml(br)}</b></span>
+        <span class="chip"><span class="mini">الشفت:</span> <b>${escapeHtml(sh)}</b></span>
+        <span class="chip"><span class="mini">الوقت:</span> <b>${escapeHtml(timeRange)}</b></span>
+      `;
+    }
+
+    async function saveCorrectionEdits({ alsoApply=false, forceReject=false }={}){
+      const r = window.__editingCorrection;
+      if(!r) return;
+
+      const id = r.__id;
+      const ref = doc(db,"attendance_corrections", id);
+
+      const dateStr = String($("mDate").value||"").trim();
+      if(dateStr && !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
+        throw new Error("التاريخ غير صحيح. استخدم YYYY-MM-DD.");
+      }
+
+      const newInHM = String($("mNewInHM").value||"").trim();
+      const newOutHM = String($("mNewOutHM").value||"").trim();
+
+      let status = forceReject ? "rejected" : String($("mStatus").value||"pending").toLowerCase();
+      if(alsoApply) status = "approved";
+      if(status!=="pending" && status!=="approved" && status!=="rejected") status = "pending";
+
+      const baseDate = dateStr || (r.date||r.shiftDate||"");
+      const inMs  = newInHM ? hmToMs(baseDate, newInHM) : null;
+      const outMs = newOutHM ? hmToMs(baseDate, newOutHM) : null;
+
+      if(newInHM && inMs==null) throw new Error("وقت الدخول غير صحيح.");
+      if(newOutHM && outMs==null) throw new Error("وقت الخروج غير صحيح.");
+
+      const patch = {
+        status,
+        date: baseDate,
+        updatedAt: serverTimestamp()
+      };
+
+      if(newInHM !== "") patch.newCheckInAtLocal = inMs;
+      if(newOutHM !== "") patch.newCheckOutAtLocal = outMs;
+
+      patch.note = String($("mEmployeeNote").value||"").trim();
+
+      const adminNote = String($("mAdminNote").value||"").trim();
+      if(adminNote) patch.adminNote = adminNote;
+
+      await updateDoc(ref, patch);
+
+      if(alsoApply){
+        const snap = await getDoc(ref);
+        const fresh = snap.exists() ? ({ __id:id, ...(snap.data()||{}) }) : ({ __id:id, ...r });
+
+        const hasNewIn = fresh.newCheckInAtLocal ?? fresh.newCheckIn ?? null;
+        const hasNewOut = fresh.newCheckOutAtLocal ?? fresh.newCheckOut ?? null;
+
+        if(!hasNewIn && !hasNewOut){
+          throw new Error("لا يوجد وقت دخول/خروج جديد لتطبيقه على سجل الحضور.");
+        }
+
+        await applyCorrection(id, "approve_apply");
+      }
+
+      setMsg("msgFix", alsoApply ? "تم حفظ التعديل + التطبيق ✅" : "تم حفظ التعديل ✅", "ok");
+    }
+
+    function wantedCompact(r){
+      const inMs  = (r.newCheckInAtLocal ?? r.newCheckIn ?? null);
+      const outMs = (r.newCheckOutAtLocal ?? r.newCheckOut ?? null);
+      const parts = [];
+      if(inMs) parts.push(`دخول ${fmtTime(inMs)}`);
+      if(outMs) parts.push(`خروج ${fmtTime(outMs)}`);
+      const line = parts.join(" • ");
+      return line || (r.note ? String(r.note).slice(0,60) : "-");
+    }
+
+    async function loadCorrectionsPage({ direction="first" }={}){
+      if(FIX.busy) return;
+      FIX.busy = true;
+      updatePageInfo();
+
+      try{
+        const size = FIX.size;
+
+        let q1 = null;
+
+        if(direction==="next" && FIX.lastDoc){
+          q1 = query(
+            collection(db,"attendance_corrections"),
+            orderBy("createdAt","desc"),
+            startAfter(FIX.lastDoc),
+            limit(size)
+          );
+        }else if(direction==="prev" && FIX.firstDoc){
+          q1 = query(
+            collection(db,"attendance_corrections"),
+            orderBy("createdAt","desc"),
+            endBefore(FIX.firstDoc),
+            limitToLast(size)
+          );
+        }else{
+          q1 = query(
+            collection(db,"attendance_corrections"),
+            orderBy("createdAt","desc"),
+            limit(size)
+          );
+        }
+
+        const snap = await getDocs(q1);
+
+        const docs = snap.docs || [];
+        let rows = docs.map(d=> ({ __id:d.id, ...(d.data()||{}) }));
+
+        if(FIX.onlyPending){
+          rows = rows.filter(r => String(r.status||"pending").toLowerCase() === "pending");
+        }
+
+        FIX.rows = rows;
+        FIX.firstDoc = docs[0] || null;
+        FIX.lastDoc = docs[docs.length-1] || null;
+
+        countPageKpis(rows);
+
+        const tb = $("fixTbody");
+        tb.innerHTML = "";
+
+        for(const r of rows){
+          const st = String(r.status||"pending").toLowerCase();
+          const tr = document.createElement("tr");
+          if(st==="pending") tr.classList.add("isPending");
+
+          tr.innerHTML = `
+            <td>${escapeHtml(r.date||r.shiftDate||"-")}</td>
+            <td title="${escapeHtml(r.employeeEmail||r.employeeId||"")}">${escapeHtml(r.employeeName||r.employeeEmail||r.employeeId||"-")}</td>
+            <td title="${escapeHtml(r.branchId||"")}">${escapeHtml(r.branchName||r.branchId||"-")}</td>
+            <td class="timeCell">${escapeHtml(wantedCompact(r))}</td>
+            <td>${badgeForStatus(r)}</td>
+            <td class="actions">
+              <button class="btn primary" data-edit="${escapeHtml(r.__id)}">عرض / تعديل</button>
+            </td>
+          `;
+          tb.appendChild(tr);
+        }
+
+        tb.querySelectorAll("button[data-edit]").forEach(b=>{
+          b.addEventListener("click", ()=>{
+            const id = b.getAttribute("data-edit");
+            const row = FIX.rows.find(x=>x.__id===id);
+            if(!row) return;
+            fillModal(row);
+            openModal();
+          });
+        });
+
+        setMsg("msgFix", `تم تحميل ${rows.length} طلب ✅`, "ok");
+      }catch(e){
+        const msg = e?.message || "خطأ";
+        setMsg("msgFix", msg + "\n\nإذا ظهر رابط إنشاء Index من Firebase، افتحه واعمل Create.", "bad");
+      }finally{
+        FIX.busy = false;
+        updatePageInfo();
+      }
+    }
+
+    $("btnReloadFix").addEventListener("click", async ()=>{
+      FIX.page = 1;
+      FIX.firstDoc = null;
+      FIX.lastDoc = null;
+      await loadCorrectionsPage({ direction:"first" });
+      await loadBranchStatsLast500();
+    });
+
+    $("onlyPending").addEventListener("change", async (e)=>{
+      FIX.onlyPending = !!e.target.checked;
+      FIX.page = 1;
+      FIX.firstDoc = null;
+      FIX.lastDoc = null;
+      await loadCorrectionsPage({ direction:"first" });
+    });
+
+    $("pageSizeSel").addEventListener("change", async (e)=>{
+      FIX.size = Number(e.target.value || 25);
+      FIX.page = 1;
+      FIX.firstDoc = null;
+      FIX.lastDoc = null;
+      await loadCorrectionsPage({ direction:"first" });
+    });
+
+    $("btnNext").addEventListener("click", async ()=>{
+      if(FIX.busy) return;
+      FIX.page++;
+      await loadCorrectionsPage({ direction:"next" });
+      updatePageInfo();
+    });
+
+    $("btnPrev").addEventListener("click", async ()=>{
+      if(FIX.busy) return;
+      if(FIX.page<=1) return;
+      FIX.page--;
+      await loadCorrectionsPage({ direction:"prev" });
+      updatePageInfo();
+    });
+
+    $("btnCloseModal").addEventListener("click", closeModal);
+    $("editModal").addEventListener("click", (e)=>{
+      if(e.target === $("editModal")) closeModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape") closeModal();
+    });
+
+    $("btnRejectQuick").addEventListener("click", async ()=>{
+      try{
+        await saveCorrectionEdits({ forceReject:true, alsoApply:false });
+        closeModal();
+        await loadCorrectionsPage({ direction:"first" });
+      }catch(e){
+        $("mHint").textContent = e?.message || "خطأ";
+      }
+    });
+
+    $("btnSaveDraft").addEventListener("click", async ()=>{
+      try{
+        await saveCorrectionEdits({ alsoApply:false });
+        closeModal();
+        await loadCorrectionsPage({ direction:"first" });
+      }catch(e){
+        $("mHint").textContent = e?.message || "خطأ";
+      }
+    });
+
+    $("btnSaveApply").addEventListener("click", async ()=>{
+      try{
+        await saveCorrectionEdits({ alsoApply:true });
+        closeModal();
+        await loadAttendanceForDate($("fDate").value, $("fBranch").value || "");
+        await loadCorrectionsPage({ direction:"first" });
+      }catch(e){
+        $("mHint").textContent = e?.message || "خطأ";
+      }
+    });
+
+    async function doSignOut(){
+      await signOut(auth);
+      location.href="./login.html";
+    }
+    $("btnOut2").addEventListener("click", doSignOut);
+
+    async function doMakeAdmin(){
       const user = auth.currentUser;
       if(!user) return;
       await setDoc(doc(db,"employees",user.uid), {
@@ -657,26 +1520,27 @@
       }, { merge:true });
 
       setMsg("msgDash","تم تعيين دورك Admin ✅ أعد تحميل الصفحة.","ok");
-    });
+    }
+    $("btnMakeAdmin2").addEventListener("click", doMakeAdmin);
 
     $("btnReloadAtt").addEventListener("click", async ()=>{
-      const date = $("fDate").value;
-      const br = $("fBranch").value || "";
-      await loadAttendanceForDate(date, br);
-      setMsg("msgAtt","تم التحديث ✅","ok");
+      try{
+        const date = $("fDate").value;
+        const br = $("fBranch").value || "";
+        await loadAttendanceForDate(date, br);
+        setMsg("msgAtt","تم التحديث ✅","ok");
+      }catch(e){
+        setMsg("msgAtt", e?.message || "خطأ", "bad");
+      }
     });
-
     $("btnExportExcel").addEventListener("click", exportAttendanceExcel);
     $("btnExportPdf").addEventListener("click", exportAttendancePdf);
 
-    $("btnReloadFix").addEventListener("click", async ()=>{
-      await loadCorrections();
-      setMsg("msgFix","تم التحديث ✅","ok");
-    });
-
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
-      $("mePill").textContent = user.email || user.uid;
+
+      window.__romaUserText = (user.email || user.uid);
+      try{ window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } })); }catch{}
 
       const ok = await requireAdmin(user);
       if(!ok){
@@ -698,7 +1562,6 @@
       $("kLeaves").textContent   = lSnap.size;
 
       await loadBranchSelect();
-
       $("fDate").value = ymd(new Date());
 
       try{
@@ -707,12 +1570,12 @@
         if(res?.marked){
           setMsg("msgAtt", `تم تسجيل غياب تلقائي: ${res.marked} (من أصل ${res.checked}) ✅`, "ok");
         }
-      }catch(e){
-        console.warn(e);
-      }
+      }catch{}
 
       await loadAttendanceForDate($("fDate").value, "");
-      await loadCorrections();
+      await loadCorrectionsPage({ direction:"first" });
+      await loadBranchStatsLast500();
+      updatePageInfo();
     });
   </script>
 </body>

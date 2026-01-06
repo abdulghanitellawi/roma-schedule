@@ -1,0 +1,187 @@
+<!-- nav.html — Roma Schedule Sidebar (Offcanvas Desktop + Mobile) -->
+<style>
+  :root{
+    --bg:#0b1220; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.14);
+    --txt:#e5e7eb; --muted:#9ca3af; --accent:#d4a019;
+    --sb-w: 340px;
+    --ease: cubic-bezier(.22,.61,.36,1);
+  }
+  html[dir="rtl"]{ --sb-hide-shift: 110%; }
+  html[dir="ltr"]{ --sb-hide-shift:-110%; }
+
+  a.btn,button.btn{
+    cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);
+    padding:10px 12px;border-radius:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;
+    gap:8px;text-decoration:none;user-select:none;transition:transform .08s ease, background .15s ease, border-color .15s ease;
+  }
+  .btn:hover{background:rgba(255,255,255,.09)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+  .btn.primary:hover{background:rgba(212,160,25,.20)}
+  .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
+  .btn.danger:hover{background:rgba(239,68,68,.16)}
+  .btn.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10)}
+  .btn.warn:hover{background:rgba(245,158,11,.15)}
+
+  .pill{
+    padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;
+  }
+
+  .romaNavRoot{position:relative;z-index:9999}
+
+  .romaTop{
+    position:sticky;top:0;z-index:9999;backdrop-filter:blur(10px);
+    background:rgba(10,16,28,.55);border-bottom:1px solid var(--line);
+    padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .romaTopLeft{display:flex;align-items:center;gap:10px;min-width:0}
+
+  .romaHamb{
+    padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.06);color:var(--txt);font-weight:900;cursor:pointer;
+    display:inline-flex;align-items:center;gap:10px;flex:0 0 auto;
+  }
+  .romaHamb:hover{background:rgba(255,255,255,.09)}
+  .romaHamb .bars{width:18px;height:12px;position:relative;display:inline-block}
+  .romaHamb .bars::before,.romaHamb .bars::after,.romaHamb .bars span{
+    content:"";position:absolute;inset:auto 0;height:2px;background:rgba(229,231,235,.95);border-radius:999px;
+  }
+  .romaHamb .bars::before{top:0}
+  .romaHamb .bars span{top:5px}
+  .romaHamb .bars::after{bottom:0}
+
+  .romaBrand{display:flex;gap:10px;align-items:center;min-width:0}
+  .romaBrand img{
+    width:34px;height:34px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.12);flex:0 0 auto;
+  }
+  .romaBrand b{display:block;line-height:1.1}
+  .romaBrand .sub{font-size:12px;color:var(--muted);max-width:50vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .sbIconBtn{
+    width:42px;height:42px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.06);color:var(--txt);cursor:pointer;display:grid;place-items:center;font-weight:900;
+  }
+  .sbIconBtn:hover{background:rgba(255,255,255,.10)}
+
+  .romaOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;
+    transition:opacity .2s var(--ease);z-index:10000;
+  }
+  .romaSidebar{
+    position:fixed;top:0;bottom:0;width:min(var(--sb-w),92vw);
+    background:rgba(12,18,32,.94);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 80px rgba(0,0,0,.55);
+    overflow:hidden;display:flex;flex-direction:column;
+    right:0;transform:translateX(var(--sb-hide-shift));
+    transition:transform .22s var(--ease);
+    z-index:10001;
+  }
+  html[dir="ltr"] .romaSidebar{left:0;right:auto}
+
+  .romaNavRoot.is-open .romaOverlay{opacity:1;pointer-events:auto}
+  .romaNavRoot.is-open .romaSidebar{transform:translateX(0)}
+
+  .sbHead{
+    padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border-bottom:1px solid rgba(255,255,255,.10);background:rgba(10,16,28,.35);
+  }
+  .sbHead .left{display:flex;align-items:center;gap:10px;min-width:0}
+  .sbHead img{
+    width:38px;height:38px;object-fit:contain;border-radius:14px;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.12);flex:0 0 auto;
+  }
+  .sbTitle{min-width:0;display:flex;flex-direction:column;gap:6px}
+  .sbTitle b{font-size:14px;line-height:1.1}
+
+  .sbBody{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  .sbGroup{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:16px;padding:10px}
+  .sbGroupTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .sbGroupTitle .lbl{font-weight:900;font-size:12px;color:var(--muted)}
+  .sbLinks{display:flex;flex-direction:column;gap:8px}
+  .sbLink{justify-content:flex-start;width:100%;border-radius:14px}
+  .sbLink.active{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
+
+  .sbFooter{
+    padding:12px;border-top:1px solid rgba(255,255,255,.10);
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .sbFooter .btn{flex:1 1 calc(50% - 8px)}
+  .sbFooter .btn.warn{flex:1 1 100%}
+
+  @media (max-width:420px){ .romaBrand .sub{max-width:40vw} }
+</style>
+
+<div class="romaNavRoot" id="romaNavRoot">
+  <div class="romaTop">
+    <div class="romaTopLeft">
+      <button class="romaHamb" id="romaNavOpenBtn" type="button">
+        <span class="bars"><span></span></span>
+        القائمة
+      </button>
+
+      <div class="romaBrand">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div style="min-width:0">
+          <b>Roma Schedule</b>
+          <div class="sub" id="navMePillTop">...</div>
+        </div>
+      </div>
+    </div>
+
+  
+  </div>
+
+  <div class="romaOverlay" id="romaNavOverlay" aria-hidden="true"></div>
+
+  <aside class="romaSidebar" aria-label="Roma Sidebar">
+    <div class="sbHead">
+      <div class="left">
+        <img src="./assets/logo.webp" alt="Roma">
+        <div class="sbTitle">
+          <b>Roma Schedule</b>
+          <div class="pill" id="navMePill">...</div>
+        </div>
+      </div>
+      <button class="sbIconBtn" id="romaNavCloseBtn" type="button" title="إغلاق">✕</button>
+    </div>
+
+    <div class="sbBody">
+      <div class="sbGroup">
+        <div class="sbGroupTitle">
+          <div class="lbl">لوحة التحكم</div>
+          <span class="pill" style="padding:5px 10px">Admin</span>
+        </div>
+        <div class="sbLinks">
+          <a class="btn sbLink" href="./admin-dashboard.html" data-nav="admin-dashboard.html">🏠 Dashboard</a>
+          <a class="btn sbLink" href="./admin-branches.html" data-nav="admin-branches.html">🏪 الفروع + الدوام</a>
+          <a class="btn sbLink" href="./admin-employees.html" data-nav="admin-employees.html">👥 الموظفين</a>
+          <a class="btn sbLink" href="./admin-leaves.html" data-nav="admin-leaves.html">🗓️ الإجازات</a>
+          <a class="btn sbLink" href="./admin-schedule.html" data-nav="admin-schedule.html">⚙️ توليد الجدول</a>
+          <a class="btn sbLink" href="./admin-saved-shifts.html" data-nav="admin-saved-shifts.html">📌 الجداول الجاهزة</a>
+          <a class="btn sbLink" href="./admin-hours.html" data-nav="admin-hours.html">⏱️ ساعات الدوام</a>
+        <a class="btn sbLink" href="./admin-attendance.html" data-nav="admin-attendance.html">🏪 الحضور</a>
+         <a class="btn sbLink" href="./admin-attendance-corrections.html" data-nav="admin-attendance-corrections.html">⚠️ تصحيح الدوام </a>
+
+
+        </div>
+      </div>
+
+      <div class="sbGroup">
+        <div class="sbGroupTitle">
+          <div class="lbl">أزرار سريعة</div><span></span>
+        </div>
+        <div class="sbLinks">
+
+          <button class="btn danger sbLink" id="navBtnOut" type="button">🚪 خروج</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sbFooter">
+
+      <a class="btn warn" href="./admin-dashboard.html">🔄 Refresh</a>
+    </div>
+  </aside>
+</div>

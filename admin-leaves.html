@@ -38,13 +38,11 @@
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
 
-    /* ✅ Fix select options visibility (Windows/Chrome) */
     select{ background: rgba(0,0,0,.45) !important; color: var(--txt) !important; }
     select option, select optgroup{ background-color:#0b1220 !important; color:#e5e7eb !important; }
     select option:checked{ background-color:rgba(212,160,25,.25) !important; color:#fff !important; }
     select option:disabled{ color: rgba(229,231,235,.45) !important; }
 
-    /* ===== Modal ===== */
     .modalOverlay{position:fixed; inset:0; z-index:999; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:14px;}
     .modalOverlay.show{display:flex}
     .modal{width:min(900px, 100%); max-height:92vh; overflow:auto; border:1px solid rgba(255,255,255,.14); background:rgba(12,18,32,.92); backdrop-filter: blur(10px); border-radius:18px; box-shadow: 0 24px 80px rgba(0,0,0,.55);}
@@ -55,14 +53,12 @@
     .modalTitle{display:flex; flex-direction:column; gap:2px}
     .hint{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--muted);font-size:12px}
 
-    /* leave mode pills */
     .modeRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .modeBtn{cursor:pointer;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:999px;font-weight:900;font-size:13px}
     .modeBtn.active{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
     .modePanel{display:none}
     .modePanel.show{display:block}
 
-    /* scattered dates list */
     .datesBox{margin-top:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:14px;padding:10px}
     .dateLine{display:flex;gap:8px;align-items:center;margin-top:8px}
     .dateLine input[type="date"]{flex:1}
@@ -72,7 +68,6 @@
     .smBtn.danger:hover{background:rgba(239,68,68,.16)}
 
     .actions{display:flex;gap:8px;flex-wrap:wrap}
-        /* ✅ Fix dropdown options visibility */
     select{
       background: rgba(0,0,0,.45) !important;
       color: var(--txt) !important;
@@ -89,9 +84,48 @@
       color: #fff !important;
     }
     select option:disabled{ color: rgba(229,231,235,.45) !important; }
+
+    .top{ display:none !important; }
+    .wrap{ padding-top:14px !important; }
   </style>
 </head>
 <body>
+
+  <div id="navMount"></div>
+
+  <script>
+    (function(){
+      const mount = document.getElementById("navMount");
+      if(!mount) return;
+
+      function loadScript(src){
+        return new Promise((resolve,reject)=>{
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.body.appendChild(s);
+        });
+      }
+
+      fetch("./nav.html", { cache:"no-store" })
+        .then(r=> r.text())
+        .then(async (html)=>{
+          mount.innerHTML = html;
+          await loadScript("./nav.js?v=" + Date.now());
+
+          if(window.__romaUserText){
+            try{
+              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+            }catch{}
+          }
+
+          window.dispatchEvent(new CustomEvent("roma:nav:layout"));
+        })
+        .catch(()=>{});
+    })();
+  </script>
+
   <div class="top">
     <div class="topin">
       <div class="brand">
@@ -107,7 +141,7 @@
         <a class="btn" href="./admin-employees.html">الموظفين</a>
         <a class="btn" href="./admin-leaves.html">الإجازات</a>
         <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
-         <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
+        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
         <button class="btn danger" id="btnOut">خروج</button>
       </div>
     </div>
@@ -118,7 +152,7 @@
       <div class="row" style="align-items:center">
         <div style="flex:2">
           <h2 style="margin:0">الإجازات</h2>
-          <div class="mini">إضافة/تعديل: يوم واحد / فترة / أيام متفرقة + اختيار التغطية + تغيير الحالة</div>
+          <div class="mini"></div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn primary" id="btnOpenAdd">إضافة إجازة</button>
@@ -130,7 +164,7 @@
 
     <div class="card">
       <h2>طلبات الإجازة (Pending)</h2>
-      <div class="mini">هذه الطلبات تأتي من صفحة الموظف staff.html</div>
+      <div class="mini"></div>
       <div style="overflow:auto">
         <table>
           <thead><tr><th>الموظف</th><th>من</th><th>إلى</th><th>الحالة</th><th>إجراء</th></tr></thead>
@@ -151,7 +185,6 @@
     </div>
   </div>
 
-  <!-- ===== Add/Edit Leave Modal ===== -->
   <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
@@ -168,9 +201,9 @@
 
       <div class="modalBody">
         <div class="hint">
-          • الموظف الأساسي: غالبًا <b>Regular</b><br>
-          • التغطية: <b>Cover</b> أو أي موظف <b>canCover=true</b><br>
-          • للأيام المتفرقة: أضف أكثر من تاريخ بزر (+)
+       <b></b><br>
+           <b></b> <b></b><br>
+      
         </div>
 
         <div class="row" style="margin-top:8px">
@@ -207,7 +240,6 @@
           <button class="modeBtn" id="modeScattered" type="button">أيام متفرقة</button>
         </div>
 
-        <!-- Single -->
         <div class="modePanel show" id="panelSingle">
           <div class="row">
             <div>
@@ -217,7 +249,6 @@
           </div>
         </div>
 
-        <!-- Range -->
         <div class="modePanel" id="panelRange">
           <div class="row">
             <div><label>من</label><input id="mFrom" type="date"></div>
@@ -225,7 +256,6 @@
           </div>
         </div>
 
-        <!-- Scattered -->
         <div class="modePanel" id="panelScattered">
           <div class="datesBox">
             <div class="row" style="align-items:center;margin:0">
@@ -284,6 +314,19 @@
       return snap.exists() && snap.data()?.role === "admin";
     }
 
+    function bindLogoutIfExists(){
+      const btn = document.getElementById("btnOut");
+      if(btn && !btn.__bound){
+        btn.__bound = true;
+        btn.addEventListener("click", async ()=>{
+          await signOut(auth);
+          location.href="./login.html";
+        });
+      }
+    }
+    bindLogoutIfExists();
+    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
+
     function ymd(d){
       const dt = new Date(d);
       const y = dt.getFullYear();
@@ -292,7 +335,6 @@
       return `${y}-${m}-${da}`;
     }
 
-    // ===== Modal control =====
     const overlay = $("modalOverlay");
     function openModal(){
       overlay.classList.add("show");
@@ -310,7 +352,6 @@
     overlay.addEventListener("click", (e)=>{ if(e.target === overlay) closeModal(); });
     document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && overlay.classList.contains("show")) closeModal(); });
 
-    // ===== Shared helpers for employees =====
     function empName(x){ return x.name || x.fullName || x.displayName || x.email || x.id; }
     function empBranchId(x){ return x.branchId || x.branch || x.fixedBranchId || ""; }
     function isActive(x){ return x.active !== false; }
@@ -318,11 +359,10 @@
     function typeOf(x){ return (x.type || "regular"); }
     function canCover(x){ return x.canCover === true || typeOf(x) === "cover"; }
 
-    // ===== Cache =====
     let branches = [];
-    let allEmployees = []; // employees
-    let allPresets = [];   // employees_email
-    let editingLeaveId = null; // ✅ edit mode
+    let allEmployees = [];
+    let allPresets = [];
+    let editingLeaveId = null;
 
     async function loadCaches(){
       const [bSnap, eSnap, pSnap] = await Promise.all([
@@ -417,11 +457,10 @@
       }});
       if(prevCover) $("mCover").value = prevCover;
 
-      $("coverHint").textContent = coverList.length ? `متاح للتغطية: ${coverList.length}` : "لا يوجد موظفين تغطية مطابقين لهذه الفلترة.";
+      $("coverHint").textContent = coverList.length ? `${coverList.length}` : "لا يوجد موظفين تغطية مطابقين لهذه الفلترة.";
     }
 
-    // ===== Leave Mode =====
-    let leaveMode = "single"; // single | range | scattered
+    let leaveMode = "single";
 
     function setMode(mode){
       leaveMode = mode;
@@ -538,7 +577,7 @@
       await loadCaches();
       fillBranchesSelect();
 
-      $("mStatus").value = "approved"; // افتراضي للإضافة من الأدمن
+      $("mStatus").value = "approved";
       $("mBranch").value = "";
       syncModalLists();
       setDefaultDates();
@@ -553,7 +592,6 @@
       await loadCaches();
       fillBranchesSelect();
 
-      // حاول نحدد الفرع تلقائياً حسب الموظف
       const emp = getEmpById(data.employeeId);
       const b = emp ? (empBranchId(emp) || "") : "";
       $("mBranch").value = b || "";
@@ -564,7 +602,6 @@
       $("mEmp").value = data.employeeId || "";
       $("mCover").value = data.coverEmployeeId || "";
 
-      // type + dates
       setModalModeAndDates(data);
 
       openModal();
@@ -651,7 +688,6 @@
       return `${r.from||"-"} → ${r.to||"-"}`;
     }
 
-    // ===== Tables =====
     async function loadLeavesTables(){
       const leavesSnap = await getDocs(collection(db,"leaves"));
 
@@ -666,7 +702,6 @@
       leavesSnap.forEach(d=>leaves.push({id:d.id, ...d.data()}));
       leaves.sort((a,b)=> (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
 
-      // Pending
       const pTb = $("pendingTbody");
       pTb.innerHTML = "";
       const pend = leaves.filter(x=> (x.status||"pending")==="pending");
@@ -714,7 +749,6 @@
         });
       });
 
-      // History
       const hTb = $("historyTbody");
       hTb.innerHTML = "";
       const hist = leaves.filter(x=> (x.status||"")!=="pending").slice(0,120);
@@ -758,7 +792,6 @@
       });
     }
 
-    // ===== Events =====
     $("btnOpenAdd").addEventListener("click", openAddLeave);
     $("btnClose").addEventListener("click", closeModal);
     $("btnSaveLeave").addEventListener("click", saveLeave);
@@ -779,12 +812,17 @@
       setMsg("msgTop","تم التحديث ✅","ok");
     });
 
-    $("btnOut").addEventListener("click", async ()=>{ await signOut(auth); location.href="./login.html"; });
-
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
       me = user;
-      $("mePill").textContent = user.email || user.uid;
+
+      const mePill = document.getElementById("mePill");
+      if(mePill) mePill.textContent = user.email || user.uid;
+
+      window.__romaUserText = (user.email || user.uid);
+      try{
+        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
+      }catch{}
 
       const ok = await requireAdmin(user);
       if(!ok){
