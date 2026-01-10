@@ -139,7 +139,7 @@
           <h2 style="margin:0">الموظفين</h2>
           <div class="mini">
             <b></b> <br>
-            <b></b> 
+            <b></b>
           </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -339,7 +339,22 @@
 
     const $ = (id)=>document.getElementById(id);
     const escapeHtml = (s)=> String(s ?? "").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
-    const safeEmailDocId = (email)=> email.trim().toLowerCase().replace(/\./g,"(dot)");
+
+    // ✅ IMPORTANT: unify preset docId with the rest of the app: "preset:email(dot)"
+    function normalizePresetIdFromEmail(email){
+      const e = String(email||"").trim().toLowerCase();
+      if(!e) return null;
+      return "preset:" + e.replace(/\./g,"(dot)");
+    }
+
+    // ✅ docId generator for employees_email
+    const safeEmailDocId = (email)=>{
+      const id = normalizePresetIdFromEmail(email);
+      if(!id) return "";
+      // (extra safety - keep only allowed chars)
+      return id.replace(/[^a-zA-Z0-9_:\-()]/g, "_").slice(0,240);
+    };
+
     const setMsg = (text, type="ok")=>{
       const el = $("msgEmp");
       el.className = "msg " + (type==="bad"?"bad":"ok");
@@ -490,20 +505,26 @@
       setTab("registered");
     }
 
+    // ✅ supports both old ids (email(dot)) and new ids (preset:email(dot))
     async function openEditPreset(id){
-      const s = await getDoc(doc(db,"employees_email", id));
+      let s = await getDoc(doc(db,"employees_email", id));
+      if(!s.exists()){
+        // try old format if user clicked a migrated alias (rare)
+        const tryOld = id.startsWith("preset:") ? id.replace(/^preset:/,"") : ("preset:" + id);
+        s = await getDoc(doc(db,"employees_email", tryOld));
+      }
       if(!s.exists()) return;
 
       editMode = "edit_preset";
       editCol = "employees_email";
-      editId = id;
+      editId = s.ref.id;
 
       clearForm();
-      fillFormFromRecord({id, ...s.data()}, "employees_email");
+      fillFormFromRecord({id: editId, ...s.data()}, "employees_email");
 
       $("modalTitle").textContent = "تعديل موظف (غير مسجل)";
       $("modalSub").textContent = "تعديل employees_email ثم حفظ";
-      $("modalInfo").innerHTML = `هذا يعدّل سجل في <b>employees_email</b>. <span class="mini">ID: ${escapeHtml(id)}</span>`;
+      $("modalInfo").innerHTML = `هذا يعدّل سجل في <b>employees_email</b>. <span class="mini">ID: ${escapeHtml(editId)}</span>`;
       openModal();
       setTab("unregistered");
     }
@@ -646,7 +667,7 @@
       };
 
       if(editMode === "add"){
-        const docId = safeEmailDocId(email);
+        const docId = safeEmailDocId(email); // ✅ now "preset:email(dot)"
         await setDoc(doc(db,"employees_email", docId), payload, { merge:true });
         setMsg("تمت الإضافة ✅","ok");
         await loadAll();
@@ -688,7 +709,16 @@
       ]);
 
       const employees = []; empSnap.forEach(d=>employees.push({id:d.id, ...d.data()}));
-      const presets = []; presetSnap.forEach(d=>presets.push({id:d.id, ...d.data()}));
+
+      // ✅ Backward compatible: if old doc id (email(dot)) exists, keep it,
+      // but also ensure its email is normalized and can be used elsewhere.
+      const presets = [];
+      presetSnap.forEach(d=>{
+        const data = d.data() || {};
+        const id = d.id;
+        const email = String(data.email || "").trim().toLowerCase();
+        presets.push({id, ...data, email });
+      });
 
       employees.sort((a,b)=> (a.name||"").localeCompare(b.name||""));
       presets.sort((a,b)=> (a.name||"").localeCompare(b.name||""));

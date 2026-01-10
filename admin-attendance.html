@@ -154,6 +154,23 @@
       background:rgba(255,255,255,.04); border-radius:16px;
     }
     .toolbar .left, .toolbar .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    /* ✅ Fix dropdown options visibility */
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
   </style>
 </head>
 
@@ -288,8 +305,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, setDoc,
-      collection, getDocs, query, where,
+      getFirestore, doc, getDoc, setDoc, updateDoc,
+      collection, getDocs, query, where, limit,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -359,17 +376,41 @@
       }catch{ return "-"; }
     }
 
-    function normalizeEmailToPresetId(email){
-      const e = String(email||"").trim().toLowerCase();
-      if(!e) return null;
-      return "preset:" + e.replace(/\./g,"(dot)");
+    /* =========================================================
+       ✅ Employees map + (optional) legacy migration helpers
+       - المشروع صار يعتمد على employees/employeeId فقط
+       - إذا كان عندك shifts قديمة فيها employeeEmail فقط:
+         بنحاول نلاقي employeeId عبر employees.email (مرة واحدة)
+       ========================================================= */
+    let __empsById = new Map();
+    let __empsByEmail = new Map();
+
+    async function loadEmployees(){
+      const snap = await getDocs(collection(db,"employees"));
+      const out=[];
+      __empsById = new Map();
+      __empsByEmail = new Map();
+
+      snap.forEach(d=>{
+        const x = d.data() || {};
+        const row = { id:d.id, ...x };
+        out.push(row);
+        __empsById.set(String(row.id), row);
+        const em = String(row.email||"").trim().toLowerCase();
+        if(em) __empsByEmail.set(em, row.id);
+      });
+
+      return out;
     }
 
-    function employeeKeyFromAny(employeeId, employeeEmail){
-      const id = String(employeeId||"");
-      if(id.startsWith("preset:")) return id;
-      const byEmail = normalizeEmailToPresetId(employeeEmail);
-      return byEmail || (id || "");
+    function resolveEmployeeIdFromAny(employeeId, employeeEmail){
+      const id = String(employeeId||"").trim();
+      if(id) return id;
+
+      const email = String(employeeEmail||"").trim().toLowerCase();
+      if(email && __empsByEmail.has(email)) return __empsByEmail.get(email);
+
+      return null;
     }
 
     async function loadBranchSelect(){
@@ -384,13 +425,6 @@
         rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
 
       return rows;
-    }
-
-    async function loadEmployees(){
-      const snap = await getDocs(collection(db,"employees"));
-      const out=[];
-      snap.forEach(d=> out.push({ id:d.id, ...(d.data()||{}) }));
-      return out;
     }
 
     async function loadLeavesApproved(){
@@ -437,15 +471,17 @@
       return d.getHours()*60 + d.getMinutes();
     }
 
-    // ✅ تسجيل الغياب/الإجازة تلقائي بعد نهاية الشفت
+    // ✅ تسجيل الغياب/الإجازة تلقائي بعد نهاية الشفت (employees-only)
     async function markAutoAbsencesForDate(dateStr){
+      // ⚠️ shifts structure: expects employeeId. If legacy has employeeEmail, we resolve to employeeId using employees.email
       const shiftsSnap = await getDocs(collection(db,"shifts"));
       const shifts = [];
       shiftsSnap.forEach(d=>{
         const x = d.data() || {};
         if(x.date !== dateStr) return;
-        if(!x.employeeId) return;
-        shifts.push({ id:d.id, ...x });
+        const empId = resolveEmployeeIdFromAny(x.employeeId, x.employeeEmail);
+        if(!empId) return;
+        shifts.push({ id:d.id, ...x, employeeId: empId });
       });
 
       const leaves = await loadLeavesApproved();
@@ -457,10 +493,10 @@
         const x = d.data() || {};
         if(x.date !== dateStr) return;
 
-        const empKey = employeeKeyFromAny(x.employeeId, x.employeeEmail);
-        if(!empKey) return;
+        const empId = String(x.employeeId||"").trim();
+        if(!empId) return;
 
-        const k = `${empKey}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        const k = `${empId}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
         attByKey.set(k, { id:d.id, ...x });
       });
 
@@ -474,19 +510,22 @@
         const ended = (endMin===null) ? false : (nowMin() >= endMin);
         if(!ended) continue;
 
-        const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
-        const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const empId = String(s.employeeId||"").trim();
+        const k = `${empId}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
         const hasAttendance = attByKey.has(k);
 
-        const onLeave = isOnLeave(leaves, empKey, dateStr);
+        const onLeave = isOnLeave(leaves, empId, dateStr);
         const attId = safeId(k);
+
+        const emp = __empsById.get(empId) || null;
+        const empName = s.employeeName || emp?.name || "";
+        const empEmail = emp?.email || ""; // display/export only (not required in attendance)
 
         if(onLeave){
           if(!hasAttendance){
             await setDoc(doc(db,"attendance", attId), {
-              employeeId: empKey,
-              employeeName: s.employeeName || "",
-              employeeEmail: s.employeeEmail || "",
+              employeeId: empId,
+              employeeName: empName,
               date: s.date,
               branchId: s.branchId || "",
               branchName: s.branchName || "",
@@ -504,9 +543,8 @@
 
         if(!hasAttendance){
           await setDoc(doc(db,"attendance", attId), {
-            employeeId: empKey,
-            employeeName: s.employeeName || "",
-            employeeEmail: s.employeeEmail || "",
+            employeeId: empId,
+            employeeName: empName,
             date: s.date,
             branchId: s.branchId || "",
             branchName: s.branchName || "",
@@ -526,11 +564,14 @@
     }
 
     async function loadAttendanceForDate(dateStr, branchId=""){
-      const [attSnap, shiftsSnap, emps, leaves] = await Promise.all([
-        getDocs(collection(db,"attendance")),
-        getDocs(collection(db,"shifts")),
+      // employees needed to:
+      // - resolve legacy shift emails
+      // - enrich rows with email for export/UI if present
+      const [emps, leaves, attSnap, shiftsSnap] = await Promise.all([
         loadEmployees(),
-        loadLeavesApproved()
+        loadLeavesApproved(),
+        getDocs(collection(db,"attendance")),
+        getDocs(collection(db,"shifts"))
       ]);
 
       const attMap = new Map();
@@ -539,11 +580,11 @@
         if(x.date !== dateStr) return;
         if(branchId && String(x.branchId||"") !== String(branchId)) return;
 
-        const empKey = employeeKeyFromAny(x.employeeId, x.employeeEmail);
-        if(!empKey) return;
+        const empId = String(x.employeeId||"").trim();
+        if(!empId) return;
 
-        const k = `${empKey}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
-        attMap.set(k, { __id: d.id, ...x, __empKey: empKey });
+        const k = `${empId}__${x.date}__${x.branchId||""}__${x.shiftName||""}__${x.start||""}`;
+        attMap.set(k, { __id: d.id, ...x });
       });
 
       const shifts = [];
@@ -551,29 +592,39 @@
         const x = d.data() || {};
         if(x.date !== dateStr) return;
         if(branchId && String(x.branchId||"") !== String(branchId)) return;
-        if(!x.employeeId) return;
-        shifts.push({ __id: d.id, ...x });
+
+        const empId = resolveEmployeeIdFromAny(x.employeeId, x.employeeEmail);
+        if(!empId) return;
+
+        shifts.push({ __id: d.id, ...x, employeeId: empId });
       });
 
       const rows = [];
 
       for(const s of shifts){
-        const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
-        const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
+        const empId = String(s.employeeId||"").trim();
+        const k = `${empId}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
         const a = attMap.get(k);
 
+        const emp = __empsById.get(empId) || null;
+        const empNameFallback = s.employeeName || emp?.name || "";
+        const empEmailFallback = emp?.email || "";
+
         if(a){
-          rows.push({ ...a });
+          // enrich display/export email if missing
+          rows.push({
+            ...a,
+            employeeId: empId,
+            employeeName: a.employeeName || empNameFallback || "",
+            employeeEmail: a.employeeEmail || empEmailFallback || ""
+          });
         }else{
-          const onLeave = isOnLeave(leaves, empKey, dateStr);
-          const empNameFallback =
-            s.employeeName ||
-            (emps.find(e=> String(e.id)===String(s.employeeId))?.name || "");
+          const onLeave = isOnLeave(leaves, empId, dateStr);
 
           rows.push({
-            employeeId: empKey,
-            employeeName: empNameFallback || s.employeeName || "",
-            employeeEmail: s.employeeEmail || "",
+            employeeId: empId,
+            employeeName: empNameFallback || "",
+            employeeEmail: empEmailFallback || "",
             date: s.date,
             branchId: s.branchId || "",
             branchName: s.branchName || "",
@@ -590,8 +641,8 @@
         const an = (a.branchName||a.branchId||"");
         const bn = (b.branchName||b.branchId||"");
         if(an!==bn) return an.localeCompare(bn);
-        const ae = (a.employeeName||a.employeeEmail||"");
-        const be = (b.employeeName||b.employeeEmail||"");
+        const ae = (a.employeeName||a.employeeEmail||a.employeeId||"");
+        const be = (b.employeeName||b.employeeEmail||b.employeeId||"");
         return ae.localeCompare(be);
       });
 
@@ -625,7 +676,7 @@
         const shiftLine = (r.start && r.end) ? (r.start + " - " + r.end) : "";
         const shiftBadge = shiftLine ? `<span class="badge">${escapeHtml(shiftLine)}</span>` : "";
 
-        const name = r.employeeName || r.employeeEmail || r.employeeId || "-";
+        const name = r.employeeName || r.employeeId || "-";
         const emailLine = r.employeeEmail ? `<span class="sub">${escapeHtml(r.employeeEmail)}</span>` : "";
 
         const tr = document.createElement("tr");
@@ -731,7 +782,7 @@
             <tbody>
               ${rows.map(r=>`
                 <tr>
-                  <td>${escapeHtml(r.employeeName||r.employeeEmail||r.employeeId||'')}</td>
+                  <td>${escapeHtml(r.employeeName||r.employeeId||'')}</td>
                   <td>${escapeHtml(r.branchName||r.branchId||'')}</td>
                   <td>${escapeHtml(r.shiftName||'')} ${escapeHtml((r.start && r.end) ? ("(" + r.start + "-" + r.end + ")") : "")}</td>
                   <td>${escapeHtml(r.status||'')}</td>
@@ -831,6 +882,9 @@
 
       await loadBranchSelect();
       $("fDate").value = ymd(new Date());
+
+      // ✅ مهم: نحمّل employees مرة وحدة قبل الأوتو (لأنو قد نحل employeeId من email legacy)
+      await loadEmployees();
 
       try{
         const date = $("fDate").value;

@@ -38,7 +38,7 @@
     .msg.ok{display:block;border-color:rgba(22,163,74,.35);background:rgba(22,163,74,.12)}
     .msg.bad{display:block;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
 
-    select{ background: rgba(0,0,0,.45) !important; color: var(--txt) !important; }
+    select{ background: rgba(0,0,0,.45) !important; color: var(--txt) !important; border-color: var(--line) !important; appearance:none; }
     select option, select optgroup{ background-color:#0b1220 !important; color:#e5e7eb !important; }
     select option:checked{ background-color:rgba(212,160,25,.25) !important; color:#fff !important; }
     select option:disabled{ color: rgba(229,231,235,.45) !important; }
@@ -68,23 +68,6 @@
     .smBtn.danger:hover{background:rgba(239,68,68,.16)}
 
     .actions{display:flex;gap:8px;flex-wrap:wrap}
-    select{
-      background: rgba(0,0,0,.45) !important;
-      color: var(--txt) !important;
-      border-color: var(--line) !important;
-      appearance: none;
-    }
-    select:focus{ background: rgba(0,0,0,.55) !important; }
-    select option, select optgroup{
-      background-color: #0b1220 !important;
-      color: #e5e7eb !important;
-    }
-    select option:checked{
-      background-color: rgba(212,160,25,.25) !important;
-      color: #fff !important;
-    }
-    select option:disabled{ color: rgba(229,231,235,.45) !important; }
-
     .top{ display:none !important; }
     .wrap{ padding-top:14px !important; }
   </style>
@@ -113,39 +96,14 @@
         .then(async (html)=>{
           mount.innerHTML = html;
           await loadScript("./nav.js?v=" + Date.now());
-
           if(window.__romaUserText){
-            try{
-              window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
-            }catch{}
+            try{ window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } })); }catch{}
           }
-
           window.dispatchEvent(new CustomEvent("roma:nav:layout"));
         })
         .catch(()=>{});
     })();
   </script>
-
-  <div class="top">
-    <div class="topin">
-      <div class="brand">
-        <img src="./assets/logo.webp" alt="Roma">
-        <div>
-          <b>Roma Schedule</b>
-          <div class="pill" id="mePill">...</div>
-        </div>
-      </div>
-      <div class="nav">
-        <a class="btn" href="./admin-dashboard.html">Dashboard</a>
-        <a class="btn" href="./admin-branches.html">الفروع + الدوام</a>
-        <a class="btn" href="./admin-employees.html">الموظفين</a>
-        <a class="btn" href="./admin-leaves.html">الإجازات</a>
-        <a class="btn" href="./admin-schedule.html">توليد الجدول</a>
-        <a class="btn" href="./admin-saved-shifts.html">الجداول الجاهزة</a>
-        <button class="btn danger" id="btnOut">خروج</button>
-      </div>
-    </div>
-  </div>
 
   <div class="wrap">
     <div class="card">
@@ -185,6 +143,7 @@
     </div>
   </div>
 
+  <!-- Add/Edit Modal -->
   <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHead">
@@ -200,11 +159,7 @@
       </div>
 
       <div class="modalBody">
-        <div class="hint">
-       <b></b><br>
-           <b></b> <b></b><br>
-      
-        </div>
+        <div class="hint"></div>
 
         <div class="row" style="margin-top:8px">
           <div>
@@ -274,6 +229,26 @@
     </div>
   </div>
 
+  <!-- Confirm Modal -->
+  <div class="modalOverlay" id="confirmOverlay" aria-hidden="true">
+    <div class="modal" style="width:min(520px,100%)">
+      <div class="modalHead">
+        <div class="modalTitle">
+          <b id="cTitle">تأكيد</b>
+          <div class="mini" id="cSub">—</div>
+        </div>
+        <button class="xbtn" id="cClose">✕</button>
+      </div>
+      <div class="modalBody">
+        <div class="hint" id="cMsg" style="white-space:pre-line"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+          <button class="btn" id="cCancel">إلغاء</button>
+          <button class="btn primary" id="cOk">موافق</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -307,6 +282,56 @@
     };
     const hideMsg = (id)=>{ const el=$(id); el.style.display="none"; };
 
+    // ===== Confirm Modal API =====
+    const cOverlay = $("confirmOverlay");
+    const cTitle = $("cTitle");
+    const cSub = $("cSub");
+    const cMsg = $("cMsg");
+    const cOk = $("cOk");
+    const cCancel = $("cCancel");
+    const cClose = $("cClose");
+
+    function openConfirm({ title="تأكيد", sub="", message="", okText="موافق", cancelText="إلغاء" }){
+      return new Promise((resolve)=>{
+        cTitle.textContent = title;
+        cSub.textContent = sub || " ";
+        cMsg.textContent = message;
+        cOk.textContent = okText;
+        cCancel.textContent = cancelText;
+
+        cOverlay.classList.add("show");
+        cOverlay.setAttribute("aria-hidden","false");
+        document.body.style.overflow = "hidden";
+
+        const done = (v)=>{
+          cOverlay.classList.remove("show");
+          cOverlay.setAttribute("aria-hidden","true");
+          document.body.style.overflow = "";
+          cleanup();
+          resolve(v);
+        };
+
+        const onOk = ()=> done(true);
+        const onCancel = ()=> done(false);
+
+        function cleanup(){
+          cOk.removeEventListener("click", onOk);
+          cCancel.removeEventListener("click", onCancel);
+          cClose.removeEventListener("click", onCancel);
+          cOverlay.removeEventListener("click", onBg);
+          document.removeEventListener("keydown", onEsc);
+        }
+        function onBg(e){ if(e.target === cOverlay) onCancel(); }
+        function onEsc(e){ if(e.key === "Escape") onCancel(); }
+
+        cOk.addEventListener("click", onOk);
+        cCancel.addEventListener("click", onCancel);
+        cClose.addEventListener("click", onCancel);
+        cOverlay.addEventListener("click", onBg);
+        document.addEventListener("keydown", onEsc);
+      });
+    }
+
     let me = null;
 
     async function requireAdmin(user){
@@ -335,6 +360,174 @@
       return `${y}-${m}-${da}`;
     }
 
+    function shiftDateKey(x){
+      return String(x.date || x.day || x.shiftDate || x.ymd || "").trim();
+    }
+
+    function expandLeaveDatesSet(leave){
+      const mode = leave.leaveMode || (leave.dates && leave.dates.length ? "scattered" : "range");
+      const set = new Set();
+
+      if(mode === "single"){
+        const d = leave.from || (Array.isArray(leave.dates)? leave.dates[0] : "");
+        if(d) set.add(String(d));
+        return set;
+      }
+
+      if(mode === "scattered" && Array.isArray(leave.dates) && leave.dates.length){
+        leave.dates.forEach(d=> d && set.add(String(d)));
+        return set;
+      }
+
+      const from = leave.from, to = leave.to;
+      if(!from || !to) return set;
+
+      const a = new Date(from), b = new Date(to);
+      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)){
+        set.add(ymd(d));
+      }
+      return set;
+    }
+
+    // ====== Rollback shifts for a leaveId (based on stored originals) ======
+    async function revertLeaveShifts(leaveId){
+      const q1 = query(collection(db,"shifts"), where("leaveId","==", leaveId));
+      const snap = await getDocs(q1);
+
+      let reverted = 0;
+      for(const docSnap of snap.docs){
+        const x = docSnap.data() || {};
+        const ref = doc(db,"shifts", docSnap.id);
+
+        const originalEmployeeId = x.originalEmployeeId ?? x.employeeId ?? null;
+        const originalEmployeeName = x.originalEmployeeName ?? x.employeeName ?? "";
+        const originalEmployeeEmail = x.originalEmployeeEmail ?? x.employeeEmail ?? null;
+
+        await updateDoc(ref, {
+          employeeId: originalEmployeeId || null,
+          employeeName: originalEmployeeName || (originalEmployeeId ? "" : "—"),
+          employeeEmail: originalEmployeeEmail || null,
+
+          employeeType: originalEmployeeId ? "regular" : "unassigned",
+
+          leaveId: null,
+          source: null,
+          coveredForEmployeeId: null,
+          coveredForEmployeeName: null,
+          coveredByEmployeeId: null,
+          coveredByEmployeeName: null,
+          updatedAt: serverTimestamp(),
+        });
+        reverted++;
+      }
+      return reverted;
+    }
+
+    // ====== Apply approved leave to shifts (PRIMARY: employeeId UID ONLY) ======
+    async function applyApprovedLeaveToShifts(leaveId){
+      const leaveSnap = await getDoc(doc(db,"leaves", leaveId));
+      if(!leaveSnap.exists()) throw new Error("سجل الإجازة غير موجود");
+
+      const leave = leaveSnap.data() || {};
+      const datesSet = expandLeaveDatesSet(leave);
+      if(!datesSet.size) return { updated:0, reason:"no-dates" };
+
+      const leaveEmpId = String(leave.employeeId||"").trim(); // UID
+      const leaveName = leave.employeeName || "";
+
+      const coverEmpId = String(leave.coverEmployeeId||"").trim(); // UID
+      const coverName = leave.coverEmployeeName || "";
+
+      if(!leaveEmpId) return { updated:0, reason:"no-employee" };
+
+      // ✅ fetch cover email/name from employees (optional)
+      let coverEmail = null;
+      if(coverEmpId){
+        const cSnap = await getDoc(doc(db,"employees", coverEmpId));
+        if(cSnap.exists()){
+          coverEmail = cSnap.data()?.email || null;
+        }
+      }
+
+      // ✅ Query shifts by employeeId ONLY
+      let hits = [];
+      try{
+        const qId = query(collection(db,"shifts"), where("employeeId","==", leaveEmpId));
+        const snap = await getDocs(qId);
+        hits = snap.docs.map(d=>({ id:d.id, data:d.data()||{} }));
+      }catch(e){
+        console.error(e);
+        throw new Error("فشل قراءة shifts حسب employeeId. تأكد من وجود index إذا طلب Firebase.");
+      }
+
+      let updated = 0;
+
+      for(const item of hits){
+        const x = item.data;
+        const sDate = shiftDateKey(x);
+        if(!sDate) continue;
+        if(!datesSet.has(sDate)) continue;
+
+        const ref = doc(db,"shifts", item.id);
+
+        // store originals for rollback (only first time)
+        const originalEmployeeId = x.originalEmployeeId ?? x.employeeId ?? null;
+        const originalEmployeeName = x.originalEmployeeName ?? x.employeeName ?? "";
+        const originalEmployeeEmail = x.originalEmployeeEmail ?? x.employeeEmail ?? null;
+
+        if(coverEmpId){
+          await updateDoc(ref, {
+            // originals
+            originalEmployeeId,
+            originalEmployeeName,
+            originalEmployeeEmail,
+
+            // apply cover
+            employeeId: coverEmpId,
+            employeeName: coverName || x.employeeName || "",
+            employeeEmail: coverEmail || null,
+
+            employeeType: "cover",
+
+            note: `Cover for ${leaveName || leaveEmpId} (Leave: ${sDate})`,
+            coveredForEmployeeId: leaveEmpId,
+            coveredForEmployeeName: leaveName || "",
+            coveredByEmployeeId: coverEmpId,
+            coveredByEmployeeName: coverName || "",
+
+            leaveId: leaveId,
+            source: "leave_cover",
+            updatedAt: serverTimestamp()
+          });
+          updated++;
+        }else{
+          await updateDoc(ref, {
+            originalEmployeeId,
+            originalEmployeeName,
+            originalEmployeeEmail,
+
+            employeeId: null,
+            employeeName: "—",
+            employeeEmail: null,
+            employeeType: "unassigned",
+
+            note: `Unassigned بسبب إجازة ${leaveName || leaveEmpId} (${sDate})`,
+            coveredForEmployeeId: leaveEmpId,
+            coveredForEmployeeName: leaveName || "",
+
+            leaveId: leaveId,
+            source: "leave_no_cover",
+            updatedAt: serverTimestamp()
+          });
+          updated++;
+        }
+      }
+
+      return { updated, reason: updated ? "ok" : "no-match" };
+    }
+
+    // ===== Add/Edit modal =====
     const overlay = $("modalOverlay");
     function openModal(){
       overlay.classList.add("show");
@@ -361,14 +554,12 @@
 
     let branches = [];
     let allEmployees = [];
-    let allPresets = [];
     let editingLeaveId = null;
 
     async function loadCaches(){
-      const [bSnap, eSnap, pSnap] = await Promise.all([
+      const [bSnap, eSnap] = await Promise.all([
         getDocs(collection(db,"branches")),
         getDocs(collection(db,"employees")),
-        getDocs(collection(db,"employees_email")),
       ]);
 
       branches = [];
@@ -377,9 +568,6 @@
 
       allEmployees = [];
       eSnap.forEach(d=> allEmployees.push({ id:d.id, source:"employees", ...(d.data()||{}) }));
-
-      allPresets = [];
-      pSnap.forEach(d=> allPresets.push({ id:"preset:"+d.id, source:"employees_email", ...(d.data()||{}) }));
     }
 
     function fillBranchesSelect(){
@@ -390,9 +578,7 @@
     }
 
     function buildLeaveEmployees(branchId){
-      const list = []
-        .concat(allEmployees)
-        .concat(allPresets)
+      const list = allEmployees
         .filter(x=> isActive(x) && isStaff(x) && typeOf(x)==="regular")
         .filter(x=> !branchId || String(empBranchId(x)||"") === String(branchId));
       list.sort((a,b)=> empName(a).localeCompare(empName(b)));
@@ -400,9 +586,7 @@
     }
 
     function buildCoverEmployees(branchId){
-      const list = []
-        .concat(allEmployees)
-        .concat(allPresets)
+      const list = allEmployees
         .filter(x=> isActive(x) && isStaff(x) && canCover(x));
 
       const filtered = list.filter(x=>{
@@ -437,7 +621,8 @@
 
     function getEmpById(id){
       if(!id) return null;
-      return allEmployees.find(x=>x.id===id) || allPresets.find(x=>x.id===id) || null;
+      const k = String(id).toLowerCase();
+      return allEmployees.find(x=>String(x.id).toLowerCase()===k) || null;
     }
 
     function syncModalLists(){
@@ -448,12 +633,12 @@
       const prevEmp = $("mEmp").value;
       const prevCover = $("mCover").value;
 
-      fillSelect($("mEmp"), leaveList, { allowEmpty:false, emptyLabel:"— اختر موظف —", tagFn:(x)=> (x.source==="employees" ? "حساب" : "إيميل") });
+      fillSelect($("mEmp"), leaveList, { allowEmpty:false, emptyLabel:"— اختر موظف —", tagFn:()=> "UID" });
       if(prevEmp) $("mEmp").value = prevEmp;
 
       fillSelect($("mCover"), coverList, { allowEmpty:true, emptyLabel:"— بدون تغطية —", tagFn:(x)=>{
         const t = typeOf(x)==="cover" ? "Cover" : "Regular";
-        return `${t}${x.source==="employees" ? " • حساب" : " • إيميل"}`;
+        return `${t} • UID`;
       }});
       if(prevCover) $("mCover").value = prevCover;
 
@@ -487,17 +672,12 @@
       wrap.appendChild(line);
     }
 
-    function clearDates(){
-      $("datesList").innerHTML = "";
-    }
+    function clearDates(){ $("datesList").innerHTML = ""; }
 
     function getScatteredDates(){
       const dates = Array.from($("datesList").querySelectorAll('input[type="date"]'))
-        .map(i=>i.value)
-        .filter(Boolean);
-
-      const uniq = Array.from(new Set(dates)).sort();
-      return uniq;
+        .map(i=>i.value).filter(Boolean);
+      return Array.from(new Set(dates)).sort();
     }
 
     function setDefaultDates(){
@@ -603,14 +783,13 @@
       $("mCover").value = data.coverEmployeeId || "";
 
       setModalModeAndDates(data);
-
       openModal();
     }
 
     async function saveLeave(){
       try{
-        const employeeId = $("mEmp").value;
-        const coverEmployeeId = $("mCover").value || null;
+        const employeeId = $("mEmp").value;           // UID only
+        const coverEmployeeId = $("mCover").value || null; // UID only
         const status = $("mStatus").value || "pending";
 
         if(!employeeId) return setMsg("msgAdd","اختر الموظف","bad");
@@ -639,6 +818,16 @@
         };
 
         if(editingLeaveId){
+          const oldSnap = await getDoc(doc(db,"leaves", editingLeaveId));
+          const old = oldSnap.exists() ? (oldSnap.data()||{}) : {};
+          const oldStatus = String(old.status||"pending");
+          const newStatus = String(status||"pending");
+
+          if(oldStatus === "approved" && newStatus !== "approved"){
+            const reverted = await revertLeaveShifts(editingLeaveId);
+            setMsg("msgTop", `تمت رجعة الشفتات: ${reverted} ✅`, "ok");
+          }
+
           await updateDoc(doc(db,"leaves", editingLeaveId), payload);
           setMsg("msgTop","تم تعديل الإجازة ✅","ok");
         }else{
@@ -659,9 +848,20 @@
 
     async function deleteLeave(){
       if(!editingLeaveId) return;
-      if(!confirm("حذف الإجازة نهائياً؟")) return;
+
+      const ok = await openConfirm({
+        title: "حذف الإجازة",
+        sub: "سيتم حذف السجل + (إذا مطبقة) رجعة الشفتات",
+        message: "تأكيد الحذف النهائي؟",
+        okText: "حذف",
+        cancelText: "إلغاء"
+      });
+      if(!ok) return;
+
+      const reverted = await revertLeaveShifts(editingLeaveId);
       await deleteDoc(doc(db,"leaves", editingLeaveId));
-      setMsg("msgTop","تم حذف الإجازة ✅","ok");
+
+      setMsg("msgTop", `تم حذف الإجازة ✅\nتمت رجعة الشفتات: ${reverted}`, "ok");
       await loadLeavesTables();
       closeModal();
       editingLeaveId = null;
@@ -688,15 +888,91 @@
       return `${r.from||"-"} → ${r.to||"-"}`;
     }
 
+    async function approveLeaveAndPatch(leaveId, row){
+      const ok = await openConfirm({
+        title: "قبول الإجازة",
+        sub: "سيتم تعديل الشفتات الموجودة في shifts مباشرة",
+        message:
+`هل تريد قبول الإجازة وتعديل جدول الشفتات الحالي؟
+
+الموظف: ${row.employeeName || row.employeeId || "-"}
+التواريخ: ${datesLabel(row)}
+التغطية: ${row.coverEmployeeName || "— بدون تغطية —"}
+
+(المطابقة تتم فقط عبر shifts.employeeId = UID)` ,
+        okText: "قبول وتطبيق",
+        cancelText: "إلغاء"
+      });
+      if(!ok) return;
+
+      setMsg("msgPending","جاري قبول الإجازة وتطبيقها على الشفتات... ⏳","ok");
+
+      await updateDoc(doc(db,"leaves",leaveId), {
+        status:"approved",
+        decidedAt: serverTimestamp(),
+        decidedBy: me.uid
+      });
+
+      const res = await applyApprovedLeaveToShifts(leaveId);
+
+      if(res.updated > 0){
+        setMsg("msgPending", `تم قبول الإجازة ✅\nتم تعديل الشفتات: ${res.updated}`, "ok");
+      }else{
+        setMsg("msgPending",
+          `تم قبول الإجازة ✅\nتم تعديل الشفتات: 0\nتأكد أن شفتات shifts للموظف مخزّنة بـ employeeId (UID) وأن حقل التاريخ في shifts يساوي نفس صيغة (YYYY-MM-DD).`,
+          "bad"
+        );
+      }
+    }
+
+    async function rejectLeave(leaveId, row){
+      const ok = await openConfirm({
+        title: "رفض الإجازة",
+        sub: "سيبقى الجدول كما هو",
+        message:
+`تأكيد رفض الإجازة؟
+
+الموظف: ${row.employeeName || row.employeeId || "-"}
+التواريخ: ${datesLabel(row)}`,
+        okText: "رفض",
+        cancelText: "إلغاء"
+      });
+      if(!ok) return;
+
+      await updateDoc(doc(db,"leaves",leaveId), {
+        status:"rejected",
+        decidedAt: serverTimestamp(),
+        decidedBy: me.uid
+      });
+
+      setMsg("msgPending","تم رفض الإجازة ✅","ok");
+    }
+
+    async function deleteLeaveById(id){
+      const ok = await openConfirm({
+        title: "حذف الإجازة",
+        sub: "سيتم حذف السجل + (إذا مطبقة) رجعة الشفتات",
+        message: "تأكيد الحذف النهائي؟",
+        okText: "حذف",
+        cancelText: "إلغاء"
+      });
+      if(!ok) return;
+
+      const reverted = await revertLeaveShifts(id);
+      await deleteDoc(doc(db,"leaves", id));
+
+      setMsg("msgTop", `تم حذف الإجازة ✅\nتمت رجعة الشفتات: ${reverted}`, "ok");
+      await loadLeavesTables();
+    }
+
     async function loadLeavesTables(){
       const leavesSnap = await getDocs(collection(db,"leaves"));
 
-      if(!allEmployees.length && !allPresets.length){
+      if(!allEmployees.length){
         await loadCaches();
       }
       const nameMap = new Map();
       allEmployees.forEach(x=> nameMap.set(x.id, empName(x)));
-      allPresets.forEach(x=> nameMap.set(x.id, empName(x)));
 
       const leaves=[];
       leavesSnap.forEach(d=>leaves.push({id:d.id, ...d.data()}));
@@ -734,18 +1010,29 @@
 
       pTb.querySelectorAll("[data-ap]").forEach(btn=>{
         btn.addEventListener("click", async ()=>{
-          const id = btn.getAttribute("data-ap");
-          await updateDoc(doc(db,"leaves",id), { status:"approved", decidedAt: serverTimestamp(), decidedBy: me.uid });
-          setMsg("msgPending","تم قبول الإجازة ✅","ok");
-          await loadLeavesTables();
+          try{
+            const id = btn.getAttribute("data-ap");
+            const row = leaves.find(x=>x.id===id) || {};
+            await approveLeaveAndPatch(id, row);
+            await loadLeavesTables();
+          }catch(e){
+            console.error(e);
+            setMsg("msgPending", e?.message || "خطأ أثناء القبول", "bad");
+          }
         });
       });
+
       pTb.querySelectorAll("[data-rj]").forEach(btn=>{
         btn.addEventListener("click", async ()=>{
-          const id = btn.getAttribute("data-rj");
-          await updateDoc(doc(db,"leaves",id), { status:"rejected", decidedAt: serverTimestamp(), decidedBy: me.uid });
-          setMsg("msgPending","تم رفض الإجازة ✅","ok");
-          await loadLeavesTables();
+          try{
+            const id = btn.getAttribute("data-rj");
+            const row = leaves.find(x=>x.id===id) || {};
+            await rejectLeave(id, row);
+            await loadLeavesTables();
+          }catch(e){
+            console.error(e);
+            setMsg("msgPending", e?.message || "خطأ أثناء الرفض", "bad");
+          }
         });
       });
 
@@ -784,10 +1071,7 @@
       hTb.querySelectorAll("[data-del2]").forEach(btn=>{
         btn.addEventListener("click", async ()=>{
           const id = btn.getAttribute("data-del2");
-          if(!confirm("حذف الإجازة نهائياً؟")) return;
-          await deleteDoc(doc(db,"leaves", id));
-          setMsg("msgTop","تم حذف الإجازة ✅","ok");
-          await loadLeavesTables();
+          await deleteLeaveById(id);
         });
       });
     }
@@ -816,13 +1100,8 @@
       if(!user){ location.href="./login.html"; return; }
       me = user;
 
-      const mePill = document.getElementById("mePill");
-      if(mePill) mePill.textContent = user.email || user.uid;
-
       window.__romaUserText = (user.email || user.uid);
-      try{
-        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
-      }catch{}
+      try{ window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } })); }catch{}
 
       const ok = await requireAdmin(user);
       if(!ok){

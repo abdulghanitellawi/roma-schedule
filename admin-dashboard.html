@@ -135,7 +135,6 @@
     input[type="date"]{min-width:180px}
     select{min-width:220px}
 
-    /* ✅ time picker look + LTR */
     input[type="time"]{
       direction:ltr;
       unicode-bidi:embed;
@@ -191,7 +190,6 @@
     .badge.warn{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.10);color:#ffedd5}
     .badge.info{border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.10);color:#dbeafe}
 
-    /* Actions */
     td.actions{white-space:normal!important; width:170px}
     .actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important;align-items:center!important;justify-content:flex-start!important}
     .actions .btn{flex:1 1 160px!important}
@@ -209,7 +207,6 @@
     @media (max-width:979.98px){.wrap{padding-top:10px}}
     @media (min-width:980px){.wrap{padding-right:14px!important;padding-left:14px!important}}
 
-    /* ===== Modal ===== */
     .modalBackdrop{
       position:fixed; inset:0;
       background:rgba(0,0,0,.55);
@@ -274,6 +271,23 @@
       select{min-width:160px}
       input[type="time"]{min-width:150px}
     }
+
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
   </style>
 </head>
 
@@ -336,7 +350,6 @@
 
     <div class="grid">
 
-      <!-- Attendance -->
       <div class="card">
         <div class="split">
           <div>
@@ -386,7 +399,6 @@
         </div>
       </div>
 
-      <!-- Corrections -->
       <div class="card">
         <div class="split">
           <div>
@@ -451,7 +463,6 @@
     </div>
   </div>
 
-  <!-- Modal -->
   <div class="modalBackdrop" id="editModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
       <div class="modalHead">
@@ -561,15 +572,6 @@
       return `${y}-${m}-${da}`;
     }
 
-    function timeToMin(t){
-      const s = String(t||"").trim();
-      const m = /^(\d{1,2}):(\d{2})$/.exec(s);
-      if(!m) return null;
-      const hh = Math.max(0, Math.min(23, Number(m[1])));
-      const mm = Math.max(0, Math.min(59, Number(m[2])));
-      return hh*60+mm;
-    }
-
     function safeId(s){
       return String(s||"").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,240);
     }
@@ -590,6 +592,15 @@
       }catch{ return "-"; }
     }
 
+    function timeToMin(t){
+      const s = String(t||"").trim();
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+      if(!m) return null;
+      const hh = Math.max(0, Math.min(23, Number(m[1])));
+      const mm = Math.max(0, Math.min(59, Number(m[2])));
+      return hh*60+mm;
+    }
+
     function normalizeEmailToPresetId(email){
       const e = String(email||"").trim().toLowerCase();
       if(!e) return null;
@@ -603,17 +614,101 @@
       return byEmail || (id || "");
     }
 
-    async function loadBranchSelect(){
+    /* ==============================
+       ✅ NEW: Load branches + shiftsByDay
+       ============================== */
+    const DAY_KEYS = ["sun","mon","tue","wed","thu","fri","sat"];
+    function dayKeyFromYmd(dateStr){
+      const d = new Date(dateStr + "T12:00:00");
+      const idx = d.getDay();
+      return DAY_KEYS[idx] || "sun";
+    }
+    function dateOnlyLocal(d){
+      const x = new Date(d);
+      x.setHours(0,0,0,0);
+      return x;
+    }
+    function diffDays(a, b){
+      const A = dateOnlyLocal(a).getTime();
+      const B = dateOnlyLocal(b).getTime();
+      return Math.round((A - B) / 86400000);
+    }
+    function dowKeyFromDate(d){
+      const idx = d.getDay();
+      return DAY_KEYS[idx] || "sun";
+    }
+    function findAnchorDateForStartDay(startDayKey, baseDate){
+      const base = dateOnlyLocal(baseDate);
+      let cur = new Date(base);
+      for(let i=0;i<14;i++){
+        if(dowKeyFromDate(cur) === startDayKey) return cur;
+        cur.setDate(cur.getDate() - 1);
+      }
+      return base;
+    }
+    function rotationStepForDate(rot, date){
+      if(!rot?.enabled) return 0;
+      const period = Math.max(1, parseInt(rot.periodDays||1,10) || 1);
+      const startDay = rot.startDay || "sun";
+      const anchor = findAnchorDateForStartDay(startDay, date);
+      const dd = diffDays(date, anchor);
+      return Math.floor(dd / period);
+    }
+
+    // يطبّق rotation على shiftsByDay لذلك اليوم (swap Shift1<->Shift2 للموظف)
+    function applyRotationOnDayShifts(branch, dateStr, dayShifts){
+      try{
+        const rot = branch.rotation || null;
+        if(!rot?.enabled) return dayShifts;
+
+        const step = rotationStepForDate(rot, new Date(dateStr + "T12:00:00"));
+        const swap = (step % 2) === 1;
+        if(!swap) return dayShifts;
+
+        const arr = Array.isArray(dayShifts) ? dayShifts.map(x=>({ ...x })) : [];
+        const i1 = arr.findIndex(x=> String(x.name||x.key||"").toLowerCase().includes("shift 1"));
+        const i2 = arr.findIndex(x=> String(x.name||x.key||"").toLowerCase().includes("shift 2"));
+        if(i1<0 || i2<0) return arr;
+
+        const a = arr[i1], b = arr[i2];
+
+        const swapFields = (objA, objB, fields)=> {
+          for(const f of fields){
+            const tmp = objA[f];
+            objA[f] = objB[f];
+            objB[f] = tmp;
+          }
+        };
+
+        swapFields(a, b, [
+          "assignedEmployeeId",
+          "assignedEmployeeSource",
+          "assignedEmployeeName",
+          "assignedEmployeeEmail"
+        ]);
+
+        arr[i1] = a;
+        arr[i2] = b;
+        return arr;
+      }catch{
+        return dayShifts;
+      }
+    }
+
+    async function loadBranches(){
       const snap = await getDocs(collection(db,"branches"));
       const rows = [];
       snap.forEach(d=> rows.push({ id:d.id, ...(d.data()||{}) }));
       rows.sort((a,b)=> (a.name||a.id||"").localeCompare(b.name||b.id||""));
+      return rows;
+    }
 
+    async function loadBranchSelect(){
+      const rows = await loadBranches();
       const sel = $("fBranch");
       sel.innerHTML =
         `<option value="">— كل الفروع —</option>` +
         rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
-
       return rows;
     }
 
@@ -668,15 +763,48 @@
       return d.getHours()*60 + d.getMinutes();
     }
 
+    // ✅ NEW: استخراج الشفتات المطلوبة من branches حسب اليوم
+    function buildExpectedShiftsFromBranches(branches, dateStr, branchIdFilter=""){
+      const dk = dayKeyFromYmd(dateStr);
+      const out = [];
+
+      for(const br of branches){
+        if(branchIdFilter && String(br.id) !== String(branchIdFilter)) continue;
+
+        const hours = br.hoursByDay?.[dk] || null;
+        if(!hours || hours.closed) continue;
+
+        const dayShiftsRaw = br.shiftsByDay?.[dk] || [];
+        const dayShifts = applyRotationOnDayShifts(br, dateStr, dayShiftsRaw);
+
+        if(!Array.isArray(dayShifts) || !dayShifts.length) continue;
+
+        for(const s of dayShifts){
+          const empId = s.assignedEmployeeId || s.employeeId || null;
+          const empEmail = s.assignedEmployeeEmail || s.employeeEmail || "";
+          const empKey = employeeKeyFromAny(empId, empEmail);
+          if(!empKey) continue;
+
+          out.push({
+            branchId: br.id,
+            branchName: br.name || br.id,
+            date: dateStr,
+            shiftName: s.name || s.key || "Shift",
+            start: s.start || "",
+            end: s.end || "",
+            employeeId: empKey,
+            employeeName: s.assignedEmployeeName || s.employeeName || "",
+            employeeEmail: empEmail || "",
+          });
+        }
+      }
+
+      return out;
+    }
+
     async function markAutoAbsencesForDate(dateStr){
-      const shiftsSnap = await getDocs(collection(db,"shifts"));
-      const shifts = [];
-      shiftsSnap.forEach(d=>{
-        const x = d.data() || {};
-        if(x.date !== dateStr) return;
-        if(!x.employeeId) return;
-        shifts.push({ id:d.id, ...x });
-      });
+      const branches = await loadBranches();
+      const shifts = buildExpectedShiftsFromBranches(branches, dateStr, ""); // كل الفروع
 
       const leaves = await loadLeavesApproved();
 
@@ -756,9 +884,9 @@
     }
 
     async function loadAttendanceForDate(dateStr, branchId=""){
-      const [attSnap, shiftsSnap, emps, leaves] = await Promise.all([
+      const [attSnap, branches, emps, leaves] = await Promise.all([
         getDocs(collection(db,"attendance")),
-        getDocs(collection(db,"shifts")),
+        loadBranches(),
         loadEmployees(),
         loadLeavesApproved()
       ]);
@@ -776,17 +904,10 @@
         attMap.set(k, { __id: d.id, ...x, __empKey: empKey });
       });
 
-      const shifts = [];
-      shiftsSnap.forEach(d=>{
-        const x = d.data() || {};
-        if(x.date !== dateStr) return;
-        if(branchId && String(x.branchId||"") !== String(branchId)) return;
-        if(!x.employeeId) return;
-        shifts.push({ __id: d.id, ...x });
-      });
+      // ✅ shifts come from branches now
+      const shifts = buildExpectedShiftsFromBranches(branches, dateStr, branchId);
 
       const rows = [];
-
       for(const s of shifts){
         const empKey = employeeKeyFromAny(s.employeeId, s.employeeEmail);
         const k = `${empKey}__${s.date}__${s.branchId||""}__${s.shiftName||""}__${s.start||""}`;
@@ -977,6 +1098,9 @@
       setMsg("msgAtt","تم فتح صفحة الطباعة ✅ (اختر Save as PDF)","ok");
     }
 
+    /* =========================================================
+       Corrections section (كما هو عندك)
+       ========================================================= */
     function buildAttendanceDocIdFromCorrection(c){
       const empKey = employeeKeyFromAny(c.employeeId, c.employeeEmail);
       const date = c.date || c.shiftDate || "";
@@ -1002,9 +1126,6 @@
       return { minutesLate, workedMinutes };
     }
 
-    /* =========================================================
-       ✅ FIX: find the REAL attendance docId (even if auto-id)
-       ========================================================= */
     async function findAttendanceDocIdSmart({ empKey, date, branchId, shiftName, start }){
       const snap = await getDocs(collection(db,"attendance"));
       let foundId = null;
@@ -1026,7 +1147,6 @@
       return foundId;
     }
 
-    // ✅ تطبيق التصحيح (مُصلح: يعدّل نفس سجل الحضور الحقيقي)
     async function applyCorrection(correctionId, mode){
       const cRef = doc(db,"attendance_corrections", correctionId);
       const cSnap = await getDoc(cRef);

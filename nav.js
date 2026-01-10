@@ -27,6 +27,18 @@
     if(e.key === "Escape") setOpen(false);
   });
 
+  // close sidebar when clicking any nav link
+  try{
+    root.querySelectorAll('a[href]').forEach(a=>{
+      a.addEventListener("click", ()=>{
+        // لا تسكر إذا الرابط # أو javascript
+        const href = (a.getAttribute("href")||"").trim();
+        if(!href || href === "#" || href.startsWith("javascript:")) return;
+        setOpen(false);
+      });
+    });
+  }catch{}
+
   // active link highlight
   try{
     const file = (location.pathname.split("/").pop() || "").toLowerCase();
@@ -36,24 +48,57 @@
     });
   }catch{}
 
+  // ===== Logout helper (IMPORTANT) =====
+  async function doLogoutFromNav(){
+    try{
+      // ✅ يمنع auto-redirect في login.html
+      sessionStorage.setItem("roma_logout", "1");
+    }catch{}
+
+    // 1) إذا الصفحة عرّفت دالة logout عالمستوى العام استخدمها
+    if(typeof window.__romaLogout === "function"){
+      try{ await window.__romaLogout(); return; }catch(e){ console.warn(e); }
+    }
+
+    // 2) جرّب أزرار الخروج الموجودة بالصفحات
+    const real =
+      document.getElementById("btnOut") ||
+      document.getElementById("btnLogout") ||
+      document.getElementById("navBtnOutReal");
+
+    if(real){
+      try{
+        real.click();
+        return;
+      }catch(e){
+        console.warn("Failed to click real logout button", e);
+      }
+    }
+
+    // 3) fallback: روح على login (الفلاج موجود)
+    location.href = "./login.html";
+  }
+
   // buttons: reuse existing page buttons
   const navOut = document.getElementById("navBtnOut");
   const navMakeAdmin = document.getElementById("navBtnMakeAdmin");
 
   if(navOut){
-    navOut.addEventListener("click", ()=>{
-      const real = document.getElementById("btnOut");
-      if(real) return real.click();
-      location.href="./login.html";
-    });
+    if(!navOut.__bound){
+      navOut.__bound = true;
+      navOut.addEventListener("click", doLogoutFromNav);
+    }
   }
 
   if(navMakeAdmin){
-    navMakeAdmin.addEventListener("click", ()=>{
-      const real = document.getElementById("btnMakeAdmin");
-      if(real) return real.click();
-      alert("زر اجعل Admin غير موجود بهذه الصفحة.");
-    });
+    if(!navMakeAdmin.__bound){
+      navMakeAdmin.__bound = true;
+      navMakeAdmin.addEventListener("click", ()=>{
+        const real = document.getElementById("btnMakeAdmin");
+        if(real) return real.click();
+        alert("زر اجعل Admin غير موجود بهذه الصفحة.");
+      });
+    }
   }
 
   // pills sync
@@ -83,4 +128,5 @@
 
   // expose small helper (optional)
   window.__romaNavSetOpen = setOpen;
+  window.__romaNavLogout = doLogoutFromNav;
 })();

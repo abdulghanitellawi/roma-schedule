@@ -93,6 +93,24 @@
 
     .top{ display:none !important; }
     .wrap{ padding-top:14px !important; }
+
+    /* ✅ Fix dropdown options visibility */
+    select{
+      background: rgba(0,0,0,.45) !important;
+      color: var(--txt) !important;
+      border-color: var(--line) !important;
+      appearance: none;
+    }
+    select:focus{ background: rgba(0,0,0,.55) !important; }
+    select option, select optgroup{
+      background-color: #0b1220 !important;
+      color: #e5e7eb !important;
+    }
+    select option:checked{
+      background-color: rgba(212,160,25,.25) !important;
+      color: #fff !important;
+    }
+    select option:disabled{ color: rgba(229,231,235,.45) !important; }
   </style>
 </head>
 <body>
@@ -702,7 +720,13 @@
       updateRotationPreview();
     }
 
+    // =========================================================
+    // ✅ Employees ONLY (no employees_email / no preset:)
+    // + Migration helper: if old data contains preset: or only email,
+    //   we resolve to real employees.id by email.
+    // =========================================================
     let cachedEmployees = [];
+    let employeesByEmail = new Map(); // email(lower) => employeeId
 
     function employeeLabel(emp){
       const name = emp.name || emp.fullName || emp.displayName || emp.username || "";
@@ -716,8 +740,7 @@
 
       if(cachedEmployees.length){
         for(const e of cachedEmployees){
-          const tag = e.source === "employees" ? "حساب" : "إيميل";
-          opts.push(`<option value="${escapeHtml(e.id)}">${escapeHtml(employeeLabel(e))} (${tag})</option>`);
+          opts.push(`<option value="${escapeHtml(e.id)}">${escapeHtml(employeeLabel(e))} (حساب)</option>`);
         }
       }else{
         opts.push(`<option value="" disabled>لا يوجد موظفين ضمن هذا الفرع</option>`);
@@ -734,6 +757,7 @@
 
     async function loadEmployeesForBranch(branchId){
       cachedEmployees = [];
+      employeesByEmail = new Map();
 
       if(!branchId){
         $("empHint").textContent = "";
@@ -748,26 +772,31 @@
       empSnap.forEach(d=>{
         const data = d.data() || {};
         if(matchesBranch(data, branchId) && data.active !== false){
-          emps.push({ id:d.id, source:"employees", ...data });
+          const row = { id:d.id, source:"employees", ...data };
+          emps.push(row);
+
+          const em = String(row.email||"").trim().toLowerCase();
+          if(em) employeesByEmail.set(em, d.id);
         }
       });
 
-      const presetSnap = await getDocs(collection(db,"employees_email"));
-      const presets = [];
-      presetSnap.forEach(d=>{
-        const data = d.data() || {};
-        if(String(data.branchId||"") === String(branchId) && data.active !== false){
-          presets.push({ id:"preset:"+d.id, source:"employees_email", ...data });
-        }
-      });
-
-      cachedEmployees = [...emps, ...presets].sort((a,b)=> employeeLabel(a).localeCompare(employeeLabel(b)));
+      cachedEmployees = emps.sort((a,b)=> employeeLabel(a).localeCompare(employeeLabel(b)));
 
       $("empHint").textContent = cachedEmployees.length ? `الموظفين ضمن هذا الفرع: ${cachedEmployees.length}` : "";
 
       fillEmployeeSelect($("emp1"), $("emp1").value);
       fillEmployeeSelect($("emp2"), $("emp2").value);
       fillEmployeeSelect($("emp3"), $("emp3").value);
+    }
+
+    function resolveEmployeeIdAny(value, email){
+      const v = String(value||"").trim();
+      if(v && !v.startsWith("preset:")) return v;
+
+      const em = String(email||"").trim().toLowerCase();
+      if(em && employeesByEmail.has(em)) return employeesByEmail.get(em);
+
+      return "";
     }
 
     function getSelectedEmployee(empId){
@@ -844,9 +873,7 @@
           minStaff: Number(minStaff||0),
           durationHours,
           assignedEmployeeId: sel || null,
-          assignedEmployeeSource: emp?.source || null,
-          assignedEmployeeName: emp ? (emp.name || emp.fullName || emp.displayName || emp.email || emp.id) : null,
-          assignedEmployeeEmail: emp?.email || null
+          assignedEmployeeName: emp ? (emp.name || emp.fullName || emp.displayName || emp.email || emp.id) : null
         });
       };
 
@@ -956,7 +983,7 @@
         if(!arr.length){ body.innerHTML = `<div class="mut">—</div>`; continue; }
 
         for(const s of arr){
-          const emp = s.assignedEmployeeName ? s.assignedEmployeeName : (s.assignedEmployeeEmail || "");
+          const emp = s.assignedEmployeeName ? s.assignedEmployeeName : "";
           const empLine = emp ? `<span class="mut">${escapeHtml(emp)}</span>` : `<span class="mut">—</span>`;
           const item = document.createElement("div");
           item.className = "pItem";
@@ -1064,6 +1091,7 @@
       $("emp3").value = "";
 
       cachedEmployees = [];
+      employeesByEmail = new Map();
       fillEmployeeSelect($("emp1"), "");
       fillEmployeeSelect($("emp2"), "");
       fillEmployeeSelect($("emp3"), "");
@@ -1187,21 +1215,40 @@
 
           setRotationToForm(d.rotation || { enabled:false, periodDays:1, startDay:"sun" });
 
+          // ✅ تحميل موظفين الفرع (employees only) + تجهيز map email=>id للمهاجرة
           await loadEmployeesForBranch(editingId);
 
           const cfg = d.shiftConfig || null;
+
           if(cfg){
             $("bm1").value = cfg.shift1?.minStaff || 0;
-            $("emp1").value = cfg.shift1?.assignedEmployeeId || "";
-
             $("bm2").value = cfg.shift2?.minStaff || 0;
-            $("emp2").value = cfg.shift2?.assignedEmployeeId || "";
+
+            // ✅ migrate preset: / invalid to real employeeId (if possible by email in old shiftsByDay)
+            // we try to use shiftsByDay assignedEmployeeEmail/name if present
+            const tryEmailFromShiftByDay = (shiftKey)=>{
+              try{
+                for(const day of DAYS){
+                  const arr = Array.isArray(d.shiftsByDay?.[day.key]) ? d.shiftsByDay[day.key] : [];
+                  const hit = arr.find(x => String(x.key||x.name||"") === shiftKey || String(x.name||"") === shiftKey);
+                  if(hit && hit.assignedEmployeeEmail) return hit.assignedEmployeeEmail;
+                }
+              }catch{}
+              return "";
+            };
+
+            const s1Email = tryEmailFromShiftByDay("Shift 1");
+            const s2Email = tryEmailFromShiftByDay("Shift 2");
+            const s3Email = tryEmailFromShiftByDay("Shift 3");
+
+            $("emp1").value = resolveEmployeeIdAny(cfg.shift1?.assignedEmployeeId, s1Email) || "";
+            $("emp2").value = resolveEmployeeIdAny(cfg.shift2?.assignedEmployeeId, s2Email) || "";
 
             if(cfg.shift3?.enabled){
               setShift3(true);
               $("bs3").value = cfg.shift3?.start || "00:00";
               $("bm3").value = cfg.shift3?.minStaff || 0;
-              $("emp3").value = cfg.shift3?.assignedEmployeeId || "";
+              $("emp3").value = resolveEmployeeIdAny(cfg.shift3?.assignedEmployeeId, s3Email) || "";
             }else{
               $("bs3").value = "00:00"; $("bm3").value = 0;
               $("emp3").value = "";
@@ -1213,16 +1260,16 @@
             const s1=pick("Shift 1"), s2=pick("Shift 2"), s3=pick("Shift 3");
 
             $("bm1").value = s1?.minStaff || 0;
-            $("emp1").value = s1?.assignedEmployeeId || "";
-
             $("bm2").value = s2?.minStaff || 0;
-            $("emp2").value = s2?.assignedEmployeeId || "";
+
+            $("emp1").value = resolveEmployeeIdAny(s1?.assignedEmployeeId, s1?.assignedEmployeeEmail) || "";
+            $("emp2").value = resolveEmployeeIdAny(s2?.assignedEmployeeId, s2?.assignedEmployeeEmail) || "";
 
             if(s3 && Number(s3.minStaff||0) > 0){
               setShift3(true);
               $("bs3").value = s3?.start || "00:00";
               $("bm3").value = s3?.minStaff || 0;
-              $("emp3").value = s3?.assignedEmployeeId || "";
+              $("emp3").value = resolveEmployeeIdAny(s3?.assignedEmployeeId, s3?.assignedEmployeeEmail) || "";
             }else{
               $("bs3").value = "00:00"; $("bm3").value = 0;
               $("emp3").value = "";
@@ -1259,7 +1306,12 @@
 
       const rotation = getRotationFromForm();
 
+      // ✅ normalize selected IDs (employees only)
       const shiftConfigRaw = packShiftConfig();
+      shiftConfigRaw.shift1.assignedEmployeeId = shiftConfigRaw.shift1.assignedEmployeeId || null;
+      shiftConfigRaw.shift2.assignedEmployeeId = shiftConfigRaw.shift2.assignedEmployeeId || null;
+      shiftConfigRaw.shift3.assignedEmployeeId = shiftConfigRaw.shift3.assignedEmployeeId || null;
+
       const shiftConfigAppliedForToday = applyRotationToConfigIfNeeded(shiftConfigRaw, rotation, new Date());
 
       const shiftsByDay = packShiftsByDay(hoursByDay, shiftConfigRaw);

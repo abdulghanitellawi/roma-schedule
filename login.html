@@ -51,11 +51,10 @@
     .btn.primary:hover{background:rgba(212,160,25,.20)}
     .btn:hover{background:rgba(255,255,255,.09)}
     .btn:disabled{opacity:.6; cursor:not-allowed}
-    .note{margin-top:12px; color:var(--muted); font-size:13px; line-height:1.7}
-    .msg{margin-top:12px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:none}
+    .msg{margin-top:12px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:none; white-space:pre-line}
     .msg.ok{display:block; border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12)}
     .msg.bad{display:block; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12)}
-    .tiny{color:var(--muted); font-size:12px; margin-top:8px}
+    .tiny{color:var(--muted); font-size:12px; margin-top:8px; line-height:1.8}
     .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
     .logoRow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
     .logoRow img{width:44px;height:44px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
@@ -69,13 +68,8 @@
         <div class="badge">Roma Schedule</div>
       </div>
       <h1>نظام الدوامات والإجازات والتغطيات</h1>
-      <p>
-    <br/>
-  <br/>
-       
-      </p>
-      <p class="note">
-      </p>
+      <p class="tiny">تسجيل الدخول متاح فقط للحسابات المسموح بها من الإدارة.</p>
+      <p class="tiny" id="hintTop"></p>
     </div>
 
     <div class="card">
@@ -93,14 +87,20 @@
       </div>
 
       <div id="msg" class="msg"></div>
-      <div class="tiny"></div>
+      <div class="tiny" id="hint"></div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword,
+      signOut, deleteUser
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
@@ -117,22 +117,56 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
-    const msg = (text, type="ok")=>{
+
+    const showMsg = (text, type="ok")=>{
       const el = $("msg");
       el.className = "msg " + (type==="bad"?"bad":"ok");
       el.textContent = text;
+      el.style.display = "block";
+    };
+    const clearMsg = ()=>{
+      const el = $("msg");
+      el.style.display = "none";
+      el.textContent = "";
+      el.className = "msg";
     };
     const setLoading = (on)=>{
       $("btnLogin").disabled = on;
       $("btnSignup").disabled = on;
     };
 
-    const safeEmailDocId = (email)=> email.trim().toLowerCase().replace(/\./g,"(dot)");
+    // ==== ✅ نفس منطق تخزينك الحقيقي في employees_email ====
+    // عندك IDs مثل:
+    // preset:aaaa_gmail(dot)com
+    // و/أو aaaa_gmail(dot)com
+    function emailKeyCore(email){
+      const e = String(email||"").trim().toLowerCase();
+      // @ -> _   و . -> (dot)
+      return e.replace(/@/g,"_").replace(/\./g,"(dot)");
+    }
+    function possibleEmployeesEmailDocIds(email){
+      const core = emailKeyCore(email);
+      return [
+        core,
+        "preset:" + core,
+        // دعم قديم إذا كنت عامل فقط . -> (dot) بدون @ -> _
+        String(email||"").trim().toLowerCase().replace(/\./g,"(dot)"),
+        "preset:" + String(email||"").trim().toLowerCase().replace(/\./g,"(dot)")
+      ];
+    }
 
-    async function readPresetByEmail(email){
-      const ref = doc(db, "employees_email", safeEmailDocId(email));
-      const snap = await getDoc(ref);
-      return snap.exists() ? snap.data() : null;
+    async function readEmployeesEmailPreset(email){
+      const ids = possibleEmployeesEmailDocIds(email);
+      for(const id of ids){
+        try{
+          const snap = await getDoc(doc(db, "employees_email", id));
+          if(snap.exists()) return { id, data: snap.data()||{} };
+        }catch(e){
+          // إذا ما في صلاحيات هون رح تنضبط بعد الـ Auth (نحن نستدعيها بعد تسجيل الدخول)
+          console.warn("readEmployeesEmailPreset failed for", id, e?.code || e);
+        }
+      }
+      return null;
     }
 
     async function ensureEmployeeDoc(user){
@@ -140,14 +174,16 @@
       const snap = await getDoc(uidRef);
       if(snap.exists()) return;
 
-      const preset = await readPresetByEmail(user.email || "");
+      const presetObj = await readEmployeesEmailPreset(user.email || "");
+      const preset = presetObj ? presetObj.data : null;
+
       const base = {
         name: (user.email || "user").split("@")[0],
-        email: user.email || "",
+        email: (user.email || "").toLowerCase(),
         role: "staff",
-        type: "regular",      // regular | cover
+        type: "regular",
         department: "General",
-        branchId: "",         // ثابت للـ regular
+        branchId: "",
         fixedBranch: true,
         coverAllBranches: false,
         coverBranchIds: [],
@@ -165,56 +201,135 @@
       return snap.exists() ? (snap.data()?.role || "staff") : "staff";
     }
 
+    async function assertEmployeeActive(uid){
+      const snap = await getDoc(doc(db,"employees",uid));
+      if(!snap.exists()) return;
+      const x = snap.data() || {};
+      if(x.active === false) throw new Error("حسابك موقوف من الإدارة (active=false).");
+    }
+
+    // ✅ Gate: لازم يكون موجود داخل employees_email
+    async function assertAllowedByEmployeesEmail(email){
+      const presetObj = await readEmployeesEmailPreset(email);
+      if(!presetObj) throw new Error("هذا الإيميل غير مسموح. اطلب من الأدمن إضافته ضمن employees_email.");
+      if(presetObj.data && presetObj.data.active === false) throw new Error("هذا الحساب موقوف ضمن employees_email (active=false).");
+      return presetObj;
+    }
+
     async function routeByRole(user){
       setLoading(true);
       try{
+        // ✅ تحقق السماح AFTER auth (حتى ما تاكل Missing permissions)
+        await assertAllowedByEmployeesEmail(user.email || "");
+
+        // ✅ أنشئ employees إن لم يوجد
         await ensureEmployeeDoc(user);
+
+        // ✅ تحقق active داخل employees (إذا الأدمن سكّرك)
+        await assertEmployeeActive(user.uid);
+
       }catch(e){
         console.error(e);
-        msg("تم تسجيل الدخول ✅ لكن Firestore غير جاهز أو Rules مانعة.", "bad");
+        try{ await signOut(auth); }catch{}
         setLoading(false);
-        return;
+        return showMsg(e?.message || "لا يمكن إكمال الدخول.", "bad");
       }
 
       let role = "staff";
       try{ role = await getRole(user.uid); }catch(e){ console.error(e); }
 
+      // ✅ حل رجوع الدخول بعد logout
+      try{ sessionStorage.removeItem("roma_logout"); }catch{}
+
       if(role === "admin") location.href = "./admin-dashboard.html";
       else location.href = "./staff.html";
     }
 
-    onAuthStateChanged(auth, (user)=>{
-      if(user) routeByRole(user);
+    // ✅ حل مشكلة “logout وبيرجع يفوت”
+    onAuthStateChanged(auth, async (user)=>{
+      const justLoggedOut = (()=> {
+        try{ return sessionStorage.getItem("roma_logout")==="1"; }catch{ return false; }
+      })();
+
+      if(!user){
+        setLoading(false);
+        if(justLoggedOut){
+          $("hint").textContent = "تم تسجيل الخروج. يمكنك تسجيل الدخول بحساب آخر.";
+          $("hintTop").textContent = "تم تسجيل الخروج بنجاح.";
+        }
+        return;
+      }
+
+      if(justLoggedOut){
+        try{ await signOut(auth); }catch{}
+        setLoading(false);
+        $("hint").textContent = "تم تسجيل الخروج. يمكنك تسجيل الدخول بحساب آخر.";
+        $("hintTop").textContent = "تم تسجيل الخروج بنجاح.";
+        return;
+      }
+
+      // إذا فات المستخدم (مثلاً من جلسة سابقة) روح تحقّق ورحّل
+      routeByRole(user);
     });
 
     $("btnLogin").addEventListener("click", async ()=>{
+      clearMsg();
       const email = $("email").value.trim();
       const pass  = $("pass").value;
-      if(!email || !pass) return msg("اكتب الإيميل وكلمة المرور", "bad");
+
+      if(!email || !pass) return showMsg("اكتب الإيميل وكلمة المرور", "bad");
+
       try{
         setLoading(true);
-        await signInWithEmailAndPassword(auth, email, pass);
-        msg("تم تسجيل الدخول…", "ok");
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+        await routeByRole(cred.user);
       }catch(e){
         setLoading(false);
-        msg(e?.message || "خطأ بالدخول", "bad");
+        showMsg(e?.message || "خطأ بالدخول", "bad");
       }
     });
 
     $("btnSignup").addEventListener("click", async ()=>{
+      clearMsg();
       const email = $("email").value.trim();
       const pass  = $("pass").value;
-      if(!email || !pass) return msg("اكتب الإيميل وكلمة المرور", "bad");
+
+      if(!email || !pass) return showMsg("اكتب الإيميل وكلمة المرور", "bad");
+
       try{
         setLoading(true);
+
+        // ننشئ الحساب أولاً (Auth)، ثم نتحقق من employees_email
         const cred = await createUserWithEmailAndPassword(auth, email, pass);
-        try{ await ensureEmployeeDoc(cred.user); }catch(e){ console.error(e); }
-        msg("تم إنشاء الحساب…", "ok");
+
+        try{
+          await assertAllowedByEmployeesEmail(email);
+        }catch(err){
+          // إذا غير مسموح: احذف المستخدم اللي انعمل واطلع
+          try{ await deleteUser(cred.user); }catch{}
+          try{ await signOut(auth); }catch{}
+          setLoading(false);
+          return showMsg(err?.message || "هذا الإيميل غير مسموح.", "bad");
+        }
+
+        await ensureEmployeeDoc(cred.user);
+        await routeByRole(cred.user);
       }catch(e){
         setLoading(false);
-        msg(e?.message || "خطأ بإنشاء الحساب", "bad");
+        showMsg(e?.message || "خطأ بإنشاء الحساب", "bad");
       }
     });
+
+    // ✅ Enter للدخول
+    ["email","pass"].forEach(id=>{
+      $(id).addEventListener("keydown", (e)=>{
+        if(e.key === "Enter") $("btnLogin").click();
+      });
+    });
+
+    // ✅ (مهم) إذا عندك زر Logout بأي صفحة:
+    // قبل signOut حط:
+    // sessionStorage.setItem("roma_logout","1");
   </script>
 </body>
 </html>

@@ -138,14 +138,8 @@
 
   <div class="wrap">
     <div class="card">
-      <h2>توليد جدول تلقائي حسب الفرع (من branches + إجازات leaves)</h2>
-      <div class="mini">
-
-
-
-
-  
-      </div>
+      <h2>توليد جدول تلقائي</h2>
+      <div class="mini"></div>
 
       <div class="row">
         <div><label>الفرع</label><select id="gBranch"></select></div>
@@ -553,31 +547,38 @@
       return { leaveMap, forcedCoverMap };
     }
 
-    // ===== Employees (employees_email) =====
-    function normalizeEmailToPresetId(email){
-      const e = String(email||"").trim().toLowerCase();
-      if(!e) return null;
-      return "preset:" + e.replace(/\./g,"(dot)");
+    // ===== Employees (✅ employees فقط) =====
+    function pickName(x){
+      const nm = x?.name || x?.displayName || x?.fullName || "";
+      const em = x?.email || "";
+      return nm ? nm : (em || x?.id || "—");
     }
+    function bool(v){ return v === true; }
 
-    async function getStaffForBranch_FromEmployeesEmail(branchId){
-      const snap = await getDocs(query(collection(db,"employees_email"), where("active","==",true)));
-      const regular=[], cover=[], allById=new Map();
+    async function getStaffForBranch_FromEmployees(branchId){
+      const snap = await getDocs(collection(db,"employees"));
+
+      const regular = [];
+      const cover = [];
+      const allById = new Map();
 
       snap.forEach(d=>{
         const x = d.data() || {};
-        const role = (x.role || "staff");
+        const id = d.id; // UID
+
+        const role = String(x.role || "staff").toLowerCase();
         if(role !== "staff") return;
 
-        const type = (x.type || "regular");
-        const email = (x.email || "").trim().toLowerCase();
-        const presetId = normalizeEmailToPresetId(email) || ("preset:" + d.id);
+        const active = (x.active !== false);
+        if(!active) return;
+
+        const type = String(x.type || "regular").toLowerCase();
 
         const obj = {
-          id: presetId,
-          src: "employees_email",
-          email,
-          name: x.name || x.employeeName || x.fullName || x.displayName || "",
+          id,
+          src: "employees",
+          email: (x.email || "").trim().toLowerCase(),
+          name: x.name || x.displayName || x.fullName || "",
           type,
           branchId: x.branchId || "",
           canCover: x.canCover !== false,
@@ -593,12 +594,13 @@
           return;
         }
 
+        // cover
         if(!obj.canCover) return;
         if(obj.coverAllBranches) cover.push(obj);
         else if(branchId && obj.coverBranchIds.includes(branchId)) cover.push(obj);
       });
 
-      const sortByName = (a,b)=> (String(a.name||a.email||a.id)).localeCompare(String(b.name||b.email||b.id));
+      const sortByName = (a,b)=> (String(pickName(a))).localeCompare(String(pickName(b)));
       regular.sort(sortByName);
       cover.sort(sortByName);
 
@@ -658,7 +660,7 @@
 
       const [branch, staff, leaves, savedBusy] = await Promise.all([
         getBranchInfo(branchId),
-        getStaffForBranch_FromEmployeesEmail(branchId),
+        getStaffForBranch_FromEmployees(branchId),
         getApprovedLeavesMaps(),
         getBusyMapFromSavedShifts(from,to)
       ]);
@@ -666,7 +668,7 @@
       if(!branch) throw new Error("الفرع غير موجود.");
 
       const { regular, cover, allById } = staff;
-      if(!regular.length && !cover.length) throw new Error("لا يوجد موظفين نشطين لهذا الفرع ولا تغطية (employees_email).");
+      if(!regular.length && !cover.length) throw new Error("لا يوجد موظفين نشطين لهذا الفرع ولا تغطية (employees).");
 
       const { leaveMap, forcedCoverMap } = leaves;
 

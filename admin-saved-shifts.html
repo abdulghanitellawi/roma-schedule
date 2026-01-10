@@ -146,11 +146,8 @@
 
   <div class="wrap">
     <div class="card">
-      <h2>الشيفتات المحفوظة (collection: shifts)</h2>
-      <div class="mini">
-<br>
-       <b></b> <b></b> 
-      </div>
+      <h2>الشيفتات المحفوظة </h2>
+      <div class="mini"><br><b></b> <b></b></div>
 
       <div class="row">
         <div><label>الفرع</label><select id="fBranch"></select></div>
@@ -377,9 +374,18 @@
     }
 
     function labelEmp(x){
-      const nm = x?.name || "";
+      const nm = x?.name || x?.displayName || x?.fullName || "";
       const em = x?.email || "";
       return nm ? nm : (em || x?.id || "—");
+    }
+
+    function isActiveEmp(x){
+      return x?.active !== false; // default true
+    }
+
+    function isStaffEmp(x){
+      const role = String(x?.role || "staff").toLowerCase();
+      return role === "staff"; // dropdown للموظفين فقط
     }
 
     async function loadBranches(){
@@ -393,51 +399,29 @@
         out.map(r=>`<option value="${r.id}">${escapeHtml(r.name||r.id)} (${escapeHtml(r.id)})</option>`).join("");
     }
 
-    function normalizeEmailToPresetId(email){
-      const e = String(email||"").trim().toLowerCase();
-      if(!e) return null;
-      return "preset:" + e.replace(/\./g,"(dot)");
-    }
-
+    // ✅ ONLY employees collection (no presets)
     async function loadEmployeesOptions(){
+      const snap = await getDocs(collection(db,"employees"));
       const out = [];
-
-      const snapStaff = await getDocs(query(collection(db,"employees_email"), where("active","==",true)));
-      snapStaff.forEach(d=>{
+      snap.forEach(d=>{
         const x = d.data() || {};
-        const role = (x.role || "staff");
-        if(role !== "staff") return;
-        const email = (x.email || "").trim().toLowerCase();
-        const id = normalizeEmailToPresetId(email) || ("preset:" + d.id);
+        const id = d.id; // UID
         out.push({
           id,
-          name: x.name || x.employeeName || x.fullName || x.displayName || "",
-          email,
-          src: "employees_email",
-          type: x.type || "regular"
+          name: x.name || x.displayName || x.fullName || "",
+          email: (x.email || "").trim().toLowerCase(),
+          role: x.role || "staff",
+          type: x.type || "regular",
+          active: x.active
         });
       });
 
-      const snapAdmins = await getDocs(collection(db,"employees"));
-      snapAdmins.forEach(d=>{
-        const x = d.data() || {};
-        const email = (x.email || "").trim().toLowerCase();
-        const id = x.id || d.id;
-        out.push({
-          id,
-          name: x.name || x.displayName || "",
-          email,
-          src: "employees",
-          type: x.type || "regular"
-        });
-      });
+      // dropdown: staff only + active
+      empOptions = out
+        .filter(isActiveEmp)
+        .filter(isStaffEmp)
+        .sort((a,b)=> labelEmp(a).localeCompare(labelEmp(b)));
 
-      const map = new Map();
-      for(const e of out){
-        if(!e?.id) continue;
-        if(!map.has(e.id)) map.set(e.id, e);
-      }
-      empOptions = Array.from(map.values()).sort((a,b)=> labelEmp(a).localeCompare(labelEmp(b)));
       empById = new Map(empOptions.map(e=>[e.id, e]));
 
       const optHtml =
@@ -502,7 +486,15 @@
 
       for(const r of list){
         const id = r.__id;
-        const empLabel = r.employeeId ? escapeHtml(r.employeeName || r.employeeId) : "—";
+
+        // ✅ لو employeeName ناقص، جيبه من employees
+        let showName = r.employeeName;
+        if(r.employeeId && (!showName || showName === "—")){
+          const emp = empById.get(r.employeeId);
+          if(emp) showName = labelEmp(emp);
+        }
+
+        const empLabel = r.employeeId ? escapeHtml(showName || r.employeeId) : "—";
         const checked = selectedIds.has(id) ? "checked" : "";
 
         const tr = document.createElement("tr");
@@ -559,7 +551,15 @@
         }else{
           return;
         }
-        list.push({ __id: d.id, ...x });
+
+        // ✅ hydrate employeeName من employees إذا ناقص
+        let employeeName = x.employeeName;
+        if(x.employeeId && (!employeeName || employeeName === "—")){
+          const emp = empById.get(x.employeeId);
+          if(emp) employeeName = labelEmp(emp);
+        }
+
+        list.push({ __id: d.id, ...x, employeeName });
       });
 
       list.sort((a,b)=>{
@@ -590,15 +590,22 @@
 
       const headers = ["التاريخ","الفرع","الشفت","البداية","النهاية","الموظف","ملاحظة"];
 
-      const rows = filtered.map(r => ([
-        r.date || "",
-        r.branchName || r.branchId || "",
-        r.shiftName || "",
-        r.start || "",
-        r.end || "",
-        r.employeeId ? (r.employeeName || r.employeeId) : "—",
-        r.note || ""
-      ]));
+      const rows = filtered.map(r => {
+        let who = "—";
+        if(r.employeeId){
+          const emp = empById.get(r.employeeId);
+          who = r.employeeName && r.employeeName !== "—" ? r.employeeName : (emp ? labelEmp(emp) : r.employeeId);
+        }
+        return ([
+          r.date || "",
+          r.branchName || r.branchId || "",
+          r.shiftName || "",
+          r.start || "",
+          r.end || "",
+          who,
+          r.note || ""
+        ]);
+      });
 
       const aoa = [headers, ...rows];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -654,7 +661,7 @@
       const f = $("fFrom").value || "from";
       const t = $("fTo").value || "to";
       XLSX.writeFile(wb, `saved_shifts_${b}_${f}_${t}.xlsx`);
-      setMsg("تم تصدير Excel ✅ (بدون slot/status/type)", "ok");
+      setMsg("تم تصدير Excel ✅ (employees فقط)", "ok");
     }
 
     function openEdit(id){
@@ -695,11 +702,9 @@
       let status = $("eStatus").value || "assigned";
 
       let employeeName = "";
-      let employeeSource = "";
       if(employeeId){
         const emp = empById.get(employeeId);
-        employeeName = emp ? (emp.name || emp.email || emp.id) : (currentEdit.data.employeeName || employeeId);
-        employeeSource = emp ? (emp.src || "") : (currentEdit.data.employeeSource || "");
+        employeeName = emp ? labelEmp(emp) : (currentEdit.data.employeeName || employeeId);
         status = status === "unassigned" ? "assigned" : status;
       }else{
         status = "unassigned";
@@ -715,7 +720,6 @@
         employeeId: employeeId || null,
         employeeName: employeeId ? employeeName : "—",
         employeeType: employeeId ? employeeType : "-",
-        employeeSource: employeeId ? (employeeSource || "-") : "-",
         status
       });
 
@@ -767,12 +771,9 @@
       const note = ($("qNote").value || "").trim();
 
       let employeeName = "";
-      let employeeSource = "";
-
       if(employeeId){
         const emp = empById.get(employeeId);
-        employeeName = emp ? (emp.name || emp.email || emp.id) : employeeId;
-        employeeSource = emp ? (emp.src || "") : "";
+        employeeName = emp ? labelEmp(emp) : employeeId;
       }
 
       const ids = Array.from(selectedIds);
@@ -788,8 +789,7 @@
             status: employeeId ? (statusSel === "unassigned" ? "assigned" : statusSel) : "unassigned",
             employeeId: employeeId || null,
             employeeName: employeeId ? employeeName : "—",
-            employeeType: employeeId ? employeeType : "-",
-            employeeSource: employeeId ? (employeeSource || "-") : "-"
+            employeeType: employeeId ? employeeType : "-"
           };
           batch.update(ref, payload);
         }

@@ -123,8 +123,7 @@
     <div class="card">
       <h2>حساب ساعات الدوام لكل موظف بكل يوم</h2>
       <div class="mini">
-       <b></b> <br>
-       <br>
+       <b></b> <br><br>
       </div>
 
       <div class="row">
@@ -238,14 +237,39 @@
       return out;
     }
 
-    function fmtTimeFromMs(ms){
+    // ✅ Convert Firestore Timestamp / Date / string / number -> ms
+    function toMs(v){
+      if(v == null || v === "") return 0;
+      if(typeof v === "number" && Number.isFinite(v)) return v;
+      if(typeof v === "string"){
+        const n = Number(v);
+        if(Number.isFinite(n) && n > 0) return n;
+        const d = new Date(v);
+        const ms = d.getTime();
+        return Number.isFinite(ms) ? ms : 0;
+      }
+      if(v instanceof Date) return v.getTime();
+      // Firestore Timestamp objects often have .toDate() or {seconds,nanoseconds}
+      if(typeof v === "object"){
+        if(typeof v.toDate === "function"){
+          try{ return v.toDate().getTime(); }catch{}
+        }
+        if(typeof v.seconds === "number"){
+          return Math.round(v.seconds * 1000 + (Number(v.nanoseconds||0) / 1e6));
+        }
+      }
+      return 0;
+    }
+
+    function fmtTimeFromAny(v){
+      const ms = toMs(v);
       if(!ms) return "-";
       try{ return new Date(ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }
       catch{ return "-"; }
     }
 
     function minutesToHhmm(min){
-      const m = Number(min||0);
+      const m = Math.max(0, Math.round(Number(min||0)));
       const h = Math.floor(m/60);
       const r = m%60;
       return `${h}:${String(r).padStart(2,"0")}`;
@@ -256,12 +280,52 @@
       return snap.exists() && snap.data()?.role === "admin";
     }
 
-    async function loadBranchSelect(){
-      const snap = await getDocs(collection(db,"branches"));
-      const rows=[];
-      snap.forEach(d=> rows.push({ id:d.id, ...(d.data()||{}) }));
-      rows.sort((a,b)=> (a.name||a.id||"").localeCompare(b.name||b.id||""));
+    // ====== caches (for enriching attendance rows) ======
+    let BRANCH_MAP = new Map();     // branchId -> {id,name}
+    let EMP_MAP = new Map();        // uid -> employee record
+    let PRESET_MAP = new Map();     // presetId -> preset record (employees_email)
+    let PRESET_BY_EMAIL = new Map();// email -> preset record (fallback)
 
+    function normalizeEmail(e){
+      return String(e||"").trim().toLowerCase();
+    }
+    function emailToDotId(email){
+      // old format in db: email(dot) (no preset:)
+      return normalizeEmail(email).replace(/\./g,"(dot)");
+    }
+    function emailToPresetId(email){
+      // new format: preset:email(dot)
+      return "preset:" + emailToDotId(email);
+    }
+
+    async function loadLookups(){
+      // branches
+      const bSnap = await getDocs(collection(db,"branches"));
+      const bRows=[];
+      bSnap.forEach(d=> bRows.push({ id:d.id, ...(d.data()||{}) }));
+      bRows.sort((a,b)=> (a.name||a.id||"").localeCompare(b.name||b.id||""));
+      BRANCH_MAP = new Map(bRows.map(b=>[b.id, b]));
+
+      // employees (registered)
+      const eSnap = await getDocs(collection(db,"employees"));
+      const eRows=[];
+      eSnap.forEach(d=> eRows.push({ id:d.id, ...(d.data()||{}) }));
+      EMP_MAP = new Map(eRows.map(r=>[r.id, r]));
+
+      // employees_email (presets / unregistered)
+      const pSnap = await getDocs(collection(db,"employees_email"));
+      const pRows=[];
+      pSnap.forEach(d=> pRows.push({ id:d.id, ...(d.data()||{}) }));
+      PRESET_MAP = new Map(pRows.map(r=>[r.id, r]));
+      PRESET_BY_EMAIL = new Map(
+        pRows
+          .filter(r=> normalizeEmail(r.email))
+          .map(r=>[normalizeEmail(r.email), r])
+      );
+    }
+
+    async function loadBranchSelect(){
+      const rows = Array.from(BRANCH_MAP.values());
       $("fBranch").innerHTML =
         `<option value="">— كل الفروع —</option>` +
         rows.map(b=> `<option value="${escapeHtml(b.id)}">${escapeHtml(b.name||b.id)} (${escapeHtml(b.id)})</option>`).join("");
@@ -283,30 +347,110 @@
     }
 
     function computeWorkedMinutes(a){
+      // prefer stored workedMinutes if valid
       if(a && a.workedMinutes != null && a.workedMinutes !== ""){
         const w = Number(a.workedMinutes);
         if(Number.isFinite(w) && w >= 0) return Math.round(w);
       }
-      const ci = Number(a?.checkInAtLocal || 0);
-      const co = Number(a?.checkOutAtLocal || 0);
+
+      // support many possible fields
+      const ci =
+        toMs(a?.checkInAtLocal) ||
+        toMs(a?.checkInAt) ||
+        toMs(a?.checkInAtMs) ||
+        toMs(a?.checkInAtUTC) ||
+        0;
+
+      const co =
+        toMs(a?.checkOutAtLocal) ||
+        toMs(a?.checkOutAt) ||
+        toMs(a?.checkOutAtMs) ||
+        toMs(a?.checkOutAtUTC) ||
+        0;
+
       if(ci && co && co > ci){
         return Math.round((co - ci) / 60000);
       }
       return 0;
     }
 
+    function enrichAttendance(a){
+      const out = { ...(a||{}) };
+
+      // branch name fallback
+      if(!out.branchName && out.branchId && BRANCH_MAP.has(out.branchId)){
+        out.branchName = BRANCH_MAP.get(out.branchId).name || out.branchId;
+      }
+
+      // employee id / email / name fallback
+      const empId = String(out.employeeId || out.empId || out.uid || out.userId || "");
+      const empEmail = normalizeEmail(out.employeeEmail || out.email || "");
+
+      // registered
+      if(empId && EMP_MAP.has(empId)){
+        const e = EMP_MAP.get(empId);
+        out.employeeName = out.employeeName || e.name || e.email || empEmail || empId;
+        out.employeeEmail = normalizeEmail(out.employeeEmail || e.email || empEmail);
+        return out;
+      }
+
+      // preset: by employeeId
+      if(empId && PRESET_MAP.has(empId)){
+        const p = PRESET_MAP.get(empId);
+        out.employeeName = out.employeeName || p.name || p.email || empEmail || empId;
+        out.employeeEmail = normalizeEmail(out.employeeEmail || p.email || empEmail);
+        return out;
+      }
+
+      // preset: if empId looks like old dotId without preset:
+      if(empId && !empId.startsWith("preset:") && PRESET_MAP.has("preset:"+empId)){
+        const p = PRESET_MAP.get("preset:"+empId);
+        out.employeeName = out.employeeName || p.name || p.email || empEmail || empId;
+        out.employeeEmail = normalizeEmail(out.employeeEmail || p.email || empEmail);
+        return out;
+      }
+
+      // preset: by email
+      if(empEmail && PRESET_BY_EMAIL.has(empEmail)){
+        const p = PRESET_BY_EMAIL.get(empEmail);
+        out.employeeName = out.employeeName || p.name || p.email || empEmail;
+        out.employeeEmail = empEmail;
+        // if attendance missing employeeId, set it to the normalized preset id (helps summary grouping)
+        out.employeeId = out.employeeId || p.id || emailToPresetId(empEmail);
+        return out;
+      }
+
+      // final fallback
+      out.employeeEmail = empEmail || out.employeeEmail || "";
+      out.employeeName = out.employeeName || out.employeeEmail || empId || "-";
+      return out;
+    }
+
     function buildDailyRows(attList, from, to, branchId, q){
       const daysSet = new Set(dateRange(from,to));
       const out = [];
+      const qq = (q||"").trim().toLowerCase();
 
-      for(const a of attList){
-        const date = a.date || "";
+      for(const raw of attList){
+        const a = enrichAttendance(raw);
+
+        // date field fallback:
+        // 1) a.date is already "YYYY-MM-DD"
+        // 2) else try from a.day / a.ymd
+        // 3) else derive from checkInAt/checkOutAt
+        let date = a.date || a.day || a.ymd || "";
+        if(!date){
+          const ms = toMs(a.checkInAtLocal) || toMs(a.checkInAt) || toMs(a.checkOutAtLocal) || toMs(a.checkOutAt) || 0;
+          if(ms) date = ymd(ms);
+        }
+        if(!date) continue;
+
         if(!daysSet.has(date)) continue;
         if(branchId && String(a.branchId||"") !== String(branchId)) continue;
 
         const empName = a.employeeName || a.employeeEmail || a.employeeId || "-";
-        const empEmail = a.employeeEmail || "";
-        const qq = (q||"").trim().toLowerCase();
+        const empEmail = normalizeEmail(a.employeeEmail || "");
+
         if(qq){
           const hay = (empName + " " + empEmail + " " + (a.employeeId||"")).toLowerCase();
           if(!hay.includes(qq)) continue;
@@ -321,15 +465,16 @@
           employeeEmail: empEmail,
           branchId: a.branchId || "",
           branchName: a.branchName || a.branchId || "",
-          shiftName: a.shiftName || "",
-          start: a.start || "",
-          end: a.end || "",
+          shiftName: a.shiftName || a.shift || "",
+          start: a.start || a.shiftStart || "",
+          end: a.end || a.shiftEnd || "",
           status: a.status || "",
           minutesLate: a.minutesLate || 0,
-          checkInAtLocal: a.checkInAtLocal || null,
-          checkOutAtLocal: a.checkOutAtLocal || null,
+          // store original values to render
+          _checkInAny: a.checkInAtLocal ?? a.checkInAt ?? a.checkInAtMs ?? null,
+          _checkOutAny: a.checkOutAtLocal ?? a.checkOutAt ?? a.checkOutAtMs ?? null,
           workedMinutes: workedMin,
-          note: a.note || ""
+          note: a.note || a.notes || ""
         });
       }
 
@@ -443,8 +588,8 @@
           <td>${escapeHtml(r.branchName || r.branchId || "")}</td>
           <td>${escapeHtml(r.shiftName || "")} <span class="badge">${escapeHtml((r.start&&r.end)?(r.start+"-"+r.end):"")}</span></td>
           <td>${statusBadge(r.status, r.minutesLate)}</td>
-          <td class="timeCell">${escapeHtml(fmtTimeFromMs(r.checkInAtLocal))}</td>
-          <td class="timeCell">${escapeHtml(fmtTimeFromMs(r.checkOutAtLocal))}</td>
+          <td class="timeCell">${escapeHtml(fmtTimeFromAny(r._checkInAny))}</td>
+          <td class="timeCell">${escapeHtml(fmtTimeFromAny(r._checkOutAny))}</td>
           <td class="timeCell"><b>${escapeHtml(minutesToHhmm(r.workedMinutes))}</b></td>
           <td>${escapeHtml(r.note || "")}</td>
         `;
@@ -481,8 +626,8 @@
           r.branchName || r.branchId || "",
           r.shiftName || "",
           r.status || "",
-          r.checkInAtLocal ? new Date(r.checkInAtLocal).toISOString() : "",
-          r.checkOutAtLocal ? new Date(r.checkOutAtLocal).toISOString() : "",
+          toMs(r._checkInAny) ? new Date(toMs(r._checkInAny)).toISOString() : "",
+          toMs(r._checkOutAny) ? new Date(toMs(r._checkOutAny)).toISOString() : "",
           minutesToHhmm(r.workedMinutes || 0),
           r.note || ""
         ]);
@@ -506,7 +651,6 @@
           };
         }
       }
-
       ws["!cols"] = headers.map(()=>({ wch: 18 }));
 
       const wb = XLSX.utils.book_new();
@@ -532,6 +676,7 @@
 
         setMsg("... جارِ الحساب", "ok");
 
+        // NOTE: still reads all attendance (like your code). Works, but can be heavy if huge.
         const attSnap = await getDocs(collection(db,"attendance"));
         const attList = [];
         attSnap.forEach(d=> attList.push({ __id:d.id, ...(d.data()||{}) }));
@@ -577,6 +722,8 @@
         if(admins.size>0){ location.href="./staff.html"; return; }
       }
 
+      // ✅ load lookups once so attendance rows get correct names/emails/branchName
+      await loadLookups();
       await loadBranchSelect();
 
       const today = new Date();
