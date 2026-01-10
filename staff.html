@@ -10,6 +10,8 @@
       --bg:#0b1220; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.14);
       --txt:#e5e7eb; --muted:#9ca3af; --accent:#d4a019; --shadow: 0 18px 60px rgba(0,0,0,.35);
       --ok:#16a34a; --bad:#ef4444; --warn:#f59e0b;
+      --leaveBg: rgba(22,163,74,.10);
+      --leaveLine: rgba(22,163,74,.28);
     }
     *{box-sizing:border-box}
     body{
@@ -20,6 +22,8 @@
       color:var(--txt);
       font-family: system-ui, "Noto Sans Arabic", Tahoma, Arial, sans-serif;
     }
+
+    /* Topbar */
     .top{
       position:sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
@@ -29,12 +33,15 @@
     .topin{max-width:1100px; margin:0 auto; padding:14px; display:flex; gap:10px; align-items:center; justify-content:space-between}
     .brand{display:flex; align-items:center; gap:10px}
     .brand img{width:30px;height:30px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+    .rightTop{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
+
     .btn{
       cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.06);
       color:var(--txt); padding:10px 12px; border-radius:12px; font-weight:900;
       display:inline-flex; align-items:center; justify-content:center; gap:8px;
       text-decoration:none;
-      white-space:nowrap;
+      user-select:none;
     }
     .btn:hover{background:rgba(255,255,255,.09)}
     .btn.primary{border-color:rgba(212,160,25,.45); background:rgba(212,160,25,.14)}
@@ -43,6 +50,7 @@
     .btn.danger:hover{background:rgba(239,68,68,.16)}
     .btn.warn{border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.10)}
     .btn.warn:hover{background:rgba(245,158,11,.15)}
+
     .wrap{max-width:1100px; margin:0 auto; padding:14px}
     .card{border:1px solid var(--line); background:var(--panel); border-radius:18px; padding:12px; box-shadow:var(--shadow)}
     h2{margin:0 0 10px; font-size:18px}
@@ -60,7 +68,6 @@
     .msg{margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); display:none; white-space:pre-line}
     .msg.ok{display:block; border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12)}
     .msg.bad{display:block; border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12)}
-    .badge{display:inline-block; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
     .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px}
     .pill.ok{border-color:rgba(22,163,74,.35); background:rgba(22,163,74,.12); color:#d1fae5}
     .pill.bad{border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:#fee2e2}
@@ -78,7 +85,6 @@
       border-radius:12px;
       font-weight:900;
       cursor:pointer;
-      white-space:nowrap;
     }
     .tabBtn.active{
       border-color:rgba(212,160,25,.45);
@@ -105,7 +111,6 @@
     .modeBtn{
       cursor:pointer;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);
       color:var(--txt);padding:10px 12px;border-radius:999px;font-weight:900;font-size:13px;
-      white-space:nowrap;
     }
     .modeBtn.active{border-color:rgba(212,160,25,.45);background:rgba(212,160,25,.14)}
     .modePanel{display:none}
@@ -118,25 +123,26 @@
     .smBtn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
     .smBtn.danger:hover{background:rgba(239,68,68,.16)}
 
-    /* ✅ NAV INJECTION MODE (مثل صفحات الأدمن) */
-    .top{ display:none !important; } /* نخفي التوب القديمة بدون حذف */
-    .wrap{ padding-top:14px !important; }
+    /* Leave row highlight in schedule */
+    tr.leaveRow td{
+      background: var(--leaveBg);
+      border-bottom: 1px solid rgba(22,163,74,.20);
+    }
+    tr.leaveRow td:first-child{ box-shadow: inset 4px 0 0 var(--leaveLine); }
 
-    /* ✅ LTR support for EN */
-    html[dir="ltr"] body{ font-family: system-ui, Inter, Arial, sans-serif; }
-    html[dir="ltr"] th, html[dir="ltr"] td{ text-align:left; }
-    html[dir="ltr"] .row{ direction:ltr; }
+    /* Language switch animation */
+    .langAnim{
+      animation: langPop .28s ease;
+    }
+    @keyframes langPop{
+      from{ opacity:.55; transform: translateY(4px) scale(.995); filter: blur(.2px); }
+      to{ opacity:1; transform: translateY(0) scale(1); filter:none; }
+    }
   </style>
 </head>
 <body>
 
-  <!-- ✅ NEW: mount nav.html -->
-  <div id="navMount"></div>
-
-  <!-- ✅ NEW: load nav.html then nav.js AFTER injection -->
-
-
-  <!-- (قديم) Topbar مخفي بالـ CSS بدون حذف -->
+  <!-- Topbar -->
   <div class="top">
     <div class="topin">
       <div class="brand">
@@ -146,71 +152,67 @@
           <div class="badge" id="mePill">...</div>
         </div>
       </div>
-      <div style="display:flex; gap:10px; align-items:center">
-        <a class="btn" href="./admin-dashboard.html" id="goAdmin" style="display:none">لوحة الأدمن</a>
+
+      <div class="rightTop">
+        <button class="btn" id="btnLang" title="Switch Language">EN</button>
         <button class="btn danger" id="btnLogout">تسجيل خروج</button>
       </div>
     </div>
   </div>
 
   <div class="wrap">
-    <div class="card">
-
-      <!-- ✅ Header row with language toggle -->
-      <div class="row" style="justify-content:space-between; align-items:center; gap:10px">
-        <h2 style="margin:0" data-i18n="staffPanelTitle">لوحة الموظف</h2>
-        <button class="btn" id="btnLang" title="Toggle language">EN</button>
-      </div>
+    <div class="card" id="cardRoot">
+      <h2 id="t_title">لوحة الموظف</h2>
 
       <div class="row" style="justify-content:space-between; margin-top:8px">
         <div class="pill" id="attPill">...</div>
         <div class="pill" id="shiftPill">...</div>
       </div>
 
-      <div class="tiny" style="margin-top:8px" >
-   
+      <div class="tiny" style="margin-top:8px" id="t_gpsNote">
+        • ✅ GPS إلزامي: لن يتم قبول Check-In/Out إلا داخل نطاق الفرع.<br>
+        • إذا الفرع ما عليه لوكيشن: الأدمن لازم يحدد lat/lng + radius.
       </div>
 
       <hr class="sep">
 
       <!-- MAIN TABS -->
       <div class="tabs">
-        <button class="tabBtn active" data-tab="tabSched" data-i18n="tabSchedule">📅 جدول الدوام</button>
-        <button class="tabBtn" data-tab="tabAttend" data-i18n="tabAttendance">✅ Check-In/Out</button>
-        <button class="tabBtn" data-tab="tabFix" data-i18n="tabFix">🟡 طلب التصحيح</button>
-        <button class="tabBtn" data-tab="tabLeave" data-i18n="tabLeave">🏖️ طلب إجازة</button>
+        <button class="tabBtn active" data-tab="tabSched" id="t_tabSched">📅 جدول الدوام</button>
+        <button class="tabBtn" data-tab="tabAttend" id="t_tabAttend">✅ Check-In/Out</button>
+        <button class="tabBtn" data-tab="tabFix" id="t_tabFix">🟡 طلب التصحيح</button>
+        <button class="tabBtn" data-tab="tabLeave" id="t_tabLeave">🏖️ طلب إجازة</button>
       </div>
 
       <!-- TAB: SCHEDULE (DEFAULT) -->
       <div class="tabPanel show" id="tabSched" style="margin-top:12px">
         <div class="row" style="align-items:flex-end; justify-content:space-between">
           <div style="min-width:260px">
-            <label data-i18n="scheduleRangeLabel">عرض الجدول</label>
+            <label id="t_schedRangeLabel">عرض الجدول</label>
             <select id="schedRange">
-              <option value="today" data-i18n="rangeToday">اليوم</option>
-              <option value="tomorrow" data-i18n="rangeTomorrow">الغد</option>
-              <option value="thisWeek" selected data-i18n="rangeThisWeek">هذا الأسبوع</option>
-              <option value="nextWeek" data-i18n="rangeNextWeek">الأسبوع القادم</option>
-              <option value="thisMonth" data-i18n="rangeThisMonth">هذا الشهر</option>
+              <option value="today" id="t_opt_today">اليوم</option>
+              <option value="tomorrow" id="t_opt_tomorrow">الغد</option>
+              <option value="thisWeek" id="t_opt_thisWeek" selected>هذا الأسبوع</option>
+              <option value="nextWeek" id="t_opt_nextWeek">الأسبوع القادم</option>
+              <option value="thisMonth" id="t_opt_thisMonth">هذا الشهر</option>
             </select>
           </div>
 
           <div class="row">
-            <button class="btn primary" id="btnLoadSched" data-i18n="btnRefreshSchedule">تحديث الجدول</button>
+            <button class="btn primary" id="btnLoadSched">تحديث الجدول</button>
           </div>
         </div>
 
         <div style="overflow:auto; margin-top:10px">
           <table>
             <thead>
-              <!-- ✅ added Day Name column -->
               <tr>
-                <th data-i18n="colDate">التاريخ</th>
-                <th data-i18n="colDay">اليوم</th>
-                <th data-i18n="colBranch">الفرع</th>
-                <th data-i18n="colShift">الشفت</th>
-                <th data-i18n="colTime">الوقت</th>
-                <th data-i18n="colNote">ملاحظة</th>
+                <th id="t_th_date">التاريخ</th>
+                <th id="t_th_day">اليوم</th>
+                <th id="t_th_branch">الفرع</th>
+                <th id="t_th_shift">الشفت</th>
+                <th id="t_th_time">الوقت</th>
+                <th id="t_th_note">ملاحظة</th>
               </tr>
             </thead>
             <tbody id="mySchedTbody"></tbody>
@@ -220,19 +222,18 @@
 
         <hr class="sep">
 
-        <h3 data-i18n="last7Title">آخر 7 أيام (حضور/غياب)</h3>
+        <h3 id="t_last7Title">آخر 7 أيام (حضور/غياب)</h3>
         <div style="overflow:auto; margin-top:10px">
           <table>
             <thead>
-              <!-- ✅ added Day Name column -->
               <tr>
-                <th data-i18n="colDate">التاريخ</th>
-                <th data-i18n="colDay">اليوم</th>
-                <th data-i18n="colBranch">الفرع</th>
-                <th data-i18n="colShift">الشفت</th>
-                <th data-i18n="colStatus">الحالة</th>
-                <th data-i18n="colIn">الدخول</th>
-                <th data-i18n="colOut">الخروج</th>
+                <th id="t_th_a_date">التاريخ</th>
+                <th id="t_th_a_day">اليوم</th>
+                <th id="t_th_a_branch">الفرع</th>
+                <th id="t_th_a_shift">الشفت</th>
+                <th id="t_th_a_status">الحالة</th>
+                <th id="t_th_a_in">الدخول</th>
+                <th id="t_th_a_out">الخروج</th>
               </tr>
             </thead>
             <tbody id="att7Tbody"></tbody>
@@ -243,13 +244,13 @@
       <!-- TAB: ATTEND -->
       <div class="tabPanel" id="tabAttend" style="margin-top:12px">
         <div class="row">
-          <button class="btn primary" id="btnIn" data-i18n="btnCheckIn">✅ Check-In</button>
-          <button class="btn danger" id="btnOutShift" disabled data-i18n="btnCheckOut">⛔ Check-Out</button>
-          <button class="btn" id="btnTestGps" data-i18n="btnTestGps">📍 فحص موقعي</button>
+          <button class="btn primary" id="btnIn">✅ Check-In</button>
+          <button class="btn danger" id="btnOutShift" disabled>⛔ Check-Out</button>
+          <button class="btn" id="btnTestGps">📍 فحص موقعي</button>
         </div>
         <div id="msgAtt" class="msg"></div>
 
-        <div class="tiny" style="margin-top:10px" data-i18n="gpsTestHint">
+        <div class="tiny" style="margin-top:10px" id="t_gpsHint">
           • “فحص موقعي” بيقلك كم متر بعيد عن الفرع وهل أنت ضمن النطاق.
         </div>
       </div>
@@ -257,13 +258,13 @@
       <!-- TAB: FIX -->
       <div class="tabPanel" id="tabFix" style="margin-top:12px">
         <div class="row" style="justify-content:space-between">
-          <div class="pill" id="fixHintPill" data-i18n="fixHintPill">اختر شيفت ثم اكتب سبب التصحيح</div>
+          <div class="pill" id="fixHintPill">اختر شيفت ثم اكتب سبب التصحيح</div>
           <div class="row">
-            <button class="btn warn" id="btnPickShift" data-i18n="btnPickShift">🗓️ اختيار شيفت</button>
-            <button class="btn warn" id="btnFix" title="يفتح طلب تصحيح لشيفت اليوم" data-i18n="btnTodayShift">🟡 شيفت اليوم</button>
+            <button class="btn warn" id="btnPickShift">🗓️ اختيار شيفت</button>
+            <button class="btn warn" id="btnFix" title="يفتح طلب تصحيح لشيفت اليوم">🟡 شيفت اليوم</button>
           </div>
         </div>
-        <div class="tiny" style="margin-top:8px" data-i18n="pickHint">
+        <div class="tiny" style="margin-top:8px" id="t_fixHint">
           “اختيار شيفت” يفتح مودال: تختار يوم واحد فقط، وإذا ما في شفت يظهر تنبيه.
         </div>
         <div id="msgFixList" class="msg"></div>
@@ -271,24 +272,24 @@
 
       <!-- TAB: LEAVE -->
       <div class="tabPanel" id="tabLeave" style="margin-top:12px">
-        <h3 data-i18n="leaveRequestTitle">طلب إجازة</h3>
+        <h3 id="t_leaveTitle">طلب إجازة</h3>
 
-        <label style="margin-top:6px" data-i18n="leaveTypeLabel">نوع الطلب</label>
+        <label style="margin-top:6px" id="t_leaveType">نوع الطلب</label>
         <div class="modeRow">
-          <button class="modeBtn active" id="leaveModeSingle" type="button" data-i18n="leaveModeSingle">يوم واحد</button>
-          <button class="modeBtn" id="leaveModeRange" type="button" data-i18n="leaveModeRange">فترة (من → إلى)</button>
-          <button class="modeBtn" id="leaveModeScattered" type="button" data-i18n="leaveModeScattered">أيام متفرقة</button>
+          <button class="modeBtn active" id="leaveModeSingle" type="button">يوم واحد</button>
+          <button class="modeBtn" id="leaveModeRange" type="button">فترة (من → إلى)</button>
+          <button class="modeBtn" id="leaveModeScattered" type="button">أيام متفرقة</button>
         </div>
 
         <div class="modePanel show" id="leavePanelSingle">
-          <label data-i18n="leaveDayLabel">اليوم</label>
+          <label id="t_leaveDay">اليوم</label>
           <input id="lDay" type="date">
         </div>
 
         <div class="modePanel" id="leavePanelRange">
-          <label data-i18n="leaveFromLabel">من تاريخ</label>
+          <label id="t_leaveFrom">من تاريخ</label>
           <input id="lFrom" type="date">
-          <label data-i18n="leaveToLabel">إلى تاريخ</label>
+          <label id="t_leaveTo">إلى تاريخ</label>
           <input id="lTo" type="date">
         </div>
 
@@ -296,27 +297,27 @@
           <div class="datesBox">
             <div class="row" style="align-items:center;margin:0">
               <div style="flex:2">
-                <b style="font-size:13px" data-i18n="leaveDatesTitle">تواريخ الإجازة</b>
-                <div class="tiny" data-i18n="leaveDatesSubtitle">أضف تواريخ متعددة (غير متتابعة)</div>
+                <b style="font-size:13px" id="t_leaveDates">تواريخ الإجازة</b>
+                <div class="tiny" id="t_leaveDatesHint">أضف تواريخ متعددة (غير متتابعة)</div>
               </div>
               <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
-                <button class="smBtn" id="btnAddLeaveDate" type="button" data-i18n="btnAddDate">+ إضافة تاريخ</button>
-                <button class="smBtn danger" id="btnClearLeaveDates" type="button" data-i18n="btnClear">تفريغ</button>
+                <button class="smBtn" id="btnAddLeaveDate" type="button">+ إضافة تاريخ</button>
+                <button class="smBtn danger" id="btnClearLeaveDates" type="button">تفريغ</button>
               </div>
             </div>
             <div id="leaveDatesList"></div>
           </div>
         </div>
 
-        <button class="btn primary" id="btnLeave" style="margin-top:12px; width:100%" data-i18n="btnSendLeave">إرسال الطلب</button>
+        <button class="btn primary" id="btnLeave" style="margin-top:12px; width:100%">إرسال الطلب</button>
         <div id="msgLeave" class="msg"></div>
 
         <hr class="sep">
 
-        <h3 data-i18n="myRequestsTitle">طلباتي</h3>
+        <h3 id="t_myLeaves">طلباتي</h3>
         <div style="overflow:auto; margin-top:10px">
           <table>
-            <thead><tr><th data-i18n="colType">النوع</th><th data-i18n="colDates">التواريخ</th><th data-i18n="colStatus">الحالة</th></tr></thead>
+            <thead><tr><th id="t_th_l_type">النوع</th><th id="t_th_l_dates">التواريخ</th><th id="t_th_l_status">الحالة</th></tr></thead>
             <tbody id="myLeavesTbody"></tbody>
           </table>
         </div>
@@ -329,24 +330,24 @@
   <div class="modalOv" id="pickOv" aria-hidden="true">
     <div class="modal big">
       <div class="topRow">
-        <b data-i18n="pickTitle">🗓️ اختيار شيفت للتصحيح</b>
-        <button class="btn" id="pickClose" data-i18n="btnClose">إغلاق</button>
+        <b id="t_pickTitle">🗓️ اختيار شيفت للتصحيح</b>
+        <button class="btn" id="pickClose">إغلاق</button>
       </div>
 
-      <div class="tiny" style="margin-top:8px" data-i18n="pickSub">
+      <div class="tiny" style="margin-top:8px" id="t_pickHint">
         اختر يوم واحد فقط، ثم (اختياري) اكتب بحث بالفرع/اسم الشيفت.
       </div>
 
-      <label data-i18n="pickDateLabel">التاريخ (يوم واحد)</label>
+      <label id="t_pickDate">التاريخ (يوم واحد)</label>
       <input id="pickDate" type="date">
 
-      <label data-i18n="pickSearchLabel">بحث (فرع / اسم شفت) (اختياري)</label>
-      <input id="pickQ" type="text" placeholder="مثال: Main أو Morning..." data-i18n-ph="pickSearchPh">
+      <label id="t_pickSearch">بحث (فرع / اسم شفت) (اختياري)</label>
+      <input id="pickQ" type="text" placeholder="مثال: Main أو Morning...">
 
       <div class="row" style="margin-top:12px; justify-content:space-between">
         <div class="row">
-          <button class="btn primary" id="pickLoad" data-i18n="btnLoadShifts">تحميل الشفتات</button>
-          <button class="btn" id="pickToday" data-i18n="btnToday">اليوم</button>
+          <button class="btn primary" id="pickLoad">تحميل الشفتات</button>
+          <button class="btn" id="pickToday">اليوم</button>
         </div>
         <div class="pill" id="pickMeta">...</div>
       </div>
@@ -357,11 +358,11 @@
         <table>
           <thead>
             <tr>
-              <th data-i18n="colDate">التاريخ</th>
-              <th data-i18n="colBranch">الفرع</th>
-              <th data-i18n="colShift">الشفت</th>
-              <th data-i18n="colTime">الوقت</th>
-              <th data-i18n="colPick">اختيار</th>
+              <th id="t_th_p_date">التاريخ</th>
+              <th id="t_th_p_branch">الفرع</th>
+              <th id="t_th_p_shift">الشفت</th>
+              <th id="t_th_p_time">الوقت</th>
+              <th id="t_th_p_pick">اختيار</th>
             </tr>
           </thead>
           <tbody id="pickTbody"></tbody>
@@ -374,19 +375,19 @@
   <div class="modalOv" id="fixOv" aria-hidden="true">
     <div class="modal">
       <div class="topRow">
-        <b data-i18n="fixTitle">🟡 طلب تصحيح دوام</b>
-        <button class="btn" id="fixClose" data-i18n="btnClose">إغلاق</button>
+        <b id="t_fixTitle">🟡 طلب تصحيح دوام</b>
+        <button class="btn" id="fixClose">إغلاق</button>
       </div>
 
-      <div class="tiny" style="margin-top:8px" data-i18n="fixSub">
+      <div class="tiny" style="margin-top:8px" id="t_fixHint2">
         اكتب سبب الطلب. مثال: نسيت Check-Out أو كنت خارج الجهاز.
       </div>
 
-      <label data-i18n="fixNoteLabel">ملاحظة / سبب</label>
-      <input id="fixNote" type="text" placeholder="مثال: كنت خارج التغطية ونسيت الخروج..." data-i18n-ph="fixNotePh">
+      <label id="t_fixReason">ملاحظة / سبب</label>
+      <input id="fixNote" type="text" placeholder="مثال: كنت خارج التغطية ونسيت الخروج...">
 
       <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="fixSend" data-i18n="btnSend">إرسال الطلب</button>
+        <button class="btn primary" id="fixSend">إرسال الطلب</button>
         <div class="pill" id="fixMeta" style="margin-inline-start:auto">...</div>
       </div>
       <div id="msgFix" class="msg"></div>
@@ -395,13 +396,17 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getAuth, onAuthStateChanged, signOut,
+      setPersistence, browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore, doc, getDoc, setDoc, updateDoc,
       collection, addDoc, getDocs, query, where,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // ✅ IMPORTANT: هذا هو الـ config الصحيح كما كان عندك (بدون أي تغيير)
     const firebaseConfig = {
       apiKey: "AIzaSyCN88FY9CJU8T8cm5lLYjcI-I8VmD46o40",
       authDomain: "roma-schedule.firebaseapp.com",
@@ -414,216 +419,299 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+
+    // ✅ يمنع الرجوع على login بسبب فقدان الـ session
+    (async ()=>{
+      try{
+        await setPersistence(auth, browserLocalPersistence);
+      }catch(e){
+        console.warn("Auth persistence failed:", e);
+      }
+    })();
+
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
 
-    /* =========================================================
-       ✅ i18n (AR/EN) + Toggle + RTL/LTR
-    ========================================================= */
+    // =========================
+    // i18n (AR/EN) ✅ ترجمة كاملة للواجهة
+    // =========================
     const I18N = {
       ar: {
-        staffPanelTitle:"لوحة الموظف",
-        tabSchedule:"📅 جدول الدوام",
-        tabAttendance:"✅ Check-In/Out",
+        dir:"rtl",
+        langBtn:"EN",
+        logout:"تسجيل خروج",
+        title:"لوحة الموظف",
+        gpsNote:"• ✅ GPS إلزامي: لن يتم قبول Check-In/Out إلا داخل نطاق الفرع.<br>",
+        tabSched:"📅 جدول الدوام",
+        tabAttend:"✅ Check-In/Out",
         tabFix:"🟡 طلب التصحيح",
         tabLeave:"🏖️ طلب إجازة",
-        scheduleRangeLabel:"عرض الجدول",
-        rangeToday:"اليوم",
-        rangeTomorrow:"الغد",
-        rangeThisWeek:"هذا الأسبوع",
-        rangeNextWeek:"الأسبوع القادم",
-        rangeThisMonth:"هذا الشهر",
-        btnRefreshSchedule:"تحديث الجدول",
-        colDate:"التاريخ",
-        colDay:"اليوم",
-        colBranch:"الفرع",
-        colShift:"الشفت",
-        colTime:"الوقت",
-        colNote:"ملاحظة",
-        last7Title:"آخر 7 أيام (حضور/غياب)",
-        colStatus:"الحالة",
-        colIn:"الدخول",
-        colOut:"الخروج",
-        btnCheckIn:"✅ Check-In",
-        btnCheckOut:"⛔ Check-Out",
-        btnTestGps:"📍 فحص موقعي",
-        gpsTestHint:"• “فحص موقعي” بيقلك كم متر بعيد عن الفرع وهل أنت ضمن النطاق.",
-        fixHintPill:"اختر شيفت ثم اكتب سبب التصحيح",
-        btnPickShift:"🗓️ اختيار شيفت",
-        btnTodayShift:"🟡 شيفت اليوم",
-        pickHint:"“اختيار شيفت” يفتح مودال: تختار يوم واحد فقط، وإذا ما في شفت يظهر تنبيه.",
-        leaveRequestTitle:"طلب إجازة",
-        leaveTypeLabel:"نوع الطلب",
-        leaveModeSingle:"يوم واحد",
-        leaveModeRange:"فترة (من → إلى)",
-        leaveModeScattered:"أيام متفرقة",
-        leaveDayLabel:"اليوم",
-        leaveFromLabel:"من تاريخ",
-        leaveToLabel:"إلى تاريخ",
-        leaveDatesTitle:"تواريخ الإجازة",
-        leaveDatesSubtitle:"أضف تواريخ متعددة (غير متتابعة)",
-        btnAddDate:"+ إضافة تاريخ",
-        btnClear:"تفريغ",
-        btnSendLeave:"إرسال الطلب",
-        myRequestsTitle:"طلباتي",
-        colType:"النوع",
-        colDates:"التواريخ",
+        schedRange:"عرض الجدول",
+        optToday:"اليوم",
+        optTomorrow:"الغد",
+        optThisWeek:"هذا الأسبوع",
+        optNextWeek:"الأسبوع القادم",
+        optThisMonth:"هذا الشهر",
+        refresh:"تحديث الجدول",
+        thDate:"التاريخ",
+        thDay:"اليوم",
+        thBranch:"الفرع",
+        thShift:"الشفت",
+        thTime:"الوقت",
+        thNote:"ملاحظة",
+        last7:"آخر 7 أيام (حضور/غياب)",
+        thStatus:"الحالة",
+        thIn:"الدخول",
+        thOut:"الخروج",
+        gpsHint:"• “فحص موقعي” بيقلك كم متر بعيد عن الفرع وهل أنت ضمن النطاق.",
+        pickShift:"🗓️ اختيار شيفت",
+        todayShift:"🟡 شيفت اليوم",
+        fixHint:"“اختيار شيفت” يفتح مودال: تختار يوم واحد فقط، وإذا ما في شفت يظهر تنبيه.",
+        leaveTitle:"طلب إجازة",
+        leaveType:"نوع الطلب",
+        leaveSingle:"يوم واحد",
+        leaveRange:"فترة (من → إلى)",
+        leaveScattered:"أيام متفرقة",
+        leaveDay:"اليوم",
+        leaveFrom:"من تاريخ",
+        leaveTo:"إلى تاريخ",
+        leaveDates:"تواريخ الإجازة",
+        leaveDatesHint:"أضف تواريخ متعددة (غير متتابعة)",
+        addDate:"+ إضافة تاريخ",
+        clear:"تفريغ",
+        sendLeave:"إرسال الطلب",
+        myLeaves:"طلباتي",
+        lType:"النوع",
+        lDates:"التواريخ",
+        lStatus:"الحالة",
+        // Modals
         pickTitle:"🗓️ اختيار شيفت للتصحيح",
-        btnClose:"إغلاق",
-        pickSub:"اختر يوم واحد فقط، ثم (اختياري) اكتب بحث بالفرع/اسم الشيفت.",
-        pickDateLabel:"التاريخ (يوم واحد)",
-        pickSearchLabel:"بحث (فرع / اسم شفت) (اختياري)",
-        pickSearchPh:"مثال: Main أو Morning...",
-        btnLoadShifts:"تحميل الشفتات",
-        btnToday:"اليوم",
-        colPick:"اختيار",
+        close:"إغلاق",
+        pickHint:"اختر يوم واحد فقط، ثم (اختياري) اكتب بحث بالفرع/اسم الشيفت.",
+        pickDate:"التاريخ (يوم واحد)",
+        pickSearch:"بحث (فرع / اسم شفت) (اختياري)",
+        pickLoad:"تحميل الشفتات",
+        pickToday:"اليوم",
+        thPick:"اختيار",
         fixTitle:"🟡 طلب تصحيح دوام",
-        fixSub:"اكتب سبب الطلب. مثال: نسيت Check-Out أو كنت خارج الجهاز.",
-        fixNoteLabel:"ملاحظة / سبب",
-        fixNotePh:"مثال: كنت خارج التغطية ونسيت الخروج...",
-        btnSend:"إرسال الطلب",
-
-        msgNoShiftToday:"لا يوجد شفت اليوم",
-        msgNoShiftsInRange:"لا يوجد شفت ضمن هذا النطاق.",
-        msgScheduleLoaded:"تم تحميل الجدول ✅",
-        msgLoadingShifts:"جاري تحميل الشفتات...",
-        msgPickSelectDay:"اختر يوم أولاً.",
-        msgNoShiftThatDay:"مافي شيفت بهذا اليوم",
-        msgLoadedOk:"تم التحميل ✅",
-        btnPick:"اختيار",
+        fixHint2:"اكتب سبب الطلب. مثال: نسيت Check-Out أو كنت خارج الجهاز.",
+        fixReason:"ملاحظة / سبب",
+        fixSend:"إرسال الطلب",
+        // Dynamic labels
+        leaveWord:"إجازة",
+        approvedLeave:"إجازة مقبولة",
+        scheduleLoaded:(n)=>`تم تحميل الجدول ✅ (${n})`,
+        noShifts:"لا يوجد شفت ضمن هذا النطاق.",
+        pickNone:"مافي شيفت بهذا اليوم",
+        chooseDay:"اختر يوم أولاً.",
+        loading:"جاري التحميل...",
+        // Attendance pills
+        noShiftToday:(d)=>`لا يوجد شفت اليوم (${d})`,
+        // Day names
+        days:["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"],
+        // Status
+        absent:"غياب ❌",
+        leave:"إجازة ✅",
+        completed:"مكتمل ✅",
+        present:"حاضر ✅",
+        late:(m)=>`متأخر ⏰ (${m}د)`
       },
       en: {
-        staffPanelTitle:"Staff Panel",
-        tabSchedule:"📅 Schedule",
-        tabAttendance:"✅ Check-In/Out",
+        dir:"ltr",
+        langBtn:"AR",
+        logout:"Logout",
+        title:"Staff Panel",
+        gpsNote:"• ✅ GPS required: Check-In/Out is accepted only inside the branch radius.<br>",
+        tabSched:"📅 Schedule",
+        tabAttend:"✅ Check-In/Out",
         tabFix:"🟡 Correction Request",
         tabLeave:"🏖️ Leave Request",
-        scheduleRangeLabel:"Schedule Range",
-        rangeToday:"Today",
-        rangeTomorrow:"Tomorrow",
-        rangeThisWeek:"This Week",
-        rangeNextWeek:"Next Week",
-        rangeThisMonth:"This Month",
-        btnRefreshSchedule:"Refresh Schedule",
-        colDate:"Date",
-        colDay:"Day",
-        colBranch:"Branch",
-        colShift:"Shift",
-        colTime:"Time",
-        colNote:"Note",
-        last7Title:"Last 7 Days (Attendance)",
-        colStatus:"Status",
-        colIn:"Check-In",
-        colOut:"Check-Out",
-        btnCheckIn:"✅ Check-In",
-        btnCheckOut:"⛔ Check-Out",
-        btnTestGps:"📍 Test My Location",
-        gpsTestHint:"• “Test my location” shows how far you are and whether you are within the radius.",
-        fixHintPill:"Pick a shift, then write the reason",
-        btnPickShift:"🗓️ Pick a Shift",
-        btnTodayShift:"🟡 Today’s Shift",
-        pickHint:"“Pick a shift” opens a modal: select ONE day only. If none exists, you’ll see an alert.",
-        leaveRequestTitle:"Leave Request",
-        leaveTypeLabel:"Request Type",
-        leaveModeSingle:"Single Day",
-        leaveModeRange:"Range (From → To)",
-        leaveModeScattered:"Scattered Days",
-        leaveDayLabel:"Day",
-        leaveFromLabel:"From",
-        leaveToLabel:"To",
-        leaveDatesTitle:"Leave Dates",
-        leaveDatesSubtitle:"Add multiple non-consecutive dates",
-        btnAddDate:"+ Add Date",
-        btnClear:"Clear",
-        btnSendLeave:"Submit Request",
-        myRequestsTitle:"My Requests",
-        colType:"Type",
-        colDates:"Dates",
-        pickTitle:"🗓️ Pick a Shift for Correction",
-        btnClose:"Close",
-        pickSub:"Select ONE day only, then (optional) search by branch/shift name.",
-        pickDateLabel:"Date (one day)",
-        pickSearchLabel:"Search (Branch / Shift) (optional)",
-        pickSearchPh:"Example: Main or Morning...",
-        btnLoadShifts:"Load Shifts",
-        btnToday:"Today",
-        colPick:"Pick",
+        schedRange:"Schedule Range",
+        optToday:"Today",
+        optTomorrow:"Tomorrow",
+        optThisWeek:"This Week",
+        optNextWeek:"Next Week",
+        optThisMonth:"This Month",
+        refresh:"Refresh Schedule",
+        thDate:"Date",
+        thDay:"Day",
+        thBranch:"Branch",
+        thShift:"Shift",
+        thTime:"Time",
+        thNote:"Note",
+        last7:"Last 7 Days (Attendance)",
+        thStatus:"Status",
+        thIn:"Check-In",
+        thOut:"Check-Out",
+        gpsHint:"• “Test my location” tells you how far you are from the branch and whether you are inside the allowed radius.",
+        pickShift:"🗓️ Pick a Shift",
+        todayShift:"🟡 Today Shift",
+        fixHint:"“Pick a Shift” opens a modal: pick ONE day only. If there is no shift, you will see an alert.",
+        leaveTitle:"Leave Request",
+        leaveType:"Request type",
+        leaveSingle:"Single day",
+        leaveRange:"Range (From → To)",
+        leaveScattered:"Scattered days",
+        leaveDay:"Day",
+        leaveFrom:"From date",
+        leaveTo:"To date",
+        leaveDates:"Leave dates",
+        leaveDatesHint:"Add multiple dates (non-consecutive)",
+        addDate:"+ Add date",
+        clear:"Clear",
+        sendLeave:"Send Request",
+        myLeaves:"My Requests",
+        lType:"Type",
+        lDates:"Dates",
+        lStatus:"Status",
+        // Modals
+        pickTitle:"🗓️ Pick a shift for correction",
+        close:"Close",
+        pickHint:"Pick ONE day, then (optional) search by branch/shift name.",
+        pickDate:"Date (single day)",
+        pickSearch:"Search (Branch / Shift) (optional)",
+        pickLoad:"Load shifts",
+        pickToday:"Today",
+        thPick:"Pick",
         fixTitle:"🟡 Attendance Correction Request",
-        fixSub:"Write the reason. Example: Forgot Check-Out.",
-        fixNoteLabel:"Note / Reason",
-        fixNotePh:"Example: I was outside coverage and forgot to check out...",
-        btnSend:"Send",
-
-        msgNoShiftToday:"No shift today",
-        msgNoShiftsInRange:"No shifts in this range.",
-        msgScheduleLoaded:"Schedule loaded ✅",
-        msgLoadingShifts:"Loading shifts...",
-        msgPickSelectDay:"Pick a date first.",
-        msgNoShiftThatDay:"No shifts on that day.",
-        msgLoadedOk:"Loaded ✅",
-        btnPick:"Pick",
+        fixHint2:"Write the reason. Example: forgot Check-Out or was away from the device.",
+        fixReason:"Note / Reason",
+        fixSend:"Send Request",
+        // Dynamic labels
+        leaveWord:"Leave",
+        approvedLeave:"Approved Leave",
+        scheduleLoaded:(n)=>`Schedule loaded ✅ (${n})`,
+        noShifts:"No shifts in this range.",
+        pickNone:"No shifts on this day",
+        chooseDay:"Please choose a date first.",
+        loading:"Loading...",
+        noShiftToday:(d)=>`No shift today (${d})`,
+        days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+        absent:"Absent ❌",
+        leave:"Leave ✅",
+        completed:"Completed ✅",
+        present:"Present ✅",
+        late:(m)=>`Late ⏰ (${m}m)`
       }
     };
 
-    let UI_LANG = (localStorage.getItem("roma_lang") || "ar") === "en" ? "en" : "ar";
-
-    function t(key){
-      return (I18N[UI_LANG] && I18N[UI_LANG][key]) ? I18N[UI_LANG][key] : (I18N.ar[key] || key);
+    let LANG = (localStorage.getItem("roma_staff_lang") || "ar");
+    function t(key, ...args){
+      const pack = I18N[LANG] || I18N.ar;
+      const v = pack[key];
+      return (typeof v === "function") ? v(...args) : (v ?? key);
     }
 
     function applyLang(){
-      const html = document.documentElement;
-      html.lang = UI_LANG;
-      html.dir  = (UI_LANG === "en") ? "ltr" : "rtl";
+      const pack = I18N[LANG] || I18N.ar;
 
-      // toggle button label
-      const btn = $("btnLang");
-      if(btn) btn.textContent = (UI_LANG === "en") ? "AR" : "EN";
+      document.documentElement.lang = (LANG==="ar" ? "ar" : "en");
+      document.documentElement.dir = pack.dir;
 
-      // translate nodes
-      document.querySelectorAll("[data-i18n]").forEach(el=>{
-        const key = el.getAttribute("data-i18n");
-        const val = t(key);
-        // allow html in some blocks (gpsHint)
-        if(key === "gpsHint"){
-          el.innerHTML = val;
-        }else{
-          el.textContent = val;
-        }
-      });
+      // Top
+      $("btnLang").textContent = pack.langBtn;
+      $("btnLogout").textContent = pack.logout;
+
+      // Main texts
+      $("t_title").textContent = pack.title;
+      $("t_gpsNote").innerHTML = pack.gpsNote;
+
+      $("t_tabSched").textContent = pack.tabSched;
+      $("t_tabAttend").textContent = pack.tabAttend;
+      $("t_tabFix").textContent = pack.tabFix;
+      $("t_tabLeave").textContent = pack.tabLeave;
+
+      $("t_schedRangeLabel").textContent = pack.schedRange;
+
+      $("t_opt_today").textContent = pack.optToday;
+      $("t_opt_tomorrow").textContent = pack.optTomorrow;
+      $("t_opt_thisWeek").textContent = pack.optThisWeek;
+      $("t_opt_nextWeek").textContent = pack.optNextWeek;
+      $("t_opt_thisMonth").textContent = pack.optThisMonth;
+
+      $("btnLoadSched").textContent = pack.refresh;
+
+      $("t_th_date").textContent = pack.thDate;
+      $("t_th_day").textContent = pack.thDay;
+      $("t_th_branch").textContent = pack.thBranch;
+      $("t_th_shift").textContent = pack.thShift;
+      $("t_th_time").textContent = pack.thTime;
+      $("t_th_note").textContent = pack.thNote;
+
+      $("t_last7Title").textContent = pack.last7;
+
+      $("t_th_a_date").textContent = pack.thDate;
+      $("t_th_a_day").textContent = pack.thDay;
+      $("t_th_a_branch").textContent = pack.thBranch;
+      $("t_th_a_shift").textContent = pack.thShift;
+      $("t_th_a_status").textContent = pack.thStatus;
+      $("t_th_a_in").textContent = pack.thIn;
+      $("t_th_a_out").textContent = pack.thOut;
+
+      $("t_gpsHint").textContent = pack.gpsHint;
+
+      $("fixHintPill").textContent = (LANG==="ar" ? "اختر شيفت ثم اكتب سبب التصحيح" : "Pick a shift then write the reason");
+      $("btnPickShift").textContent = pack.pickShift;
+      $("btnFix").textContent = pack.todayShift;
+      $("t_fixHint").textContent = pack.fixHint;
+
+      $("t_leaveTitle").textContent = pack.leaveTitle;
+      $("t_leaveType").textContent = pack.leaveType;
+      $("leaveModeSingle").textContent = pack.leaveSingle;
+      $("leaveModeRange").textContent = pack.leaveRange;
+      $("leaveModeScattered").textContent = pack.leaveScattered;
+      $("t_leaveDay").textContent = pack.leaveDay;
+      $("t_leaveFrom").textContent = pack.leaveFrom;
+      $("t_leaveTo").textContent = pack.leaveTo;
+      $("t_leaveDates").textContent = pack.leaveDates;
+      $("t_leaveDatesHint").textContent = pack.leaveDatesHint;
+      $("btnAddLeaveDate").textContent = pack.addDate;
+      $("btnClearLeaveDates").textContent = pack.clear;
+      $("btnLeave").textContent = pack.sendLeave;
+      $("t_myLeaves").textContent = pack.myLeaves;
+      $("t_th_l_type").textContent = pack.lType;
+      $("t_th_l_dates").textContent = pack.lDates;
+      $("t_th_l_status").textContent = pack.lStatus;
+
+      // Modals
+      $("t_pickTitle").textContent = pack.pickTitle;
+      $("pickClose").textContent = pack.close;
+      $("t_pickHint").textContent = pack.pickHint;
+      $("t_pickDate").textContent = pack.pickDate;
+      $("t_pickSearch").textContent = pack.pickSearch;
+      $("pickLoad").textContent = pack.pickLoad;
+      $("pickToday").textContent = pack.pickToday;
+
+      $("t_th_p_date").textContent = pack.thDate;
+      $("t_th_p_branch").textContent = pack.thBranch;
+      $("t_th_p_shift").textContent = pack.thShift;
+      $("t_th_p_time").textContent = pack.thTime;
+      $("t_th_p_pick").textContent = pack.thPick;
+
+      $("t_fixTitle").textContent = pack.fixTitle;
+      $("fixClose").textContent = pack.close;
+      $("t_fixHint2").textContent = pack.fixHint2;
+      $("t_fixReason").textContent = pack.fixReason;
+      $("fixSend").textContent = pack.fixSend;
 
       // placeholders
-      document.querySelectorAll("[data-i18n-ph]").forEach(el=>{
-        const key = el.getAttribute("data-i18n-ph");
-        el.setAttribute("placeholder", t(key));
+      $("pickQ").placeholder = (LANG==="ar" ? "مثال: Main أو Morning..." : "Example: Main or Morning...");
+      $("fixNote").placeholder = (LANG==="ar" ? "مثال: كنت خارج التغطية ونسيت الخروج..." : "Example: I was out of coverage and forgot to check out...");
+
+      // force align in tables based on dir
+      document.querySelectorAll("th,td").forEach(cell=>{
+        cell.style.textAlign = (pack.dir==="rtl" ? "right" : "left");
       });
+
+      // Animation
+      const root = $("cardRoot");
+      root.classList.remove("langAnim");
+      void root.offsetWidth; // reflow
+      root.classList.add("langAnim");
     }
 
-    function toggleLang(){
-      UI_LANG = (UI_LANG === "ar") ? "en" : "ar";
-      localStorage.setItem("roma_lang", UI_LANG);
-      applyLang();
-
-      // refresh schedule tables to update day names language
-      try{
-        refreshScheduleFromDropdown();
-        loadAttLast7Days();
-      }catch{}
-    }
-
-    // day name helper for tables
-    function dayNameFromYmd(dateStr){
-      try{
-        const d = new Date(dateStr + "T00:00:00");
-        const fmt = new Intl.DateTimeFormat(UI_LANG === "en" ? "en-US" : "ar", { weekday:"long" });
-        return fmt.format(d);
-      }catch{
-        return "";
-      }
-    }
-    /* ========================================================= */
-
+    // ===== UI helpers =====
     const setMsg = (id, text, type="ok")=>{
       const el = $(id);
       el.className = "msg " + (type==="bad"?"bad":"ok");
@@ -642,6 +730,13 @@
       const m = String(dt.getMonth()+1).padStart(2,"0");
       const da = String(dt.getDate()).padStart(2,"0");
       return `${y}-${m}-${da}`;
+    }
+
+    function dayNameFromYMD(dateStr){
+      const dt = new Date(dateStr+"T00:00:00");
+      const idx = dt.getDay(); // 0..6
+      const pack = I18N[LANG] || I18N.ar;
+      return pack.days[idx] || "";
     }
 
     function startOfWeek(d){
@@ -684,8 +779,8 @@
         return { from:d, to:d };
       }
       if(kind === "tomorrow"){
-        const t2 = new Date(today); t2.setDate(t2.getDate()+1);
-        const d = ymd(t2);
+        const t = new Date(today); t.setDate(t.getDate()+1);
+        const d = ymd(t);
         return { from:d, to:d };
       }
       if(kind === "thisWeek"){
@@ -722,10 +817,8 @@
       });
     }
 
-    // ===== ✅ preset logic (للـ fallback فقط) =====
+    // ===== employee preset (fallback only) =====
     const safeEmailDocId = (email)=> String(email||"").trim().toLowerCase().replace(/\./g,"(dot)");
-    const presetIdFromEmail = (email)=> "preset:" + safeEmailDocId(email);
-
     async function readPresetByEmail(email){
       const ref = doc(db, "employees_email", safeEmailDocId(email));
       const snap = await getDoc(ref);
@@ -761,7 +854,7 @@
       return snap.exists() ? (snap.data()?.role || "staff") : "staff";
     }
 
-    // ===== ✅ shifts fetching from "shifts" (FIXED to UID) =====
+    // ===== ✅ shifts fetching from "shifts" (employeeId = uid) =====
     async function fetchMyShiftsInRange(from, to, currentUser){
       const daysSet = new Set();
       const a = new Date(from), b = new Date(to);
@@ -774,11 +867,8 @@
       const email = (currentUser?.email || "").trim().toLowerCase();
       if(!uid) return [];
 
-      // ✅ عندك employeeId = uid (حسب الصورة)
       const id_uid = uid;
-
-      // fallback قديم
-      const id_preset = presetIdFromEmail(email);
+      const id_preset = "preset:" + safeEmailDocId(email);
 
       const collected = [];
       const seen = new Set();
@@ -800,7 +890,7 @@
         console.error("Query shifts by employeeId(uid) failed:", e);
       }
 
-      // 2) employeeUid == uid (احتياط)
+      // 2) employeeUid == uid (backup)
       if(!collected.length){
         try{
           const snap = await getDocs(query(collection(db,"shifts"), where("employeeUid","==", uid)));
@@ -810,7 +900,7 @@
         }
       }
 
-      // 3) assignedEmployeeId == uid (احتياط تغطيات)
+      // 3) assignedEmployeeId == uid (backup covers)
       if(!collected.length){
         try{
           const snap = await getDocs(query(collection(db,"shifts"), where("assignedEmployeeId","==", id_uid)));
@@ -820,7 +910,7 @@
         }
       }
 
-      // 4) fallback قديم: employeeId == preset:email(dot)
+      // 4) old fallback preset: employeeId == preset:email(dot)
       if(!collected.length && email){
         try{
           const snap = await getDocs(query(collection(db,"shifts"), where("employeeId","==", id_preset)));
@@ -830,7 +920,7 @@
         }
       }
 
-      // 5) fallback scan (آخر حل)
+      // 5) last resort scan
       if(!collected.length){
         try{
           const snapAll = await getDocs(collection(db,"shifts"));
@@ -874,7 +964,7 @@
     }
 
     async function getGpsOnce(){
-      if(!navigator.geolocation) throw new Error("المتصفح لا يدعم GPS.");
+      if(!navigator.geolocation) throw new Error(LANG==="ar" ? "المتصفح لا يدعم GPS." : "Your browser does not support GPS.");
       return await new Promise((resolve, reject)=>{
         navigator.geolocation.getCurrentPosition(
           (pos)=> resolve({
@@ -882,7 +972,7 @@
             lng: pos.coords.longitude,
             acc: pos.coords.accuracy
           }),
-          ()=> reject(new Error("فشل جلب الموقع. فعّل GPS واسمح بالوصول للموقع.")),
+          ()=> reject(new Error(LANG==="ar" ? "فشل جلب الموقع. فعّل GPS واسمح بالوصول للموقع." : "Failed to get location. Enable GPS and allow location access.")),
           { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
         );
       });
@@ -902,9 +992,9 @@
     async function assertInsideBranch(branchId){
       const geo = await readBranchGeo(branchId);
       if(!geo){
-        throw new Error(UI_LANG==="en"
-          ? "This branch has no location yet. Ask admin to set lat/lng + radius."
-          : "هذا الفرع لا يملك لوكيشن بعد. اطلب من الأدمن تحديد موقع الفرع (lat/lng + radius)."
+        throw new Error(LANG==="ar"
+          ? "هذا الفرع لا يملك لوكيشن بعد. اطلب من الأدمن تحديد موقع الفرع (lat/lng + radius)."
+          : "This branch has no location yet. Ask the admin to set branch lat/lng + radius."
         );
       }
       const gps = await getGpsOnce();
@@ -932,7 +1022,7 @@
 
     let selectedFixShift = null;
 
-    // ✅ هون صار يمثل UID الحقيقي (لأنه الشفتات عندك employeeId=uid)
+    // ✅ employeeId في شفتاتك = uid
     let myPresetKey = "";
 
     function attendanceIdFromShift(shift, user){
@@ -941,7 +1031,7 @@
       return safeId(key);
     }
 
-    // ===== Leaves Approved (يدعم scattered + single + range) =====
+    // ===== Leaves Approved (scattered + single + range) =====
     function expandApprovedLeaveDates(x){
       const mode = String(x.leaveMode||"range").toLowerCase();
       const set = new Set();
@@ -969,6 +1059,7 @@
       return set;
     }
 
+    // ✅ يرجع Set لكل الأيام Approved لهذا الموظف
     async function getApprovedLeaveDatesForMe(){
       const snap = await getDocs(collection(db,"leaves"));
       const set = new Set();
@@ -1010,15 +1101,14 @@
       todayShift = rows[0] || null;
 
       if(!todayShift){
-        const msg = `${t("msgNoShiftToday")} (${date})`;
-        pill($("shiftPill"), msg, "warn");
+        pill($("shiftPill"), t("noShiftToday", date), "warn");
         attendanceId = null;
         return null;
       }
 
       attendanceId = attendanceIdFromShift(todayShift, currentUser);
 
-      const label = `${todayShift.branchName||todayShift.branchId||"Branch"} • ${todayShift.shiftName||"Shift"} • ${(todayShift.start&&todayShift.end)?(todayShift.start+"-"+todayShift.end):"—"}`;
+      const label = `${todayShift.branchName||todayShift.branchId||"-"} • ${todayShift.shiftName||"Shift"} • ${(todayShift.start&&todayShift.end)?(todayShift.start+"-"+todayShift.end):"—"}`;
       pill($("shiftPill"), label, "");
       return todayShift;
     }
@@ -1029,7 +1119,7 @@
       attendanceDoc = snap.exists() ? (snap.data()||null) : null;
 
       if(!attendanceDoc){
-        pill($("attPill"), UI_LANG==="en" ? "Today: no attendance yet" : "اليوم: لم تسجل حضور بعد", "warn");
+        pill($("attPill"), (LANG==="ar" ? "اليوم: لم تسجل حضور بعد" : "Today: no attendance yet"), "warn");
         $("btnIn").disabled = false;
         $("btnOutShift").disabled = true;
         return;
@@ -1040,36 +1130,29 @@
       const hasOut = !!attendanceDoc.checkOutAtLocal;
 
       if(st === "absent"){
-        pill($("attPill"), UI_LANG==="en" ? "Today: Absent ❌" : "اليوم: غياب ❌", "bad");
+        pill($("attPill"), (LANG==="ar" ? "اليوم: غياب ❌" : "Today: Absent ❌"), "bad");
         $("btnIn").disabled = true;
         $("btnOutShift").disabled = true;
       }else if(st === "leave"){
-        pill($("attPill"), UI_LANG==="en" ? "Today: Leave ✅" : "اليوم: إجازة ✅", "ok");
+        pill($("attPill"), (LANG==="ar" ? "اليوم: إجازة ✅" : "Today: Leave ✅"), "ok");
         $("btnIn").disabled = true;
         $("btnOutShift").disabled = true;
       }else if(hasIn && !hasOut){
         const late = Number(attendanceDoc.minutesLate||0);
-        pill($("attPill"),
-          UI_LANG==="en"
-            ? (late>0 ? `Present (Late ${late}m) ⏰` : "Present ✅")
-            : (late>0 ? `حاضر (متأخر ${late}د) ⏰` : "حاضر ✅"),
-          late>0 ? "warn" : "ok"
-        );
+        pill($("attPill"), late>0 ? (LANG==="ar" ? `حاضر (متأخر ${late}د) ⏰` : `Present (Late ${late}m) ⏰`) : (LANG==="ar" ? "حاضر ✅" : "Present ✅"), late>0 ? "warn" : "ok");
         $("btnIn").disabled = true;
         $("btnOutShift").disabled = false;
       }else if(hasIn && hasOut){
         const late = Number(attendanceDoc.minutesLate||0);
         const w = Number(attendanceDoc.workedMinutes||0);
-        pill($("attPill"),
-          UI_LANG==="en"
-            ? `Completed ✅ (${w}m)${late>0?` • Late ${late}m`:``}`
-            : `مكتمل ✅ (${w}د)${late>0?` • تأخير ${late}د`:``}`,
-          late>0 ? "warn" : "ok"
-        );
+        pill($("attPill"), (LANG==="ar"
+          ? `مكتمل ✅ (${w}د)${late>0?` • تأخير ${late}د`:``}`
+          : `Completed ✅ (${w}m)${late>0?` • Late ${late}m`:``}`
+        ), late>0 ? "warn" : "ok");
         $("btnIn").disabled = true;
         $("btnOutShift").disabled = true;
       }else{
-        pill($("attPill"), UI_LANG==="en" ? "Record exists without check-in" : "تم إنشاء سجل بدون دخول", "warn");
+        pill($("attPill"), (LANG==="ar" ? "تم إنشاء سجل بدون دخول" : "Record created without Check-In"), "warn");
         $("btnIn").disabled = false;
         $("btnOutShift").disabled = true;
       }
@@ -1083,22 +1166,20 @@
     }
 
     async function doCheckIn(){
-      if(!todayShift) return setMsg("msgAtt", UI_LANG==="en" ? "No shift today to check-in." : "لا يوجد شفت اليوم لتسجيل الحضور.", "bad");
+      if(!todayShift) return setMsg("msgAtt", (LANG==="ar" ? "لا يوجد شفت اليوم لتسجيل الحضور." : "No shift today to check in."), "bad");
 
       const inside = await assertInsideBranch(todayShift.branchId || "");
       if(!inside.ok){
-        return setMsg("msgAtt",
-          UI_LANG==="en"
-            ? `❌ You are outside the branch: ${inside.distM}m away (allowed ${inside.radiusM}m).`
-            : `❌ أنت خارج الفرع: بعيد ${inside.distM}m (المسموح ${inside.radiusM}m).`,
-          "bad"
-        );
+        return setMsg("msgAtt", (LANG==="ar"
+          ? `❌ أنت خارج الفرع: بعيد ${inside.distM}m (المسموح ${inside.radiusM}m).`
+          : `❌ You are outside the branch: ${inside.distM}m away (allowed ${inside.radiusM}m).`
+        ), "bad");
       }
 
       const date = todayShift.date || ymd(new Date());
       const leave = await isOnApprovedLeave(date);
       if(leave.onLeave){
-        setMsg("msgAtt", UI_LANG==="en" ? "You have an approved leave ✅ You can’t check-in." : "أنت بإجازة Approved ✅ لا يمكنك عمل Check-In.", "bad");
+        setMsg("msgAtt", (LANG==="ar" ? "أنت بإجازة Approved ✅ لا يمكنك عمل Check-In." : "You are on an approved leave ✅ You cannot Check-In."), "bad");
         await setDoc(doc(db,"attendance", attendanceId), {
           employeeUid: currentUser.uid,
           employeeId: myPresetKey,
@@ -1142,9 +1223,10 @@
       }, { merge:true });
 
       setMsg("msgAtt",
-        UI_LANG==="en"
-          ? (late>0 ? `Checked-In ✅ (Inside branch) • Late ${late} min` : "Checked-In ✅ (Inside branch)")
-          : (late>0 ? `تم Check-In ✅ (داخل الفرع) • متأخر ${late} دقيقة` : "تم Check-In ✅ (داخل الفرع)"),
+        (late>0
+          ? (LANG==="ar" ? `تم Check-In ✅ (داخل الفرع) • متأخر ${late} دقيقة` : `Checked in ✅ (inside branch) • Late ${late} min`)
+          : (LANG==="ar" ? "تم Check-In ✅ (داخل الفرع)" : "Checked in ✅ (inside branch)")
+        ),
         "ok"
       );
       await loadAttendanceDoc();
@@ -1157,21 +1239,19 @@
       if(todayShift?.branchId){
         const inside = await assertInsideBranch(todayShift.branchId || "");
         if(!inside.ok){
-          return setMsg("msgAtt",
-            UI_LANG==="en"
-              ? `❌ Can't check-out outside branch: ${inside.distM}m away (allowed ${inside.radiusM}m).`
-              : `❌ لا يمكن Check-Out خارج الفرع: بعيد ${inside.distM}m (المسموح ${inside.radiusM}m).`,
-            "bad"
-          );
+          return setMsg("msgAtt", (LANG==="ar"
+            ? `❌ لا يمكن Check-Out خارج الفرع: بعيد ${inside.distM}m (المسموح ${inside.radiusM}m).`
+            : `❌ Cannot Check-Out outside the branch: ${inside.distM}m away (allowed ${inside.radiusM}m).`
+          ), "bad");
         }
       }
 
       const snap = await getDoc(doc(db,"attendance", attendanceId));
-      if(!snap.exists()) return setMsg("msgAtt", UI_LANG==="en" ? "No attendance record to check-out." : "لا يوجد سجل حضور لعمل Check-Out.", "bad");
+      if(!snap.exists()) return setMsg("msgAtt", (LANG==="ar" ? "لا يوجد سجل حضور لعمل Check-Out." : "No attendance record to check out."), "bad");
 
       const x = snap.data() || {};
-      if(!x.checkInAtLocal) return setMsg("msgAtt", UI_LANG==="en" ? "No check-in found." : "لا يوجد Check-In مسجل.", "bad");
-      if(x.checkOutAtLocal) return setMsg("msgAtt", UI_LANG==="en" ? "Already checked-out." : "تم عمل Check-Out مسبقًا.", "bad");
+      if(!x.checkInAtLocal) return setMsg("msgAtt", (LANG==="ar" ? "لا يوجد Check-In مسجل." : "No Check-In found."), "bad");
+      if(x.checkOutAtLocal) return setMsg("msgAtt", (LANG==="ar" ? "تم عمل Check-Out مسبقًا." : "Already checked out."), "bad");
 
       const geo = await assertInsideBranch(todayShift.branchId || "");
       const worked = Math.max(0, Math.round((Date.now() - Number(x.checkInAtLocal||Date.now()))/60000));
@@ -1188,9 +1268,7 @@
       });
 
       setMsg("msgAtt",
-        UI_LANG==="en"
-          ? `Checked-Out ✅ (Inside branch) • Worked ${worked} min`
-          : `تم Check-Out ✅ (داخل الفرع) • عملت ${worked} دقيقة`,
+        (LANG==="ar" ? `تم Check-Out ✅ (داخل الفرع) • عملت ${worked} دقيقة` : `Checked out ✅ (inside branch) • Worked ${worked} min`),
         "ok"
       );
       await loadAttendanceDoc();
@@ -1219,17 +1297,16 @@
       for(const r of last7){
         const st = String(r.status||"").toLowerCase();
         const stLabel =
-          st==="absent" ? (UI_LANG==="en" ? "Absent ❌" : "Absent ❌") :
-          st==="leave" ? (UI_LANG==="en" ? "Leave ✅" : "Leave ✅") :
-          st==="completed" ? (UI_LANG==="en" ? "Completed ✅" : "Completed ✅") :
-          st==="present" ? (Number(r.minutesLate||0)>0 ? (UI_LANG==="en" ? `Late ⏰ (${r.minutesLate}m)` : `Late ⏰ (${r.minutesLate}د)`) : (UI_LANG==="en" ? "Present ✅" : "Present ✅")) :
+          st==="absent" ? t("absent") :
+          st==="leave" ? t("leave") :
+          st==="completed" ? t("completed") :
+          st==="present" ? (Number(r.minutesLate||0)>0 ? t("late", r.minutesLate) : t("present")) :
           (r.status||"-");
 
         const tr = document.createElement("tr");
-        const dayNm = dayNameFromYmd(r.date||"");
         tr.innerHTML = `
           <td>${r.date||"-"}</td>
-          <td>${dayNm||"-"}</td>
+          <td>${r.date ? dayNameFromYMD(r.date) : "-"}</td>
           <td>${r.branchName||r.branchId||"-"}</td>
           <td>${r.shiftName||"-"}</td>
           <td><span class="badge">${stLabel}</span></td>
@@ -1259,7 +1336,7 @@
       line.className = "dateLine";
       line.innerHTML = `
         <input type="date" value="${String(val||"")}">
-        <button class="smBtn danger" type="button">${UI_LANG==="en" ? "Delete" : "حذف"}</button>
+        <button class="smBtn danger" type="button">${LANG==="ar" ? "حذف" : "Delete"}</button>
       `;
       line.querySelector("button").addEventListener("click", ()=> line.remove());
       wrap.appendChild(line);
@@ -1276,18 +1353,18 @@
     function buildLeavePayload(){
       if(leaveMode === "single"){
         const day = $("lDay").value;
-        if(!day) throw new Error(UI_LANG==="en" ? "Choose a day" : "اختر يوم الإجازة");
+        if(!day) throw new Error(LANG==="ar" ? "اختر يوم الإجازة" : "Choose the leave day");
         return { from: day, to: day, dates:[day], leaveMode:"single" };
       }
       if(leaveMode === "range"){
         const from = $("lFrom").value;
         const to = $("lTo").value;
-        if(!from || !to) throw new Error(UI_LANG==="en" ? "Choose from/to" : "اختر من/إلى");
-        if(from > to) throw new Error(UI_LANG==="en" ? "(From) must be before (To)" : "التاريخ (من) يجب أن يكون قبل (إلى)");
+        if(!from || !to) throw new Error(LANG==="ar" ? "اختر من/إلى" : "Choose From/To");
+        if(from > to) throw new Error(LANG==="ar" ? "التاريخ (من) يجب أن يكون قبل (إلى)" : "From date must be before To date");
         return { from, to, dates:[], leaveMode:"range" };
       }
       const dates = getLeaveScatteredDates();
-      if(!dates.length) throw new Error(UI_LANG==="en" ? "Add at least one date" : "أضف تاريخ واحد على الأقل");
+      if(!dates.length) throw new Error(LANG==="ar" ? "أضف تاريخ واحد على الأقل" : "Add at least one date");
       return { from: dates[0], to: dates[dates.length-1], dates, leaveMode:"scattered" };
     }
 
@@ -1299,18 +1376,16 @@
       }
       if(m==="scattered"){
         const arr = Array.isArray(r.dates) ? r.dates : [];
-        if(arr.length<=3) return arr.join(UI_LANG==="en" ? ", " : " ، ");
-        return UI_LANG==="en"
-          ? `${arr.slice(0,3).join(", ")} ... (+${arr.length-3})`
-          : `${arr.slice(0,3).join(" ، ")} ... (+${arr.length-3})`;
+        if(arr.length<=3) return arr.join(" , ");
+        return `${arr.slice(0,3).join(" , ")} ... (+${arr.length-3})`;
       }
       return `${r.from||"-"} → ${r.to||"-"}`;
     }
 
     function leaveModeLabel(m){
-      if(m==="single") return UI_LANG==="en" ? "Single day" : "يوم واحد";
-      if(m==="scattered") return UI_LANG==="en" ? "Scattered days" : "أيام متفرقة";
-      return UI_LANG==="en" ? "Range" : "فترة";
+      if(m==="single") return (LANG==="ar" ? "يوم واحد" : "Single day");
+      if(m==="scattered") return (LANG==="ar" ? "أيام متفرقة" : "Scattered");
+      return (LANG==="ar" ? "فترة" : "Range");
     }
 
     async function loadMyLeaves(){
@@ -1330,7 +1405,7 @@
       tb.innerHTML = "";
       if(!rows.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="3"><span class="badge">${UI_LANG==="en" ? "No requests" : "لا يوجد طلبات"}</span></td>`;
+        tr.innerHTML = `<td colspan="3"><span class="badge">${LANG==="ar" ? "لا يوجد طلبات" : "No requests"}</span></td>`;
         tb.appendChild(tr);
         return;
       }
@@ -1346,43 +1421,107 @@
       }
     }
 
-    // ===== Schedule UI =====
+    // ===== ✅ Schedule (مع إظهار الإجازات حتى لو ما في شفت) =====
+    function buildDateList(from,to){
+      const out=[];
+      const a=new Date(from), b=new Date(to);
+      a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+      for(let d=new Date(a); d<=b; d.setDate(d.getDate()+1)){
+        out.push(ymd(d));
+      }
+      return out;
+    }
+
     async function loadMySchedule(from, to){
       try{
-        const rows = await fetchMyShiftsInRange(from, to, currentUser);
-        rows.sort((a,b)=>
+        // shifts
+        const shifts = await fetchMyShiftsInRange(from, to, currentUser);
+        shifts.sort((a,b)=>
           (a.date||"").localeCompare(b.date||"") ||
           ((timeToMin(a.start)??99999) - (timeToMin(b.start)??99999)) ||
           (a.shiftName||"").localeCompare(b.shiftName||"")
         );
 
+        // approved leaves set
+        const leaveSetAll = await getApprovedLeaveDatesForMe();
+        const dates = buildDateList(from,to);
+        const leaveSetInRange = new Set(dates.filter(d=> leaveSetAll.has(d)));
+
+        // index shifts by date (take first shift per day for view)
+        const byDate = new Map();
+        for(const s of shifts){
+          if(!byDate.has(s.date)) byDate.set(s.date, []);
+          byDate.get(s.date).push(s);
+        }
+
         const tb = $("mySchedTbody");
         tb.innerHTML = "";
 
-        if(!rows.length){
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td colspan="6"><span class="badge">${UI_LANG==="en" ? "No shifts in this range" : "لا يوجد شفت ضمن هذا النطاق"}</span></td>`;
-          tb.appendChild(tr);
-          setMsg("msgSched", t("msgNoShiftsInRange"), "bad");
-          return;
+        // show rows day-by-day (حتى لو ما في شفت)
+        let rendered = 0;
+
+        for(const d of dates){
+          const dayName = dayNameFromYMD(d);
+          const dayShifts = byDate.get(d) || [];
+          const isLeave = leaveSetInRange.has(d);
+
+          if(dayShifts.length){
+            // render all shifts for that day
+            for(const r of dayShifts){
+              const tr = document.createElement("tr");
+              if(isLeave) tr.classList.add("leaveRow"); // إذا عليه إجازة، لونه مميز
+              tr.innerHTML = `
+                <td>${r.date||"-"}</td>
+                <td>${dayName||"-"}</td>
+                <td>${r.branchName||r.branchId||"-"}</td>
+                <td>${isLeave ? t("leaveWord") : (r.shiftName||"-")}</td>
+                <td>${isLeave ? "-" : ((r.start||"") && (r.end||"") ? `${r.start} - ${r.end}` : "-")}</td>
+                <td>
+                  ${isLeave ? `<span class="badge">${t("leaveWord")}</span> <span class="badge">${t("approvedLeave")}</span>` : (r.note ? `<span class="badge">${r.note}</span>` : "")}
+                </td>
+              `;
+              tb.appendChild(tr);
+              rendered++;
+            }
+          }else{
+            // no shift, but leave? show leave row, otherwise show empty row
+            if(isLeave){
+              const tr = document.createElement("tr");
+              tr.classList.add("leaveRow");
+              tr.innerHTML = `
+                <td>${d}</td>
+                <td>${dayName}</td>
+                <td>—</td>
+                <td>${t("leaveWord")}</td>
+                <td>—</td>
+                <td><span class="badge">${t("leaveWord")}</span> <span class="badge">${t("approvedLeave")}</span></td>
+              `;
+              tb.appendChild(tr);
+              rendered++;
+            }else{
+              // optional: show nothing OR show empty line. We show empty line for clarity.
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${d}</td>
+                <td>${dayName}</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td></td>
+              `;
+              tb.appendChild(tr);
+              rendered++;
+            }
+          }
         }
 
-        for(const r of rows){
-          const tr = document.createElement("tr");
-          const dayNm = dayNameFromYmd(r.date||"");
-          tr.innerHTML = `
-            <td>${r.date||"-"}</td>
-            <td>${dayNm||"-"}</td>
-            <td>${r.branchName||r.branchId||"-"}</td>
-            <td>${r.shiftName||"-"}</td>
-            <td>${(r.start||"") && (r.end||"") ? `${r.start} - ${r.end}` : "-"}</td>
-            <td>${r.note ? `<span class="badge">${r.note}</span>` : ""}</td>
-          `;
-          tb.appendChild(tr);
-        }
-        setMsg("msgSched", `${t("msgScheduleLoaded")} (${rows.length})`, "ok");
+        // msg
+        setMsg("msgSched",
+          rendered ? t("scheduleLoaded", rendered) : t("noShifts"),
+          rendered ? "ok" : "bad"
+        );
       }catch(e){
-        setMsg("msgSched", e?.message || (UI_LANG==="en" ? "Failed to load schedule" : "خطأ بتحميل الجدول"), "bad");
+        setMsg("msgSched", e?.message || (LANG==="ar" ? "خطأ بتحميل الجدول" : "Failed to load schedule"), "bad");
       }
     }
 
@@ -1396,7 +1535,7 @@
     function openFix(shiftObj){
       const s = shiftObj || todayShift || null;
       if(!s){
-        setMsg("msgFixList", UI_LANG==="en" ? "No shift to open a correction request." : "لا يوجد شفت لفتح طلب التصحيح.", "bad");
+        setMsg("msgFixList", (LANG==="ar" ? "لا يوجد شفت لفتح طلب التصحيح." : "No shift to open correction request."), "bad");
         return;
       }
       selectedFixShift = s;
@@ -1404,7 +1543,7 @@
       const date = s?.date || ymd(new Date());
       const meta = `${date} • ${(s?.branchName||s?.branchId||"")} • ${(s?.shiftName||"")} • ${((s?.start&&s?.end)?(s.start+"-"+s.end):"—")}`;
       pill($("fixMeta"), meta, "");
-      pill($("fixHintPill"), UI_LANG==="en" ? `Selected shift: ${date}` : `الشيفت المحدد: ${date}`, "");
+      pill($("fixHintPill"), (LANG==="ar" ? `الشيفت المحدد: ${date}` : `Selected shift: ${date}`), "");
       $("msgFix").className = "msg";
       $("msgFix").textContent = "";
       $("fixOv").classList.add("show");
@@ -1434,11 +1573,11 @@
     function renderPickerRows(rows){
       const tb = $("pickTbody");
       tb.innerHTML = "";
-      pill($("pickMeta"), (UI_LANG==="en" ? `Shifts: ${rows.length}` : `عدد الشفتات: ${rows.length}`), "");
+      pill($("pickMeta"), (LANG==="ar" ? `عدد الشفتات: ${rows.length}` : `Shifts: ${rows.length}`), "");
 
       if(!rows.length){
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="5"><span class="badge">${UI_LANG==="en" ? "No shifts on this day" : "مافي شيفت بهذا اليوم"}</span></td>`;
+        tr.innerHTML = `<td colspan="5"><span class="badge">${t("pickNone")}</span></td>`;
         tb.appendChild(tr);
         return;
       }
@@ -1450,7 +1589,7 @@
           <td>${r.branchName||r.branchId||"-"}</td>
           <td>${r.shiftName||"-"}</td>
           <td>${(r.start&&r.end)?`${r.start} - ${r.end}`:"-"}</td>
-          <td><button class="btn warn" data-pick="${idx}">${t("btnPick")}</button></td>
+          <td><button class="btn warn" data-pick="${idx}">${LANG==="ar" ? "اختيار" : "Pick"}</button></td>
         `;
         tb.appendChild(tr);
       });
@@ -1480,13 +1619,13 @@
       try{
         const day = $("pickDate").value;
         if(!day){
-          setMsg("msgPick", t("msgPickSelectDay"), "bad");
+          setMsg("msgPick", t("chooseDay"), "bad");
           pickerRowsCache = [];
           renderPickerRows([]);
           return;
         }
 
-        setMsg("msgPick", t("msgLoadingShifts"), "ok");
+        setMsg("msgPick", t("loading"), "ok");
 
         const rows = await fetchMyShiftsInRange(day, day, currentUser);
         rows.sort((a,b)=>
@@ -1497,43 +1636,56 @@
         pickerRowsCache = rows;
 
         if(!rows.length){
-          setMsg("msgPick", t("msgNoShiftThatDay"), "bad");
+          setMsg("msgPick", t("pickNone"), "bad");
         }else{
-          setMsg("msgPick", `${t("msgLoadedOk")} (${rows.length})`, "ok");
+          setMsg("msgPick", (LANG==="ar" ? `تم التحميل ✅ (${rows.length})` : `Loaded ✅ (${rows.length})`), "ok");
         }
 
         applyPickerFilterAndRender();
       }catch(e){
         console.error(e);
-        setMsg("msgPick", e?.message || (UI_LANG==="en" ? "Failed to load shifts." : "فشل تحميل الشفتات."), "bad");
+        setMsg("msgPick", e?.message || (LANG==="ar" ? "فشل تحميل الشفتات." : "Failed to load shifts."), "bad");
       }
     }
 
     // ===== events =====
     initTabs();
 
-    function bindLogoutIfExists(){
-      const btn = document.getElementById("btnOut") || document.getElementById("btnLogout");
-      if(btn && !btn.__bound){
-        btn.__bound = true;
-        btn.addEventListener("click", async ()=>{
-          await signOut(auth);
-          location.href="./login.html";
-        });
+    // Logout button ✅
+    $("btnLogout").addEventListener("click", async ()=>{
+      try{
+        await signOut(auth);
+      }catch(e){
+        console.warn(e);
       }
-    }
-    bindLogoutIfExists();
-    window.addEventListener("roma:nav:layout", bindLogoutIfExists);
+      location.href="./login.html";
+    });
+
+    // Language toggle ✅ + animation
+    $("btnLang").addEventListener("click", ()=>{
+      LANG = (LANG==="ar" ? "en" : "ar");
+      localStorage.setItem("roma_staff_lang", LANG);
+      applyLang();
+      // refresh day names + schedule msg + leaves list view
+      // (بدون إعادة تحميل الصفحة)
+      try{ refreshScheduleFromDropdown(); }catch{}
+      try{ loadAttLast7Days(); }catch{}
+      try{ loadMyLeaves(); }catch{}
+      // re-render scattered delete button labels
+      document.querySelectorAll("#leaveDatesList .dateLine button").forEach(btn=>{
+        btn.textContent = (LANG==="ar" ? "حذف" : "Delete");
+      });
+    });
 
     $("btnIn").addEventListener("click", async ()=>{
-      try{ await doCheckIn(); }catch(e){ console.error(e); setMsg("msgAtt", e?.message || (UI_LANG==="en" ? "Error" : "خطأ"), "bad"); }
+      try{ await doCheckIn(); }catch(e){ console.error(e); setMsg("msgAtt", e?.message || "Error", "bad"); }
     });
     $("btnOutShift").addEventListener("click", async ()=>{
-      try{ await doCheckOut(); }catch(e){ console.error(e); setMsg("msgAtt", e?.message || (UI_LANG==="en" ? "Error" : "خطأ"), "bad"); }
+      try{ await doCheckOut(); }catch(e){ console.error(e); setMsg("msgAtt", e?.message || "Error", "bad"); }
     });
 
     $("btnFix").addEventListener("click", ()=>{
-      if(!todayShift) return setMsg("msgFixList", UI_LANG==="en" ? "No shift today to request correction." : "لا يوجد شفت اليوم لطلب التصحيح.", "bad");
+      if(!todayShift) return setMsg("msgFixList", (LANG==="ar" ? "لا يوجد شفت اليوم لطلب التصحيح." : "No shift today to request correction."), "bad");
       openFix(todayShift);
     });
 
@@ -1564,11 +1716,11 @@
     $("fixSend").addEventListener("click", async ()=>{
       try{
         const s = selectedFixShift || todayShift || null;
-        if(!s) return setMsg("msgFix", UI_LANG==="en" ? "Pick a shift first." : "اختر شيفت أولاً.", "bad");
+        if(!s) return setMsg("msgFix", (LANG==="ar" ? "اختر شيفت أولاً." : "Pick a shift first."), "bad");
 
         const date = s?.date || ymd(new Date());
         const note = $("fixNote").value.trim();
-        if(!note) return setMsg("msgFix", UI_LANG==="en" ? "Write the reason." : "اكتب سبب الطلب.", "bad");
+        if(!note) return setMsg("msgFix", (LANG==="ar" ? "اكتب سبب الطلب." : "Write the reason."), "bad");
 
         const attId = attendanceIdFromShift(s, currentUser);
 
@@ -1589,35 +1741,31 @@
           createdAt: serverTimestamp()
         });
 
-        setMsg("msgFix", UI_LANG==="en" ? "Correction request sent ✅ (Pending)" : "تم إرسال طلب التصحيح ✅ (Pending)", "ok");
+        setMsg("msgFix", (LANG==="ar" ? "تم إرسال طلب التصحيح ✅ (Pending)" : "Correction request sent ✅ (Pending)"), "ok");
         $("fixNote").value = "";
       }catch(e){
         console.error(e);
-        setMsg("msgFix", e?.message || (UI_LANG==="en" ? "Error" : "خطأ"), "bad");
+        setMsg("msgFix", e?.message || "Error", "bad");
       }
     });
 
     $("btnTestGps").addEventListener("click", async ()=>{
       try{
-        if(!todayShift?.branchId) return setMsg("msgAtt", UI_LANG==="en" ? "No branchId for this shift." : "لا يوجد branchId لهذا الشفت.", "bad");
+        if(!todayShift?.branchId) return setMsg("msgAtt", (LANG==="ar" ? "لا يوجد branchId لهذا الشفت." : "No branchId for this shift."), "bad");
         const res = await assertInsideBranch(todayShift.branchId);
         if(res.ok){
-          setMsg("msgAtt",
-            UI_LANG==="en"
-              ? `✅ You are inside: ${res.distM}m away (allowed ${res.radiusM}m).`
-              : `✅ أنت داخل الفرع: بعيد ${res.distM}m (المسموح ${res.radiusM}m).`,
-            "ok"
-          );
+          setMsg("msgAtt", (LANG==="ar"
+            ? `✅ أنت داخل الفرع: بعيد ${res.distM}m (المسموح ${res.radiusM}m).`
+            : `✅ You are inside: ${res.distM}m away (allowed ${res.radiusM}m).`
+          ), "ok");
         }else{
-          setMsg("msgAtt",
-            UI_LANG==="en"
-              ? `❌ You are outside: ${res.distM}m away (allowed ${res.radiusM}m).`
-              : `❌ أنت خارج الفرع: بعيد ${res.distM}m (المسموح ${res.radiusM}m).`,
-            "bad"
-          );
+          setMsg("msgAtt", (LANG==="ar"
+            ? `❌ أنت خارج الفرع: بعيد ${res.distM}m (المسموح ${res.radiusM}m).`
+            : `❌ You are outside: ${res.distM}m away (allowed ${res.radiusM}m).`
+          ), "bad");
         }
       }catch(e){
-        setMsg("msgAtt", e?.message || (UI_LANG==="en" ? "GPS test failed" : "فشل فحص GPS"), "bad");
+        setMsg("msgAtt", e?.message || (LANG==="ar" ? "فشل فحص GPS" : "GPS test failed"), "bad");
       }
     });
 
@@ -1647,41 +1795,33 @@
           createdAt: serverTimestamp()
         });
 
-        setMsg("msgLeave", UI_LANG==="en" ? "Request sent ✅" : "تم إرسال الطلب ✅", "ok");
+        setMsg("msgLeave", (LANG==="ar" ? "تم إرسال الطلب ✅" : "Request sent ✅"), "ok");
         await loadMyLeaves();
+        await refreshScheduleFromDropdown(); // ليظهر pending/approved لاحقاً
       }catch(e){
-        setMsg("msgLeave", e?.message || (UI_LANG==="en" ? "Check inputs" : "تأكد من البيانات"), "bad");
+        setMsg("msgLeave", e?.message || (LANG==="ar" ? "تأكد من البيانات" : "Check the data"), "bad");
       }
     });
 
     $("btnLoadSched").addEventListener("click", refreshScheduleFromDropdown);
     $("schedRange").addEventListener("change", refreshScheduleFromDropdown);
 
-    // ✅ language button
-    $("btnLang").addEventListener("click", toggleLang);
-
     // ===== Boot =====
     onAuthStateChanged(auth, async (user)=>{
       if(!user){ location.href="./login.html"; return; }
       currentUser = user;
 
-      // ✅ IMPORTANT: matches your shifts docs (employeeId = uid)
+      // ✅ matches shifts docs: employeeId = uid
       myPresetKey = user.uid;
 
-      // ✅ pass user text to nav
-      window.__romaUserText = (user.email || user.uid);
-      try{
-        window.dispatchEvent(new CustomEvent("roma:user", { detail:{ text: window.__romaUserText } }));
-      }catch{}
-
-      const mePill = document.getElementById("mePill");
+      const mePill = $("mePill");
       if(mePill) mePill.textContent = user.email || user.uid;
 
-      await ensureEmployeeDoc(user);
-      const role = await getMyRole(user.uid);
+      // Apply language first (so UI correct)
+      applyLang();
 
-      const goAdmin = document.getElementById("goAdmin");
-      if(goAdmin && role==="admin") goAdmin.style.display="inline-flex";
+      await ensureEmployeeDoc(user);
+      await getMyRole(user.uid); // (kept for future)
 
       try{
         const p = await getDoc(doc(db,"employees", user.uid));
@@ -1701,10 +1841,7 @@
       addLeaveDateLine(ymd(tomorrow));
 
       $("pickDate").value = ymd(new Date());
-      pill($("pickMeta"), UI_LANG==="en" ? "Pick a day then load" : "اختر يوم ثم حمّل", "");
-
-      // ✅ apply language on load
-      applyLang();
+      pill($("pickMeta"), (LANG==="ar" ? "اختر يوم ثم حمّل" : "Pick a day then load"), "");
 
       await loadMyLeaves();
       await refreshScheduleFromDropdown();
